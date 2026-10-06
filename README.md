@@ -20,7 +20,7 @@ Students sign in here with their VIT Google account, pay by UPI for one subject,
 | `STORE_SECRET` | long random string, the SAME value on the store and on each subject site |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis (Vercel Storage) |
 | `STUDENT_DOMAIN` | optional, default `vitstudent.ac.in` |
-| `PRICE_BACHY105`, `PRICE_BAEEE101`, `PRICE_BAENG101` | optional price in paise (defaults: BACHY105 5000, BAEEE101 1500, BAENG101 3000; minimum 100). Keep these equal to each subject site's own price |
+| `PRICE_BACHY105`, `PRICE_BAEEE101`, `PRICE_BAENG101` | optional price in paise (default: 900 (₹9) for each; minimum 100). Keep these equal to each subject site's own price |
 
 ## Local
 ```

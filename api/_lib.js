@@ -7,9 +7,9 @@ const MAX_AGE = 400 * 24 * 3600; // browsers cap cookies at 400 days
 
 // One entry per subject site. Price is in paise; set PRICE_<CODE> in Vercel to change it (minimum 100 = ₹1).
 const PRODUCTS = {
-  BACHY105: { name: 'Applied Chemistry', site: 'https://bachy105.vercel.app', price: 5000 },
-  BAEEE101: { name: 'Basic Engineering', site: 'https://baeee101.vercel.app', price: 1500 },
-  BAENG101: { name: 'Technical English', site: 'https://baeng101.vercel.app', price: 3000 },
+  BACHY105: { name: 'Applied Chemistry', site: 'https://bachy105.vercel.app', price: 900 },
+  BAEEE101: { name: 'Basic Engineering', site: 'https://baeee101.vercel.app', price: 900 },
+  BAENG101: { name: 'Technical English', site: 'https://baeng101.vercel.app', price: 900 },
 };
 function priceOf(code) {
   const n = parseInt(process.env['PRICE_' + code] || '', 10);
