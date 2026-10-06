@@ -4,26 +4,32 @@
 //     grant { email, product }      give Pro for one subject without a payment (recorded as manual)
 //     revoke { email, product }     take Pro for one subject away
 //     lookup { email }              everything about one student
+//     refund { email, product, amount? (paise; empty = full), reason }   refund through Razorpay; a full refund ends Pro
 //     reconcile { days? }           ask Razorpay for recent payments of this store and record any that are missing
-const { send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, PRODUCTS, priceOf, razorpay, recordPaid, DOMAIN, handle } = require('./_lib');
+const { send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, PRODUCTS, priceOf, razorpay, recordPaid, recordRefund, DOMAIN, handle } = require('./_lib');
 const store = require('./_store');
 
 const codes = Object.keys(PRODUCTS);
 const parse = (s) => { try { return JSON.parse(s) || {}; } catch (e) { return {}; } };
 
 async function snapshot() {
-  const res = await store.pipeline([...codes.map((c) => ['HGETALL', 'paid:' + c]), ['HGETALL', 'userFirst'], ['HGETALL', 'userLogin'], ['HGETALL', 'userLogins']]);
+  const res = await store.pipeline([...codes.map((c) => ['HGETALL', 'paid:' + c]), ['HGETALL', 'userFirst'], ['HGETALL', 'userLogin'], ['HGETALL', 'userLogins'], ...codes.map((c) => ['HGETALL', 'refunded:' + c]), ['HGETALL', 'refunds']]);
   const flat = (l) => { const o = {}; for (let i = 0; l && i < l.length; i += 2) o[l[i]] = l[i + 1]; return o; };
   const paid = {}; codes.forEach((c, i) => { paid[c] = flat(res[i]); });
   const first = flat(res[codes.length]), last = flat(res[codes.length + 1]), logins = flat(res[codes.length + 2]);
+  const refd = {}; codes.forEach((c, i) => { refd[c] = flat(res[codes.length + 3 + i]); });
+  const refunds = Object.values(flat(res[codes.length * 2 + 3])).map(parse).sort((x, y) => String(y.at).localeCompare(String(x.at)));
   const payments = [];
   const per = codes.map((c) => ({ code: c, name: PRODUCTS[c].name, price: priceOf(c), count: 0, manual: 0, revenue: 0 }));
   codes.forEach((c, i) => {
     for (const email in paid[c]) {
       const x = parse(paid[c][email]);
-      payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: !!x.manual });
+      payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: !!x.manual, order: x.order || '', method: x.method || '', status: x.manual ? 'manual' : 'paid' });
       if (x.manual) per[i].manual++; else { per[i].count++; per[i].revenue += x.amount || 0; }
     }
+  });
+  codes.forEach((c) => {
+    for (const email in refd[c]) { const x = parse(refd[c][email]); payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: false, order: x.order || '', method: x.method || '', status: 'refunded', refundedAt: x.refundedAt || '' }); }
   });
   payments.sort((a, b) => String(b.at).localeCompare(String(a.at)));
   const emails = new Set([...Object.keys(first), ...Object.keys(last), ...codes.flatMap((c) => Object.keys(paid[c]))]);
@@ -31,7 +37,7 @@ async function snapshot() {
     email, first: first[email] || null, last: last[email] || null, logins: parseInt(logins[email], 10) || 0, owned: codes.filter((c) => email in paid[c]),
   })).sort((a, b) => String(b.last || b.first || '').localeCompare(String(a.last || a.first || ''))).slice(0, 3000);
   const real = per.reduce((n, p) => n + p.revenue, 0);
-  return { products: per, totals: { revenue: real, payments: per.reduce((n, p) => n + p.count, 0), manual: per.reduce((n, p) => n + p.manual, 0), students: emails.size }, payments: payments.slice(0, 1000), students };
+  return { products: per, totals: { revenue: real, payments: per.reduce((n, p) => n + p.count, 0), manual: per.reduce((n, p) => n + p.manual, 0), students: emails.size, refunded: refunds.reduce((n, r) => n + (r.amount || 0), 0), refunds: refunds.length }, payments: payments.slice(0, 1500), refunds: refunds.slice(0, 500), students };
 }
 
 async function reconcile(days) {
@@ -42,7 +48,12 @@ async function reconcile(days) {
     const items = r.items || [];
     for (const p of items) {
       const n = p.notes || {};
-      if (n.product !== 'pro-store' || !isProduct(n.item) || p.status !== 'captured') continue;
+      if (n.product !== 'pro-store' || !isProduct(n.item)) continue;
+      if ((p.amount_refunded || 0) > 0) { // refunded in Razorpay: a full refund ends Pro here too
+        await recordRefund({ email: normEmail(n.email), code: n.item, paymentId: p.id, refundId: 'rf_' + p.id, amount: p.amount_refunded, full: p.amount_refunded >= p.amount, reason: 'refund in Razorpay', by: 'razorpay' });
+        continue;
+      }
+      if (p.status !== 'captured') continue;
       found++;
       const email = normEmail(n.email);
       if (!isStudentEmail(email)) { skipped++; continue; }
@@ -74,6 +85,18 @@ module.exports = handle(async (req, res) => {
     return send(res, 200, { ok: true, student: s, payments: pays });
   }
   if (!isProduct(b.product)) return send(res, 400, { error: 'Pick a subject.' });
+  if (a === 'refund') {
+    const [rec] = await store.pipeline([['HGET', 'paid:' + b.product, email]]);
+    if (rec == null) return send(res, 404, { error: 'No active payment for that student and subject (already refunded, or never paid).' });
+    const x = parse(rec);
+    if (x.manual || !/^pay_/.test(x.id || '')) return send(res, 400, { error: 'That access was given manually, so there is no payment to refund. Use Remove Pro.' });
+    const paise = parseInt(b.amount, 10), full = !(paise > 0) || paise >= x.amount;
+    if (!full && paise < 100) return send(res, 400, { error: 'A partial refund must be at least ₹1.' });
+    const reason = String(b.reason || '').slice(0, 200);
+    const rf = await razorpay('POST', '/payments/' + x.id + '/refund', Object.assign({ notes: { reason, by: 'admin', product: 'pro-store', email } }, full ? {} : { amount: paise }));
+    const log = await recordRefund({ email, code: b.product, paymentId: x.id, refundId: rf.id, amount: rf.amount || (full ? x.amount : paise), full, reason, by: 'admin' });
+    return send(res, 200, { ok: true, refund: log, status: rf.status });
+  }
   if (a === 'grant') {
     await store.pipeline([['HSET', 'paid:' + b.product, email, JSON.stringify({ id: 'manual', at: new Date().toISOString(), amount: 0, manual: true })]]);
     return send(res, 200, { ok: true });

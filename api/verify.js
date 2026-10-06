@@ -5,7 +5,7 @@
 //   Razorpay webhook (header x-razorpay-signature, secret RAZORPAY_WEBHOOK_SECRET): payment.authorized,
 //       payment.captured and order.paid unlock the student named in the order even if they closed the page.
 const crypto = require('crypto');
-const { send, body, hmac, safeEqual, env, razorpay, checkPayment, recordPaid, getUser, isProduct, handle } = require('./_lib');
+const { send, body, hmac, safeEqual, env, razorpay, checkPayment, recordPaid, recordRefund, normEmail, getUser, isProduct, handle } = require('./_lib');
 
 async function rawBody(req) {
   if (typeof req.body === 'string') return req.body;
@@ -39,6 +39,20 @@ module.exports = handle(async (req, res) => {
     if (!safeEqual(expected, String(sig))) return send(res, 400, { error: 'Bad signature.' });
     let ev = {}; try { ev = JSON.parse(raw); } catch (e) { /* ignore */ }
     const p = ((ev.payload || {}).payment || {}).entity || {};
+    // a refund made from the Razorpay dashboard (or by the admin page): a full one ends Pro for that subject
+    if (/^(refund\.(processed|created)|payment\.refunded)$/.test(ev.event || '')) {
+      try {
+        const rf = ((ev.payload || {}).refund || {}).entity || {};
+        const paymentId = rf.payment_id || p.id;
+        if (!paymentId) return send(res, 200, { ok: true, ignored: 'no payment id' });
+        const pay = await razorpay('GET', '/payments/' + paymentId);
+        const order = pay.order_id ? await razorpay('GET', '/orders/' + pay.order_id) : null, n = (order && order.notes) || {};
+        if (!order || n.product !== 'pro-store' || !isProduct(n.item)) return send(res, 200, { ok: true, ignored: 'not a store payment' });
+        const full = (pay.amount_refunded || 0) >= pay.amount;
+        await recordRefund({ email: normEmail(n.email), code: n.item, paymentId, refundId: rf.id || ('rf_' + paymentId), amount: rf.amount || pay.amount_refunded || 0, full, reason: 'refund in Razorpay', by: 'razorpay' });
+        return send(res, 200, { ok: true, refunded: true, full });
+      } catch (e) { return send(res, 500, { error: e.message }); }
+    }
     const orderId = p.order_id || (((ev.payload || {}).order || {}).entity || {}).id;
     if (!/^(payment\.(authorized|captured)|order\.paid)$/.test(ev.event || '') || !orderId) return send(res, 200, { ok: true, ignored: ev.event || 'unknown' });
     try { const r = await unlockOrder(orderId, null); return send(res, 200, { ok: true, unlocked: !!r.ok }); }

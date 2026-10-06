@@ -133,7 +133,7 @@ async function checkPayment(paymentId, orderId) {
 async function recordPaid(email, code, p) {
   const store = require('./_store');
   if (!store.configured()) throw Object.assign(new Error('Storage is not set up, so access cannot be saved.'), { status: 500 });
-  await store.pipeline([['HSET', 'paid:' + code, email, JSON.stringify({ id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: p.amount })]]);
+  await store.pipeline([['HSET', 'paid:' + code, email, JSON.stringify({ id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: p.amount, order: p.order_id || '', method: p.method || '' })]]);
 }
 async function ownedBy(email) {
   const store = require('./_store');
@@ -145,6 +145,21 @@ async function ownedBy(email) {
   return out;
 }
 
+// A refund is logged in hash "refunds". A full refund also ends Pro for that subject: the record moves from
+// paid:<CODE> to refunded:<CODE> (so the history is kept) and the entitlement check says no from then on.
+async function recordRefund(o) {
+  const store = require('./_store');
+  const log = { id: o.refundId, payment: o.paymentId, email: o.email, product: o.code, amount: o.amount, full: !!o.full, at: o.at || new Date().toISOString(), reason: o.reason || '', by: o.by || 'razorpay' };
+  await store.pipeline([['HSETNX', 'refunds', o.refundId, JSON.stringify(log)]]);
+  if (o.full) {
+    const [rec] = await store.pipeline([['HGET', 'paid:' + o.code, o.email]]);
+    if (rec == null) return log; // already moved (the admin page and the Razorpay webhook can both report the same refund)
+    let x = {}; try { x = JSON.parse(rec || '{}') || {}; } catch (e) { /* ignore */ }
+    await store.pipeline([['HSET', 'refunded:' + o.code, o.email, JSON.stringify(Object.assign(x, { refundedAt: log.at, refundId: o.refundId }))], ['HDEL', 'paid:' + o.code, o.email]]);
+  }
+  return log;
+}
+
 function handle(fn) {
   return async (req, res) => {
     try { await fn(req, res); }
@@ -154,5 +169,5 @@ function handle(fn) {
 
 module.exports = {
   DOMAIN, PRODUCTS, priceOf, isProduct, env, send, body, hmac, safeEqual, normEmail, isStudentEmail, getUser, userCookie, clearUserCookie,
-  verifyGoogle, razorpay, checkPayment, recordPaid, ownedBy, handle,
+  verifyGoogle, razorpay, checkPayment, recordPaid, recordRefund, ownedBy, handle,
 };
