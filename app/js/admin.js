@@ -15,8 +15,8 @@
   const ist = (d) => new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   try { KEY = sessionStorage.getItem('st_admin') || ''; } catch (e) { /* ignore */ }
 
-  async function call(method, data) {
-    const r = await fetch('/api/admin', { method, headers: { 'x-admin-key': KEY, 'Content-Type': 'application/json' }, body: data ? JSON.stringify(data) : undefined, cache: 'no-store' });
+  async function call(method, data, qs) {
+    const r = await fetch('/api/admin' + (qs || ''), { method, headers: { 'x-admin-key': KEY, 'Content-Type': 'application/json' }, body: data ? JSON.stringify(data) : undefined, cache: 'no-store' });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { const e = new Error(j.error || 'Request failed'); e.status = r.status; throw e; }
     return j;
@@ -65,8 +65,21 @@
     $('#ref-rows').innerHTML = (D.refunds || []).filter((r) => has(r.email) || has(r.payment)).map((r) => `<tr><td>${when(r.at)}</td><td>${esc(r.email)}</td><td>${esc(name(r.product))}</td><td>${rs(r.amount)}${r.full ? '' : ' (part)'}</td><td>${esc(r.reason)}${r.by === 'razorpay' ? ' <span class="text-secondary small">(done in Razorpay)</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="text-secondary">No refunds yet.</td></tr>';
     $('#stu-rows').innerHTML = D.students.filter((s) => has(s.email)).map((s) => `<tr><td>${esc(s.email)}</td><td>${when(s.first)}</td><td>${when(s.last)}</td><td>${s.logins}</td><td>${s.owned.map((c) => `<span class="badge bg-green-lt me-1">${esc(c)}</span>`).join('') || '<span class="text-secondary">none</span>'}</td></tr>`).join('') || '<tr><td colspan="5" class="text-secondary">No students yet.</td></tr>';
   }
+  // visitors per day on each notes website (each site counts its own; the store is not counted)
+  async function loadVisits() {
+    const box = $('#vis');
+    try {
+      const V = await call('GET', undefined, '?part=visits');
+      const days = Array.from({ length: 30 }, (_, i) => new Date(Date.now() + 19800000 - (29 - i) * 864e5).toISOString().slice(0, 10));
+      const sum = (v, n) => days.slice(-n).reduce((a, d) => a + (+v[d] || 0), 0);
+      const tot = days.map((d) => V.sites.reduce((a, s) => a + (+s.visits[d] || 0), 0)), max = Math.max(1, ...tot);
+      const rows = V.sites.map((s) => s.ok ? `<tr><td>${esc(s.name)}</td><td>${sum(s.visits, 1)}</td><td>${sum(s.visits, 7)}</td><td>${sum(s.visits, 30)}</td><td>${s.funnel ? s.funnel.paywall + ' saw the payment page' : ''}</td></tr>` : `<tr><td>${esc(s.name)}</td><td colspan="4" class="text-danger">${esc(s.error || 'Not available')}</td></tr>`).join('');
+      const bars = tot.map((n, i) => `<div title="${days[i]}: ${n} visitors" style="flex:1;display:flex;align-items:flex-end"><div style="width:100%;height:${Math.max(2, Math.round(n / max * 100))}%;background:var(--tblr-primary,#7cc0ff);border-radius:2px;opacity:${n ? 1 : .25}"></div></div>`).join('');
+      box.innerHTML = `<div class="table-wrap"><table class="table table-vcenter card-table table-sm"><thead><tr><th>Notes website</th><th>Today</th><th>Last 7 days</th><th>Last 30 days</th><th>Pro page</th></tr></thead><tbody>${rows}<tr><td><b>All notes sites</b></td><td><b>${tot[29]}</b></td><td><b>${tot.slice(-7).reduce((a, n) => a + n, 0)}</b></td><td><b>${tot.reduce((a, n) => a + n, 0)}</b></td><td></td></tr></tbody></table></div><div class="text-secondary small mt-3 mb-1">Visitors per day, last 30 days (all notes sites)</div><div style="display:flex;gap:2px;height:90px">${bars}</div>`;
+    } catch (e) { box.innerHTML = '<span class="text-danger">' + esc(e.message) + '</span>'; }
+  }
   async function load() {
-    try { D = await call('GET'); show(true); render(); }
+    try { D = await call('GET'); show(true); render(); loadVisits(); }
     catch (e) { if (e.status === 401 || !D) { show(false); $('#gate-msg').textContent = e.message; try { sessionStorage.removeItem('st_admin'); } catch (x) { /* ignore */ } } else alert(e.message); }
   }
 

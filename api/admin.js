@@ -1,6 +1,7 @@
 // Owner-only admin API for the store. Send the ADMIN_KEY (Vercel env var) in the "x-admin-key" header.
 //   GET  /api/admin -> { products, totals, payments, students, now }
 //   POST /api/admin { action, ... }:
+//   GET  /api/admin?part=visits -> { sites: [{ code, name, ok, error?, visits: {day: n}, funnel }] }  visitors counted by each notes website itself (store visits are not counted)
 //     grant { email, product }      give Pro for one subject without a payment (recorded as manual)
 //     revoke { email, product }     take Pro for one subject away
 //     lookup { email }              everything about one student
@@ -10,6 +11,20 @@ const { send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, PRODUC
 const store = require('./_store');
 
 const codes = Object.keys(PRODUCTS);
+
+// each notes website counts its own visitors; ask each one for its numbers with the shared admin key
+async function siteVisits() {
+  return Promise.all(codes.map(async (code) => {
+    const p = PRODUCTS[code], out = { code, name: p.name, ok: false, visits: {}, funnel: null };
+    try {
+      const r = await fetch(p.site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY') }, signal: AbortSignal.timeout(8000) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { out.error = r.status === 401 ? 'That site has a different ADMIN_KEY.' : (j.error || 'HTTP ' + r.status); return out; }
+      out.ok = true; out.visits = j.visits || {}; out.funnel = j.funnel || null;
+    } catch (e) { out.error = 'Could not reach the site.'; }
+    return out;
+  }));
+}
 const parse = (s) => { try { return JSON.parse(s) || {}; } catch (e) { return {}; } };
 
 async function snapshot() {
@@ -76,6 +91,7 @@ module.exports = handle(async (req, res) => {
   if (!key || !safeEqual(key, expected)) return send(res, 401, { error: 'Wrong admin key.' });
   if (!store.configured()) return send(res, 500, { error: 'The database is not connected.' });
 
+  if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'visits') return send(res, 200, { sites: await siteVisits(), now: new Date().toISOString() });
   if (req.method === 'GET') return send(res, 200, Object.assign(await snapshot(), { now: new Date().toISOString(), domain: DOMAIN }));
   if (req.method !== 'POST') return send(res, 405, { error: 'GET or POST only' });
 
