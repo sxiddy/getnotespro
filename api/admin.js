@@ -91,7 +91,10 @@ module.exports = handle(async (req, res) => {
   if (!key || !safeEqual(key, expected)) return send(res, 401, { error: 'Wrong admin key.' });
   if (!store.configured()) return send(res, 500, { error: 'The database is not connected.' });
 
-  if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'visits') return send(res, 200, { sites: await siteVisits(), now: new Date().toISOString() });
+  if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'visits') {
+    const [vs] = store.configured() ? await store.pipeline([['HGETALL', 'visits']]) : [[]];
+    return send(res, 200, { sites: await siteVisits(), store: { visits: store.pairs(vs) }, now: new Date().toISOString() });
+  }
   if (req.method === 'GET') return send(res, 200, Object.assign(await snapshot(), { now: new Date().toISOString(), domain: DOMAIN }));
   if (req.method !== 'POST') return send(res, 405, { error: 'GET or POST only' });
 

@@ -134,6 +134,12 @@
     revealEls.forEach((el) => io.observe(el));
   } else revealEls.forEach((el) => el.classList.add('in'));
 
+  // count this browser once a day (anonymous: just a number per day)
+  try {
+    const day = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem('st_visit') !== day) { localStorage.setItem('st_visit', day); fetch('/api/track', { method: 'POST', body: '{"visit":true}', keepalive: true }).catch(() => {}); }
+  } catch (e) { /* ignore */ }
+
   async function boot() {
     S = await api('/api/session');
     render();
