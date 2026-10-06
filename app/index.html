@@ -43,11 +43,8 @@
       <h1>Notes that click.<br><em>Pro</em> for exam week.</h1>
       <p class="lead">Read the notes for your VIT subject free, any time. When exams get close, add Pro for the study tools: interactive models, the question bank, quizzes, flashcards and formula sheets. Pay once with UPI, sign in with your VIT account, and it works on the subject site straight away.</p>
       <div class="hero-cta"><a class="btn primary lg" href="#subjects">Pick your subject</a><a class="btn lg ghost" href="#compare">Free vs Pro</a></div>
-      <div class="free-row" aria-label="Read the notes free">
+      <div class="free-row" id="free-row" aria-label="Read the notes free">
         <span class="muted small">Read free now</span>
-        <a class="pill" href="https://bachy105.vercel.app" rel="noopener" style="--a:var(--cat)"><i></i>Applied Chemistry</a>
-        <a class="pill" href="https://baeee101.vercel.app" rel="noopener" style="--a:var(--e)"><i></i>Basic Engineering</a>
-        <a class="pill" href="https://baeng101.vercel.app" rel="noopener" style="--a:var(--an)"><i></i>Technical English</a>
       </div>
       <p class="hero-msg" id="hero-msg" role="status"></p>
       <ul class="trust">
@@ -81,7 +78,7 @@
   </section>
 
   <section class="stats reveal" aria-label="At a glance">
-    <div><b data-count="3">3</b><span>VIT subjects</span></div>
+    <div><b id="stat-n" data-count="3">3</b><span>VIT subjects</span></div>
     <div><b>₹<i data-count="0">0</i></b><span>to read the notes</span></div>
     <div><b>₹<i data-count="10">10</i></b><span>Pro, per subject</span></div>
     <div class="txt"><span>Pay once, no renewal</span></div>
@@ -95,6 +92,8 @@
 
   <section id="subjects" class="subjects reveal">
     <div class="sec-head"><div><div class="kicker">Subjects</div><h2>Pick your subject</h2></div><p class="muted">Read free, or unlock Pro. Pro is bought per subject.</p></div>
+    <div class="mine" id="mine" hidden></div>
+    <div class="tools" id="tools" hidden></div>
     <div class="cards" id="cards">
       <div class="sk card"><i></i><i></i><i></i><i></i><i></i></div>
       <div class="sk card"><i></i><i></i><i></i><i></i><i></i></div>
@@ -159,8 +158,8 @@
 
 <footer class="foot">
   <div class="foot-in">
-    <div class="foot-brand"><a class="brand" href="./"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h6A3.5 3.5 0 0 1 12 8v12.5a2.5 2.5 0 0 0-2.5-2.5h-7z"/><path d="M21.5 4.5h-6A3.5 3.5 0 0 0 12 8v12.5a2.5 2.5 0 0 1 2.5-2.5h7z"/></svg></span><span>Notes Pro</span></a><p>Free study notes for Applied Chemistry, Basic Engineering and Technical English, with optional Pro access sold here.</p></div>
-    <div class="foot-col"><h4>Read free</h4><a href="https://bachy105.vercel.app" rel="noopener">Applied Chemistry</a><a href="https://baeee101.vercel.app" rel="noopener">Basic Engineering</a><a href="https://baeng101.vercel.app" rel="noopener">Technical English</a></div>
+    <div class="foot-brand"><a class="brand" href="./"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h6A3.5 3.5 0 0 1 12 8v12.5a2.5 2.5 0 0 0-2.5-2.5h-7z"/><path d="M21.5 4.5h-6A3.5 3.5 0 0 0 12 8v12.5a2.5 2.5 0 0 1 2.5-2.5h7z"/></svg></span><span>Notes Pro</span></a><p>Free study notes for VIT subjects, with optional Pro access sold here.</p></div>
+    <div class="foot-col" id="foot-free"><h4>Read free</h4></div>
     <div class="foot-col"><h4>Store</h4><a href="#subjects">Get Pro</a><a href="#faq">Help</a><a href="contact.html">Contact</a></div>
     <div class="foot-col"><h4>Legal</h4><a href="terms.html">Terms</a><a href="refund.html">Refunds and cancellations</a><a href="privacy.html">Privacy</a></div>
   </div>

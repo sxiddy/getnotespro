@@ -257,6 +257,13 @@
     if ('IntersectionObserver' in window) {
       new IntersectionObserver((es) => { const v = es[0].isIntersecting; if (v && !visible) { visible = true; cancelAnimationFrame(raf); raf = requestAnimationFrame((n) => frame(n)); } else if (!v) { visible = false; cancelAnimationFrame(raf); } }, { threshold: 0.1 }).observe(pv);
     } else { visible = true; }
+    // only offer previews for subjects that are on the store
+    document.addEventListener('st:products', (e) => {
+      const have = new Set(e.detail.map((p) => p.code)); let first = -1;
+      $$('button[data-i]', tabs).forEach((b, i) => { const ok = have.has(DEMOS[i].code); b.hidden = !ok; if (ok && first < 0) first = i; });
+      const sec = $('#preview'); if (sec) sec.hidden = first < 0;
+      if (first >= 0 && tabs.children[cur] && tabs.children[cur].hidden) show(first);
+    });
     show(0); size();
     $$('input[type=range]', side).forEach((r) => r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100) + '%'));
   }

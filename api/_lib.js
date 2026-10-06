@@ -9,11 +9,12 @@ const reviewOn = () => !!process.env.REVIEW_CODE;
 const USER_COOKIE = 'st_user'; // signed-in student: { e: email }
 const MAX_AGE = 400 * 24 * 3600; // browsers cap cookies at 400 days
 
-// One entry per subject site. Price is in paise; set PRICE_<CODE> in Vercel to change it (minimum 100 = ₹1).
+// One entry per subject site (add a line here, a blurb in app/js/store.js INFO, and the subject appears on the store;
+// 'tag' groups subjects in the filter that shows up once there are more than 4). Price is in paise; set PRICE_<CODE> in Vercel to change it (minimum 100 = ₹1).
 const PRODUCTS = {
-  BACHY105: { name: 'Applied Chemistry', site: 'https://bachy105.vercel.app', price: 1000 },
-  BAEEE101: { name: 'Basic Engineering', site: 'https://baeee101.vercel.app', price: 1000 },
-  BAENG101: { name: 'Technical English', site: 'https://baeng101.vercel.app', price: 1000 },
+  BACHY105: { name: 'Applied Chemistry', tag: 'Chemistry', site: 'https://bachy105.vercel.app', price: 1000 },
+  BAEEE101: { name: 'Basic Engineering', tag: 'Engineering', site: 'https://baeee101.vercel.app', price: 1000 },
+  BAENG101: { name: 'Technical English', tag: 'English', site: 'https://baeng101.vercel.app', price: 1000 },
 };
 function priceOf(code) {
   const n = parseInt(process.env['PRICE_' + code] || '', 10);

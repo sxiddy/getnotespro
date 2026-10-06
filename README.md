@@ -28,3 +28,12 @@ node tools/fakeredis.js          # in-memory Redis on :5288
 UPSTASH_REDIS_REST_URL=http://localhost:5288 UPSTASH_REDIS_REST_TOKEN=x SESSION_SECRET=x STORE_SECRET=x DEV_LOGIN=1 node tools/serve.js 4180
 node tools/legal.js              # regenerates the terms, privacy, refund and contact pages
 ```
+
+## Adding a subject
+1. `api/_lib.js` PRODUCTS: add one line (`CODE: { name, tag, site, price }`). `tag` groups subjects in the filter that appears once there are more than 4.
+2. `app/js/store.js` INFO: add the blurb and the list of Pro tools for that subject (an `ICON` entry is optional).
+3. Link the subject site: `node tools/link-subject.js <repo> <CODE> "<name>"`, then set `STORE_URL` and `STORE_SECRET` on it.
+The cards, search and filters, the "Read free" links, the footer list and the subject count all follow PRODUCTS. Live previews in `app/js/ui.js` (DEMOS) only show for subjects that exist.
+
+## Renaming the store
+`node tools/rebrand.js --name "Notix" --domain notix.in` is a dry run; add `--write` to apply it (name, address, reviewer username, legal pages). Then do the steps it prints (Vercel domain, Google origins, Razorpay website and brand name and webhook, `STORE_URL` on every subject site).
