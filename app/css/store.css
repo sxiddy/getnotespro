@@ -36,8 +36,8 @@ main section { margin: 0 0 84px; scroll-margin-top: 80px; }
 .mark { display: grid; place-items: center; width: 38px; height: 38px; filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--an) 35%, transparent)); transition: transform .35s cubic-bezier(.3, 1.6, .5, 1); }
 .mark svg.pal { width: 100%; height: 100%; }
 .brand:hover .mark { transform: rotate(-8deg) scale(1.1); }
-.brand:hover .eyes { animation: blink .5s ease; transform-origin: center 21px; }
-@keyframes blink { 50% { transform: scaleY(.15); } }
+.brand:hover .spark { animation: twinkle .6s ease; transform-origin: 31.5px 8.5px; }
+@keyframes twinkle { 50% { transform: scale(1.5) rotate(20deg); } }
 .top-r { display: flex; align-items: center; gap: 6px; }
 .top-link { color: var(--text-2); text-decoration: none; font-size: 15px; padding: 7px 12px; border-radius: 999px; transition: background .2s, color .2s; }
 .top-link:hover { background: var(--surface); color: var(--white); }
