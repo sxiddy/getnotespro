@@ -16,6 +16,7 @@ Students sign in here with their VIT Google account, pay by UPI for one subject,
 | `GOOGLE_CLIENT_ID` | Google OAuth web client id; add this site's origin and `https://<store>/api/login` redirect URI in Google Cloud |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Razorpay keys for the approved account |
 | `RAZORPAY_WEBHOOK_SECRET` | secret for a webhook pointed at `https://<store>/api/verify` (events payment.authorized, payment.captured, order.paid) |
+| `ADMIN_KEY` | passphrase for the admin portal at /admin (a long random string; keep it private) |
 | `STORE_SECRET` | long random string, the SAME value on the store and on each subject site |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis (Vercel Storage) |
 | `STUDENT_DOMAIN` | optional, default `vitstudent.ac.in` |

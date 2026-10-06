@@ -86,7 +86,7 @@
       const p = S.products.find((x) => x.code === code);
       const rz = new window.Razorpay({
         key: o.keyId, order_id: o.orderId, amount: o.amount, currency: o.currency, name: 'Notes Pro', description: 'Pro for ' + p.name + ' (' + code + ')',
-        prefill: { email: o.email }, theme: { color: '#7cc0ff' },
+        prefill: { email: o.email }, notes: { product: 'pro-store', item: code, email: o.email }, theme: { color: '#7cc0ff' },
         method: { upi: true, card: false, netbanking: false, wallet: false, emi: false, paylater: false },
         handler: async (r) => {
           try { await api('/api/verify', r); await boot(); toast('Pro unlocked for ' + p.name + '.'); }
