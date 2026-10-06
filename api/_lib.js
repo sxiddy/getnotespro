@@ -141,13 +141,16 @@ async function recordPaid(email, code, p) {
   if (!store.configured()) throw Object.assign(new Error('Storage is not set up, so access cannot be saved.'), { status: 500 });
   await store.pipeline([['HSET', 'paid:' + code, email, JSON.stringify({ id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: p.amount, order: p.order_id || '', method: p.method || '', contact: p.contact || '' })]]);
 }
+// a manual grant can end by itself: record.until is a time in ms
+const isLive = (raw) => { if (raw == null) return false; try { const x = JSON.parse(raw) || {}; return !(x.until && x.until <= Date.now()); } catch (e) { return true; } };
+
 async function ownedBy(email) {
   const store = require('./_store');
   const out = {};
   const codes = Object.keys(PRODUCTS);
   if (!email || !store.configured()) { codes.forEach((c) => { out[c] = false; }); return out; }
-  const res = await store.pipeline(codes.map((c) => ['HEXISTS', 'paid:' + c, email]));
-  codes.forEach((c, i) => { out[c] = res[i] === 1 || res[i] === '1'; });
+  const res = await store.pipeline(codes.map((c) => ['HGET', 'paid:' + c, email]));
+  codes.forEach((c, i) => { out[c] = isLive(res[i]); });
   return out;
 }
 
@@ -174,6 +177,7 @@ function handle(fn) {
 }
 
 module.exports = {
+  isLive,
   DOMAIN, PRODUCTS, priceOf, isProduct, env, send, body, hmac, safeEqual, normEmail, isStudentEmail, getUser, userCookie, clearUserCookie, REVIEW_EMAIL, reviewOn, reviewerCookie,
   verifyGoogle, razorpay, checkPayment, recordPaid, recordRefund, ownedBy, handle,
 };

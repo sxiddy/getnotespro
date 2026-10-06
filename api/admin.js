@@ -2,12 +2,12 @@
 //   GET  /api/admin -> { products, totals, payments, students, now }
 //   POST /api/admin { action, ... }:
 //   GET  /api/admin?part=visits -> { sites: [{ code, name, ok, error?, visits: {day: n}, funnel }] }  visitors counted by each notes website itself (store visits are not counted)
-//     grant { email, product }      give Pro for one subject without a payment (recorded as manual)
+//     grant { email, product, hours? }  give Pro for one subject without a payment (recorded as manual); hours = it ends by itself after that long, absent = forever
 //     revoke { email, product }     take Pro for one subject away
 //     lookup { email }              everything about one student
 //     refund { email, product, amount? (paise; empty = full), reason }   refund through Razorpay; a full refund ends Pro
 //     reconcile { days? }           ask Razorpay for recent payments of this store, record any that are missing and fill in missing phone numbers
-const { send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, PRODUCTS, priceOf, razorpay, recordPaid, recordRefund, DOMAIN, handle } = require('./_lib');
+const { isLive, send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, PRODUCTS, priceOf, razorpay, recordPaid, recordRefund, DOMAIN, handle } = require('./_lib');
 const store = require('./_store');
 
 const codes = Object.keys(PRODUCTS);
@@ -39,8 +39,8 @@ async function snapshot() {
   codes.forEach((c, i) => {
     for (const email in paid[c]) {
       const x = parse(paid[c][email]);
-      payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: !!x.manual, order: x.order || '', method: x.method || '', contact: x.contact || '', status: x.manual ? 'manual' : 'paid' });
-      if (x.manual) per[i].manual++; else { per[i].count++; per[i].revenue += x.amount || 0; }
+      payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: !!x.manual, order: x.order || '', method: x.method || '', contact: x.contact || '', until: x.until || 0, status: x.manual ? (isLive(paid[c][email]) ? 'manual' : 'expired') : 'paid' });
+      if (x.manual) { if (isLive(paid[c][email])) per[i].manual++; } else { per[i].count++; per[i].revenue += x.amount || 0; }
     }
   });
   codes.forEach((c) => {
@@ -49,7 +49,7 @@ async function snapshot() {
   payments.sort((a, b) => String(b.at).localeCompare(String(a.at)));
   const emails = new Set([...Object.keys(first), ...Object.keys(last), ...codes.flatMap((c) => Object.keys(paid[c]))]);
   const students = [...emails].map((email) => ({
-    email, first: first[email] || null, last: last[email] || null, logins: parseInt(logins[email], 10) || 0, owned: codes.filter((c) => email in paid[c]),
+    email, first: first[email] || null, last: last[email] || null, logins: parseInt(logins[email], 10) || 0, owned: codes.filter((c) => email in paid[c] && isLive(paid[c][email])),
   })).sort((a, b) => String(b.last || b.first || '').localeCompare(String(a.last || a.first || ''))).slice(0, 3000);
   const real = per.reduce((n, p) => n + p.revenue, 0);
   return { products: per, totals: { revenue: real, payments: per.reduce((n, p) => n + p.count, 0), manual: per.reduce((n, p) => n + p.manual, 0), students: emails.size, refunded: refunds.reduce((n, r) => n + (r.amount || 0), 0), refunds: refunds.length }, payments: payments.slice(0, 1500), refunds: refunds.slice(0, 500), students };
@@ -118,8 +118,13 @@ module.exports = handle(async (req, res) => {
     return send(res, 200, { ok: true, refund: log, status: rf.status });
   }
   if (a === 'grant') {
-    await store.pipeline([['HSET', 'paid:' + b.product, email, JSON.stringify({ id: 'manual', at: new Date().toISOString(), amount: 0, manual: true })]]);
-    return send(res, 200, { ok: true });
+    const hours = Number(b.hours) || 0;
+    if (hours < 0 || hours > 24 * 366) return send(res, 400, { error: 'Pick a length of time up to a year, or forever.' });
+    const [cur] = await store.pipeline([['HGET', 'paid:' + b.product, email]]);
+    if (cur != null && !parse(cur).manual) return send(res, 400, { error: 'That student has already paid for this subject, so they have Pro.' });
+    const until = hours ? Date.now() + Math.round(hours * 3600e3) : 0;
+    await store.pipeline([['HSET', 'paid:' + b.product, email, JSON.stringify(Object.assign({ id: 'manual', at: new Date().toISOString(), amount: 0, manual: true }, until ? { until } : {}))]]);
+    return send(res, 200, { ok: true, until });
   }
   if (a === 'revoke') { await store.pipeline([['HDEL', 'paid:' + b.product, email]]); return send(res, 200, { ok: true }); }
   send(res, 400, { error: 'Unknown action.' });
