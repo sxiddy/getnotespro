@@ -30,12 +30,14 @@ main section { margin: 0 0 84px; scroll-margin-top: 80px; }
 .top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border-bottom: 1px solid color-mix(in srgb, var(--line) 80%, transparent); }
 .top-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 62px; }
 .brand { display: flex; align-items: center; gap: 11px; color: var(--white); text-decoration: none; }
-.word { font: 600 25px/1 var(--serif); letter-spacing: -0.035em; color: var(--white); padding-bottom: 2px; }
-.word i { font-style: italic; font-weight: 500; background: linear-gradient(135deg, var(--e), var(--an)); -webkit-background-clip: text; background-clip: text; color: transparent; padding-right: 2px; }
-.mark svg, .dlg-mark svg { width: 62%; height: 62%; }
-.mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: var(--white); border: 1px solid transparent; background: linear-gradient(145deg, #25252b, #17171a) padding-box, linear-gradient(135deg, var(--e), var(--an)) border-box; box-shadow: 0 0 0 4px color-mix(in srgb, var(--an) 8%, transparent), 0 6px 20px color-mix(in srgb, var(--e) 22%, transparent); transition: box-shadow .3s var(--ease), transform .3s var(--ease); }
-.mark svg { stroke-width: 1.9; }
-.brand:hover .mark { transform: rotate(-6deg) scale(1.05); box-shadow: 0 0 0 5px color-mix(in srgb, var(--an) 14%, transparent), 0 8px 26px color-mix(in srgb, var(--e) 34%, transparent); }
+.word { font: 600 25px/1 'Fredoka', var(--sans); letter-spacing: 0.01em; color: var(--white); padding-bottom: 2px; }
+.word i { font-style: normal; background: linear-gradient(135deg, #8fd0ff, #cdaaff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.dlg-mark svg { width: 100%; height: 100%; }
+.mark { display: grid; place-items: center; width: 38px; height: 38px; filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--an) 35%, transparent)); transition: transform .35s cubic-bezier(.3, 1.6, .5, 1); }
+.mark svg.pal { width: 100%; height: 100%; }
+.brand:hover .mark { transform: rotate(-8deg) scale(1.1); }
+.brand:hover .eyes { animation: blink .5s ease; transform-origin: center 21px; }
+@keyframes blink { 50% { transform: scaleY(.15); } }
 .top-r { display: flex; align-items: center; gap: 6px; }
 .top-link { color: var(--text-2); text-decoration: none; font-size: 15px; padding: 7px 12px; border-radius: 999px; transition: background .2s, color .2s; }
 .top-link:hover { background: var(--surface); color: var(--white); }
@@ -168,7 +170,7 @@ main section { margin: 0 0 84px; scroll-margin-top: 80px; }
 @keyframes pop { from { opacity: 0; transform: translateY(14px) scale(.97); } }
 .dlg::backdrop { background: rgba(8, 8, 10, 0.7); backdrop-filter: blur(5px); }
 .dlg h2 { margin-bottom: 8px; font-size: 26px; }
-.dlg-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, var(--e), var(--an)); color: #111; font: 700 22px var(--mono); }
+.dlg-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; margin-bottom: 14px; background: none; color: #111; font: 700 22px var(--mono); }
 .dlg-x { position: absolute; top: 12px; right: 14px; width: 34px; height: 34px; border-radius: 50%; background: none; border: 0; color: var(--text-dim); font-size: 24px; cursor: pointer; line-height: 1; }
 .dlg-x:hover { background: var(--surface-2); color: var(--white); }
 .gsi { display: flex; justify-content: center; margin: 20px 0 8px; min-height: 44px; color-scheme: light; background: transparent; }
