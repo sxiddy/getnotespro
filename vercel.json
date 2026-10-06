@@ -15,5 +15,18 @@
       "source": "/admin",
       "destination": "/admin.html"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "getnotespro.vercel.app"
+        }
+      ],
+      "destination": "https://notix-notes.vercel.app/$1",
+      "permanent": true
+    }
   ]
 }

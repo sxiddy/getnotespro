@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const DOMAIN = (process.env.STUDENT_DOMAIN || 'vitstudent.ac.in').toLowerCase(); // only these Google accounts sign in
 // Razorpay's website reviewer signs in on /review.html with this username and the REVIEW_CODE the owner sets in
 // Vercel (unset = reviewer sign-in is off). The reviewer can see the store and go through the UPI checkout.
-const REVIEW_EMAIL = 'review@getnotespro';
+const REVIEW_EMAIL = 'review@notix';
 const reviewOn = () => !!process.env.REVIEW_CODE;
 const USER_COOKIE = 'st_user'; // signed-in student: { e: email }
 const MAX_AGE = 400 * 24 * 3600; // browsers cap cookies at 400 days

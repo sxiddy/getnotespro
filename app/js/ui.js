@@ -1,4 +1,4 @@
-/* Notes Pro store: page polish (menu, progress bar, scroll spy, hero demo, live Pro previews, card glow, FAQ, celebration). */
+/* Notix store: page polish (menu, progress bar, scroll spy, hero demo, live Pro previews, card glow, FAQ, celebration). */
 (function () {
   'use strict';
   const $ = (s, r) => (r || document).querySelector(s), $$ = (s, r) => [...(r || document).querySelectorAll(s)];
