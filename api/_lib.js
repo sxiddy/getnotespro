@@ -2,6 +2,10 @@
 const crypto = require('crypto');
 
 const DOMAIN = (process.env.STUDENT_DOMAIN || 'vitstudent.ac.in').toLowerCase(); // only these Google accounts sign in
+// Razorpay's website reviewer signs in on /review.html with this username and the REVIEW_CODE the owner sets in
+// Vercel (unset = reviewer sign-in is off). The reviewer can see the store and go through the UPI checkout.
+const REVIEW_EMAIL = 'review@getnotespro';
+const reviewOn = () => !!process.env.REVIEW_CODE;
 const USER_COOKIE = 'st_user'; // signed-in student: { e: email }
 const MAX_AGE = 400 * 24 * 3600; // browsers cap cookies at 400 days
 
@@ -66,11 +70,13 @@ function cookie(name, value, maxAge) {
 }
 const userCookie = (email) => cookie(USER_COOKIE, sign({ e: email }), MAX_AGE);
 const clearUserCookie = () => cookie(USER_COOKIE, '', 0);
+const reviewerCookie = () => cookie(USER_COOKIE, sign({ e: REVIEW_EMAIL, r: 1 }), 7 * 24 * 3600);
 
 const normEmail = (s) => String(s || '').trim().toLowerCase();
 const isStudentEmail = (e) => new RegExp('^[a-z0-9._%+-]+@' + DOMAIN.replace(/\./g, '\\.') + '$').test(normEmail(e));
 function getUser(req) {
   const u = readSigned(req, USER_COOKIE);
+  if (u && u.r === 1 && u.e === REVIEW_EMAIL) return reviewOn() ? u : null; // clearing REVIEW_CODE signs the reviewer out everywhere
   return u && isStudentEmail(u.e) ? u : null;
 }
 
@@ -168,6 +174,6 @@ function handle(fn) {
 }
 
 module.exports = {
-  DOMAIN, PRODUCTS, priceOf, isProduct, env, send, body, hmac, safeEqual, normEmail, isStudentEmail, getUser, userCookie, clearUserCookie,
+  DOMAIN, PRODUCTS, priceOf, isProduct, env, send, body, hmac, safeEqual, normEmail, isStudentEmail, getUser, userCookie, clearUserCookie, REVIEW_EMAIL, reviewOn, reviewerCookie,
   verifyGoogle, razorpay, checkPayment, recordPaid, recordRefund, ownedBy, handle,
 };
