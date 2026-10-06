@@ -219,7 +219,7 @@
   });
 
   // ---------------------------------------------------------------- refunds
-  const modal = () => bootstrap.Modal.getOrCreateInstance($('#rf-modal'));
+  const modal = () => (window.bootstrap || window.tabler).Modal.getOrCreateInstance($('#rf-modal'));
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-refund]'); if (!b) return;
     const [email, product, amount, id] = b.dataset.refund.split('|');
