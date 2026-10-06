@@ -167,7 +167,8 @@ main section { margin: 0 0 84px; scroll-margin-top: 80px; }
 .dlg-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, var(--e), var(--an)); color: #111; font: 700 22px var(--mono); }
 .dlg-x { position: absolute; top: 12px; right: 14px; width: 34px; height: 34px; border-radius: 50%; background: none; border: 0; color: var(--text-dim); font-size: 24px; cursor: pointer; line-height: 1; }
 .dlg-x:hover { background: var(--surface-2); color: var(--white); }
-.gsi { display: flex; justify-content: center; margin: 20px 0 8px; min-height: 44px; }
+.gsi { display: flex; justify-content: center; margin: 20px 0 8px; min-height: 44px; color-scheme: light; background: transparent; }
+.gsi iframe, .gsi > div { color-scheme: light; background: transparent; border-radius: 999px; }
 .dev { display: flex; gap: 8px; margin: 8px 0; } .dev input { flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--text); }
 .msg { min-height: 1.3em; color: var(--bad); font-size: 14px; margin: 6px 0; }
 .inapp { border: 1px solid var(--cat); border-radius: 12px; padding: 12px 14px; font-size: 14.5px; }
