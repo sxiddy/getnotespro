@@ -110,7 +110,7 @@ module.exports = handle(async (req, res) => {
 
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'people') return send(res, 200, await people());
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'visits') {
-    const [vs] = store.configured() ? await store.pipeline([['HGETALL', 'visits']]) : [[]];
+    const [vs] = store.configured() ? await store.pipeline([['HGETALL', 'storeVisits']]) : [[]];
     return send(res, 200, { sites: await siteVisits(), store: { visits: store.pairs(vs) }, now: new Date().toISOString() });
   }
   if (req.method === 'GET') return send(res, 200, Object.assign(await snapshot(), { now: new Date().toISOString(), domain: DOMAIN }));
