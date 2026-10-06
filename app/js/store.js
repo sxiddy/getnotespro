@@ -68,7 +68,7 @@
       const exp = !!(window.stExp && window.stExp.has(p.code));
       const action = p.owned
         ? `<a class="btn primary" href="${esc(p.site)}" rel="noopener">Open ${esc(p.code)}</a>`
-        : u ? `<button class="btn primary" data-buy="${p.code}" type="button">Pay ${rs(p.price)} with UPI</button>`
+        : u ? `<button class="btn primary" data-buy="${p.code}" type="button">Pay ${rs(p.price)}</button>`
           : `<button class="btn primary" data-signin="${p.code}" type="button">Sign in to buy</button>`;
       return `<article class="card a-${esc(p.code)}${p.code === want ? ' focus' : ''}" id="card-${p.code}" style="--a:${colorOf(p, S.products.indexOf(p))}">
         <span class="spot" aria-hidden="true"></span><div class="card-top"><span class="card-ico"><svg viewBox="0 0 24 24">${ICON[p.code] || ICON.BAEEE101}</svg></span><span class="chip">${esc(p.code)}</span></div>
@@ -125,7 +125,7 @@
       const rz = new window.Razorpay({
         key: o.keyId, order_id: o.orderId, amount: o.amount, currency: o.currency, name: 'Notix', description: 'Pro for ' + p.name + ' (' + code + ')',
         prefill: { email: o.email }, notes: { product: 'pro-store', item: code, email: o.email }, theme: { color: '#7cc0ff' },
-        method: { upi: true, card: false, netbanking: false, wallet: false, emi: false, paylater: false },
+        method: { upi: true, card: true, netbanking: true, wallet: false, emi: false, paylater: false },
         handler: async (r) => {
           try { await api('/api/verify', r); await boot(); toast('Pro unlocked for ' + p.name + '.'); if (window.stCelebrate) window.stCelebrate(code); }
           catch (e) { await checkOrder(o.orderId, msg); }
