@@ -351,3 +351,5 @@ input[type=range]:focus-visible { outline: 2px solid var(--e); outline-offset: 6
   .cmp thead th:first-child { width: 46%; }
   .toast { bottom: 84px; }
 }
+.stats .txt { align-content: center; }
+.stats .txt span { font-size: 17px; line-height: 1.35; color: var(--text-2); }

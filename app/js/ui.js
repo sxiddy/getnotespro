@@ -93,6 +93,43 @@
   const TAU = Math.PI * 2;
   const DEMOS = [
     {
+      id: 'bands', title: 'Band gaps and temperature', code: 'BACHY105', subject: 'Applied Chemistry', col: COL.cat,
+      blurb: 'Heat a metal, a semiconductor and an insulator. Only the semiconductor gets better at conducting as it warms.',
+      ctrl: [{ k: 'T', label: 'Temperature', min: 0, max: 600, step: 10, val: 300, fmt: (v) => v + ' K' }],
+      read: (v) => v.T === 0 ? '<b>0 K:</b> every electron is frozen in the valence band, so the semiconductor acts as an insulator.' : `At <b>${v.T} K</b> heat lifts electrons across silicon's ~1 eV gap and leaves holes behind, so its conductivity <b>rises</b>. The metal only scatters its electrons more, so it dips slightly. The insulator's gap is too big.`,
+      draw(g, w, h, t, v) {
+        const kB = 8.617e-5, cols = [{ n: 'Conductor', gap: -1 }, { n: 'Semiconductor (Si)', gap: 1.1 }, { n: 'Insulator', gap: 6 }];
+        const cnt = (c) => {
+          if (c.gap < 0) return 12; if (v.T <= 0 || c.gap > 3) return 0;
+          const f = (T) => Math.pow(T, 1.5) * Math.exp(-c.gap / (2 * kB * T)), lo = Math.log(f(150)), hi = Math.log(f(600));
+          return Math.round(Math.max(0, Math.min(1, (Math.log(f(v.T)) - lo) / (hi - lo))) * 14);
+        };
+        const cw = w / 3, bw = cw * 0.7, bh = h * 0.2;
+        cols.forEach((c, ci) => {
+          const x0 = ci * cw + (cw - bw) / 2, vbT = h * 0.62, gp = c.gap < 0 ? -bh * 0.4 : c.gap < 2 ? h * 0.12 : h * 0.26, cbB = vbT - gp, cbT = cbB - bh;
+          g.fillStyle = 'rgba(124,192,255,.08)'; g.strokeStyle = COL.line; g.lineWidth = 1.2;
+          g.beginPath(); g.roundRect(x0, cbT, bw, bh, 6); g.fill(); g.stroke();
+          g.fillStyle = 'rgba(124,192,255,.28)'; g.beginPath(); g.roundRect(x0, vbT, bw, bh, 6); g.fill(); g.stroke();
+          g.font = '600 12px "Hanken Grotesk", sans-serif'; g.textAlign = 'center'; g.fillStyle = '#f4f4f6'; g.fillText(c.n, x0 + bw / 2, 40);
+          g.font = '500 10px "JetBrains Mono", monospace'; g.fillStyle = COL.dim; g.fillText('conduction', x0 + bw / 2, cbT + 14); g.fillText('valence', x0 + bw / 2, vbT + bh - 8);
+          g.fillStyle = COL.cat; g.font = '500 11px "JetBrains Mono", monospace';
+          g.fillText(c.gap < 0 ? 'bands overlap' : 'gap ' + c.gap + ' eV', x0 + bw / 2, c.gap < 0 ? cbT - 8 : (cbB + vbT) / 2 + 4);
+          const k = cnt(c);
+          for (let i = 0; i < 14; i++) {
+            if (i >= k) continue;
+            const px = x0 + 14 + ((i * 37) % 100) / 100 * (bw - 28), j = Math.sin(t * 2 + i * 1.7) * 5;
+            g.fillStyle = COL.e; g.beginPath(); g.arc(px + j, c.gap < 0 ? vbT - bh * 0.15 + (i % 4) * 6 : cbT + bh * 0.45 + (i % 3) * 7, 3.6, 0, TAU); g.fill();
+            if (c.gap >= 0) { g.strokeStyle = COL.bad; g.lineWidth = 1.5; g.beginPath(); g.arc(px - j * 0.6, vbT + bh * 0.4 + (i % 3) * 7, 3.6, 0, TAU); g.stroke(); }
+          }
+          const by = h - 34, bwid = bw, frac = c.gap < 0 ? Math.max(0.5, Math.min(1, 1 - v.T / 1500)) : k / 14;
+          g.fillStyle = '#27272c'; g.beginPath(); g.roundRect(x0, by, bwid, 9, 5); g.fill();
+          if (frac > 0) { g.fillStyle = COL.good; g.beginPath(); g.roundRect(x0, by, Math.max(9, bwid * frac), 9, 5); g.fill(); }
+          g.fillStyle = COL.dim; g.font = '500 10px "JetBrains Mono", monospace'; g.fillText('conductivity', x0 + bw / 2, h - 8);
+        });
+        g.textAlign = 'start';
+      },
+    },
+    {
       id: 'wave', title: 'AC wave and phasor', code: 'BAEEE101', subject: 'Basic Engineering', col: COL.e,
       blurb: 'Change the phase and watch the current fall behind the voltage while the phasors turn.',
       ctrl: [{ k: 'f', label: 'Frequency', min: 1, max: 5, step: 0.5, val: 2, fmt: (v) => v.toFixed(1) + ' Hz (slowed down)' }, { k: 'phi', label: 'Phase lag φ', min: 0, max: 180, step: 5, val: 50, fmt: (v) => v + '°' }],
