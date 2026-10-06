@@ -25,7 +25,7 @@ ${body}
 </html>
 `;
 const out = {
-  'terms.html': page('Terms and conditions', `These terms apply to Notes Pro (https://vit-notes-store.vercel.app), a website that sells one-time Pro access for study note websites made for VIT students: ${SUBJ}. Last updated 6 October 2026.`, `
+  'terms.html': page('Terms and conditions', `These terms apply to Notes Pro (https://getnotespro.vercel.app), a website that sells one-time Pro access for study note websites made for VIT students: ${SUBJ}. Last updated 6 October 2026.`, `
   <h2>What you get</h2>
   <ul>
     <li>The notes on each subject website are free. A <b>one-time payment</b>, shown on this website in Indian rupees, unlocks the <b>Pro features for that subject</b>: interactive models, the question bank, quiz, flashcards, formula sheet and summaries, and quiz battles.</li>
