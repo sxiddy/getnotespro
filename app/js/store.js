@@ -4,10 +4,11 @@
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const INFO = {
-    BACHY105: { blurb: 'Applied chemistry for VIT: batteries, fuel cells, solar cells, semiconductors, nanomaterials, spectroscopy and more.', points: ['Every interactive model and animation', 'Question bank, quiz and flashcards', 'Formula sheets and module summaries', '1v1 quiz battles'] },
-    BAEEE101: { blurb: 'Basic engineering for VIT: electrical circuits, machines, electronics, communication, graphics, CAD and manufacturing.', points: ['Interactive models of circuits and machines', 'Question bank, quiz and flashcards', 'Formula sheets and module summaries', '1v1 quiz battles'] },
-    BAENG101: { blurb: 'Technical English for VIT: technical writing, grammar, reading and communication, rebuilt as short tabbed notes.', points: ['Interactive exercises', 'Question bank, quiz and flashcards', 'Summaries for every module', '1v1 quiz battles'] },
+    BACHY105: { blurb: 'Applied chemistry for VIT: batteries, fuel cells, solar cells, semiconductors, nanomaterials, spectroscopy and more.', points: ['Every interactive model (Nernst, Beer–Lambert, Bragg and more) and the Lab bench', 'Every flashcard, quiz, weak-spot quiz and mastery per topic', 'Answers to every practice question and model answers for the CAT papers', 'Timed mock CAT (90 min) and mock FAT (180 min) on a real paper', 'Night-before revision pack and formula sheet', 'Progress sync, bookmarks, My notes, focus timer up to 3 hours, unlimited 1v1 quiz battles'] },
+    BAEEE101: { blurb: 'Basic engineering for VIT: electrical circuits, machines, electronics, communication, graphics, CAD and manufacturing.', points: ['Every interactive model of circuits, amplifiers and mechanisms, plus the Lab bench', 'Every flashcard, quiz, weak-spot quiz and mastery per topic', 'Answers and explanations for every practice question', 'Night-before revision pack and formula sheet', 'Progress sync, bookmarks, My notes, focus timer up to 3 hours, unlimited 1v1 quiz battles'] },
+    BAENG101: { blurb: 'Technical English for VIT: technical writing, grammar, reading and communication, rebuilt as short tabbed notes.', points: ['Every interactive writing and communication tool in the Practice lab', 'Every flashcard, quiz, weak-spot quiz and mastery per topic', 'Answers to every practice question and model answers for the CAT-2 papers', 'Rules and templates page', 'Progress sync, My notes, focus timer up to 3 hours, unlimited 1v1 quiz battles'] },
   };
+
   const ICON = {
     BACHY105: '<path d="M9 3h6M10 3v6.2L4.6 18a2 2 0 0 0 1.7 3h11.4a2 2 0 0 0 1.7-3L14 9.2V3"/><path d="M7.5 15h9"/>',
     BAEEE101: '<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>',
