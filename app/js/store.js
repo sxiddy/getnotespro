@@ -44,7 +44,7 @@
         <h3>${esc(p.name)}</h3><p>${esc(i.blurb)}</p>
         <ul>${i.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
         <div class="buy">${p.owned ? '<p class="owned">You have Pro for this subject.</p>' : `<div class="price">${rs(p.price)}<span>one time</span></div>`}
-        ${action}<p class="card-msg" data-msg="${p.code}" role="status"></p></div></article>`;
+        ${action}${p.owned ? '' : `<a class="btn free" href="${esc(p.site)}" rel="noopener">Read the notes free</a>`}<p class="card-msg" data-msg="${p.code}" role="status"></p></div></article>`;
     }).join('');
     if (want && !render.scrolled && cur) { render.scrolled = true; const el = $('#card-' + want); if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150); }
   }
