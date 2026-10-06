@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notes Pro · Unlock your VIT subject notes</title>
+<meta name="description" content="One place to unlock Pro for your VIT subject note sites: interactive models, question bank, quiz, flashcards and more.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,500&display=swap">
+<link rel="stylesheet" href="css/store.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./"><span class="mark">N</span><span>Notes Pro</span></a>
+  <nav class="top-r">
+    <a class="top-link" href="#subjects">Subjects</a>
+    <a class="top-link" href="#faq">Help</a>
+    <span class="who" id="who" hidden></span>
+    <button class="btn" id="signin-btn" type="button">Sign in</button>
+    <button class="btn ghost" id="signout-btn" type="button" hidden>Sign out</button>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="eyebrow"><span class="code">NOTES PRO</span><span>One place to unlock Pro</span></div>
+    <h1>Unlock Pro for your subject.</h1>
+    <p class="lead">The notes on each subject site stay free. Pro adds the study tools: interactive models, the question bank, quizzes, flashcards, formula sheets and more. Pay once per subject with UPI, sign in with your VIT account, and it works on the subject site straight away.</p>
+    <div class="hero-cta"><a class="btn primary" href="#subjects">Choose a subject</a><span class="muted" id="hero-msg"></span></div>
+  </section>
+
+  <section id="subjects" class="subjects">
+    <h2>Subjects</h2>
+    <div class="cards" id="cards"><p class="muted">Loading…</p></div>
+    <p class="muted small">Each subject is bought separately. A one-time payment, no subscription, no automatic renewal.</p>
+  </section>
+
+  <section class="includes">
+    <h2>What Pro includes</h2>
+    <div class="grid">
+      <div class="feat"><h3>Interactive models</h3><p>Sliders and animations that let you change a value and watch the result, from the diagrams in the notes.</p></div>
+      <div class="feat"><h3>Question bank</h3><p>Scenario questions with full answers and the points an examiner looks for.</p></div>
+      <div class="feat"><h3>Quiz</h3><p>Multiple choice or open, with a weak-spot quiz that goes after what you got wrong.</p></div>
+      <div class="feat"><h3>Flashcards</h3><p>Flip, sort into "know it" and "still learning", and the deck remembers.</p></div>
+      <div class="feat"><h3>Formula sheet and summaries</h3><p>Every equation, the numbers worth remembering and the classic traps, on one page per module.</p></div>
+      <div class="feat"><h3>Night-before revision pack</h3><p>The key points of every module, ready to read in about 20 minutes.</p></div>
+      <div class="feat"><h3>1v1 quiz battles</h3><p>Challenge a friend with a link: ten questions, ten seconds each, live scores.</p></div>
+      <div class="feat"><h3>Notes that sync</h3><p>Your highlights and personal notes follow you between your phone and laptop.</p></div>
+    </div>
+    <p class="muted small">The exact tools differ a little between subjects, and each subject site shows what it has.</p>
+  </section>
+
+  <section class="steps">
+    <h2>How it works</h2>
+    <ol class="steps-list">
+      <li><b>Sign in</b><span>Use your VIT student Google account (…@vitstudent.ac.in). Your purchase is linked to it.</span></li>
+      <li><b>Pay with UPI</b><span>Pick a subject and pay through Razorpay. This site never sees your bank or UPI details.</span></li>
+      <li><b>Open the subject</b><span>Sign in there with the same account and Pro is already unlocked.</span></li>
+    </ol>
+  </section>
+
+  <section id="faq" class="faq">
+    <h2>Questions</h2>
+    <details><summary>I paid but the subject site still looks locked.</summary><p>Reload the subject site once. If it is still locked, sign in on this page and press "Check my payment" below the subject. If money was taken, access is added automatically, and you can write to <a href="mailto:notesbugsreportandsupport@gmail.com">notesbugsreportandsupport@gmail.com</a> with your payment ID.</p></details>
+    <details><summary>Which account should I use?</summary><p>Your VIT student Google account, on both this page and the subject site. Access is personal and tied to that email.</p></details>
+    <details><summary>Is this run by VIT?</summary><p>No. The notes are made by a student to help with studying and are not official VIT material.</p></details>
+    <details><summary>Can I get a refund?</summary><p>See the <a href="refund.html">refund and cancellation policy</a>.</p></details>
+    <p><button class="btn" id="restore-btn" type="button">Check my payment</button> <span class="muted small" id="restore-msg"></span></p>
+  </section>
+</main>
+
+<footer class="foot">
+  <p><b>Notes Pro</b> sells Pro access for the subject note sites linked above: Applied Chemistry, Basic Engineering and Technical English.</p>
+  <p class="legal-links"><a href="terms.html">Terms</a> · <a href="refund.html">Refunds and cancellations</a> · <a href="contact.html">Contact</a> · <a href="privacy.html">Privacy</a></p>
+</footer>
+
+<dialog id="signin-dlg" class="dlg">
+  <form method="dialog"><button class="dlg-x" aria-label="Close" value="x">×</button></form>
+  <h2 id="dlg-title">Sign in to continue</h2>
+  <p class="muted" id="dlg-sub">Use your VIT student Google account. We remember you on this device, so you only do this once.</p>
+  <div id="gsi" class="gsi"></div>
+  <form id="dev-login" class="dev" hidden><input id="dev-email" type="email" placeholder="dev email" autocomplete="off"><button class="btn" type="submit">Dev sign in</button></form>
+  <p class="msg" id="dlg-msg" role="status"></p>
+  <p class="muted small">Only @vitstudent.ac.in accounts can sign in. We store your email and which subjects you bought, nothing else.</p>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="js/store.js"></script>
+</body>
+</html>
