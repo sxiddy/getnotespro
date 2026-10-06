@@ -7,23 +7,32 @@
 <meta name="theme-color" content="#151517">
 <title>Notes Pro · Free VIT notes, with Pro for exam prep</title>
 <meta name="description" content="Free, easy-to-read notes for VIT subjects, with optional Pro tools for exam prep: interactive models, question bank, quiz, flashcards and more.">
+<meta property="og:title" content="Notes Pro · Free VIT notes, with Pro for exam prep">
+<meta property="og:description" content="Read VIT notes free. Add Pro for interactive models, quizzes, flashcards and mock exams. ₹10 per subject, one time.">
+<meta property="og:type" content="website">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,500&display=swap">
 <link rel="stylesheet" href="css/store.css">
-<noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
+<noscript><style>.reveal{opacity:1;transform:none}.sk{display:none}</style></noscript>
 </head>
 <body>
 <div class="bg-glow" aria-hidden="true"></div>
-<header class="top">
+<div class="progress" id="progress" aria-hidden="true"></div>
+<header class="top" id="top">
   <div class="top-in">
     <a class="brand" href="./"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h6A3.5 3.5 0 0 1 12 8v12.5a2.5 2.5 0 0 0-2.5-2.5h-7z"/><path d="M21.5 4.5h-6A3.5 3.5 0 0 0 12 8v12.5a2.5 2.5 0 0 1 2.5-2.5h7z"/></svg></span><span>Notes Pro</span></a>
-    <nav class="top-r">
-      <a class="top-link" href="#subjects">Notes</a>
-      <a class="top-link" href="#includes">Pro</a>
+    <nav class="top-r" aria-label="Main">
+      <a class="top-link" href="#subjects">Subjects</a>
+      <a class="top-link" href="#compare">Free vs Pro</a>
+      <a class="top-link" href="#includes">Pro tools</a>
       <a class="top-link" href="#faq">Help</a>
       <span class="who" id="who" hidden></span>
       <button class="btn sm" id="signin-btn" type="button">Sign in</button>
       <button class="btn sm ghost" id="signout-btn" type="button" hidden>Sign out</button>
+      <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="mnav"><span></span><span></span><span></span></button>
     </nav>
+  </div>
+  <div class="mnav" id="mnav" hidden>
+    <a href="#subjects">Subjects</a><a href="#compare">Free vs Pro</a><a href="#includes">Pro tools</a><a href="#how">How it works</a><a href="#faq">Help</a>
   </div>
 </header>
 
@@ -33,7 +42,13 @@
       <div class="eyebrow"><span class="dot"></span><span class="code">NOTES PRO</span><span>Free notes for VIT, Pro for exam prep</span></div>
       <h1>Notes that click.<br><em>Pro</em> for exam week.</h1>
       <p class="lead">Read the notes for your VIT subject free, any time. When exams get close, add Pro for the study tools: interactive models, the question bank, quizzes, flashcards and formula sheets. Pay once with UPI, sign in with your VIT account, and it works on the subject site straight away.</p>
-      <div class="hero-cta"><a class="btn primary lg" href="#subjects">Pick your subject</a><a class="btn lg ghost" href="#includes">What Pro adds</a></div>
+      <div class="hero-cta"><a class="btn primary lg" href="#subjects">Pick your subject</a><a class="btn lg ghost" href="#compare">Free vs Pro</a></div>
+      <div class="free-row" aria-label="Read the notes free">
+        <span class="muted small">Read free now</span>
+        <a class="pill" href="https://bachy105.vercel.app" rel="noopener" style="--a:var(--cat)"><i></i>Applied Chemistry</a>
+        <a class="pill" href="https://baeee101.vercel.app" rel="noopener" style="--a:var(--e)"><i></i>Basic Engineering</a>
+        <a class="pill" href="https://baeng101.vercel.app" rel="noopener" style="--a:var(--an)"><i></i>Technical English</a>
+      </div>
       <p class="hero-msg" id="hero-msg" role="status"></p>
       <ul class="trust">
         <li><svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13ZM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/></svg>Notes are free to read</li>
@@ -42,13 +57,21 @@
         <li><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>Unlocks instantly</li>
       </ul>
     </div>
-    <div class="hero-art" aria-hidden="true">
-      <div class="mock">
-        <div class="mock-bar"><i></i><i></i><i></i><span>Pro · study tools</span></div>
+    <div class="hero-art">
+      <div class="mock" id="mock">
+        <div class="mock-bar"><i></i><i></i><i></i><span>Pro · study tools</span><em class="try">try it</em></div>
         <div class="mock-body">
           <div class="mock-q"><b>Q.</b> A Daniell cell has E°cell = 1.10 V. What happens to the cell potential as [Cu²⁺] falls?</div>
-          <div class="mock-opts"><span>It rises</span><span class="on">It falls</span><span>No change</span></div>
-          <div class="mock-slider"><div class="mock-row"><span>[Cu²⁺]</span><b>0.10 M</b></div><div class="track"><div class="fill"></div><div class="knob"></div></div></div>
+          <div class="mock-opts" id="mock-opts" role="group" aria-label="Answer">
+            <button type="button" data-ans="up">It rises</button>
+            <button type="button" data-ans="down">It falls</button>
+            <button type="button" data-ans="same">No change</button>
+          </div>
+          <p class="mock-fb" id="mock-fb" role="status">Pick an answer, then drag the slider to check it.</p>
+          <div class="mock-slider">
+            <div class="mock-row"><span>[Cu²⁺] <b id="mock-c">0.10 M</b></span><span>E = <b id="mock-e">1.07 V</b></span></div>
+            <input type="range" id="mock-r" min="-3" max="0" step="0.05" value="-1" aria-label="Copper ion concentration">
+          </div>
           <div class="mock-chips"><span>Quiz</span><span>Flashcards</span><span>Formula sheet</span><span>1v1 battle</span></div>
         </div>
       </div>
@@ -57,10 +80,45 @@
     </div>
   </section>
 
+  <section class="stats reveal" aria-label="At a glance">
+    <div><b data-count="3">3</b><span>VIT subjects</span></div>
+    <div><b>₹<i data-count="0">0</i></b><span>to read the notes</span></div>
+    <div><b>₹<i data-count="10">10</i></b><span>Pro, per subject</span></div>
+    <div><b>1×</b><span>pay once, no renewal</span></div>
+  </section>
+
+  <section id="preview" class="preview reveal">
+    <div class="sec-head"><div><div class="kicker">Pro, live</div><h2>See Pro in action</h2></div><p class="muted">Real tools from the subject sites, in a lighter version. Go on, play with them.</p></div>
+    <div class="pv" id="pv" aria-live="polite"></div>
+    <p class="muted small note">These are cut-down previews. The full tools on each subject site show the working step by step.</p>
+  </section>
+
   <section id="subjects" class="subjects reveal">
     <div class="sec-head"><div><div class="kicker">Subjects</div><h2>Pick your subject</h2></div><p class="muted">Read free, or unlock Pro. Pro is bought per subject.</p></div>
-    <div class="cards" id="cards"><p class="muted">Loading…</p></div>
+    <div class="cards" id="cards">
+      <div class="sk card"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="sk card"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="sk card"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
     <p class="muted small note">A one-time payment, no subscription, no automatic renewal.</p>
+  </section>
+
+  <section id="compare" class="compare reveal">
+    <div class="sec-head"><div><div class="kicker">Free vs Pro</div><h2>What you get, side by side</h2></div><p class="muted">The notes are always free. Pro adds the tools.</p></div>
+    <div class="cmp-wrap"><table class="cmp">
+      <thead><tr><th scope="col"></th><th scope="col">Free</th><th scope="col" class="pro">Pro · ₹10 a subject</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Read the notes of every module</th><td class="y"></td><td class="y"></td></tr>
+        <tr><th scope="row">Interactive models and the Lab bench</th><td class="n"></td><td class="y"></td></tr>
+        <tr><th scope="row">Flashcards, quizzes and weak-spot quiz</th><td class="n"></td><td class="y"></td></tr>
+        <tr><th scope="row">Answers to every practice question</th><td class="n"></td><td class="y"></td></tr>
+        <tr><th scope="row">Mock CAT and FAT on real papers</th><td class="n"></td><td class="y"></td></tr>
+        <tr><th scope="row">Night-before revision pack and formula sheet</th><td class="n"></td><td class="y"></td></tr>
+        <tr><th scope="row">Progress sync, bookmarks and My notes</th><td class="n"></td><td class="y"></td></tr>
+        <tr><th scope="row">1v1 quiz battles with friends</th><td class="n"></td><td class="y"></td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted small note">Exact tools differ a little by subject. The list on each subject card is what that subject has.</p>
   </section>
 
   <section id="includes" class="includes reveal">
@@ -75,7 +133,6 @@
       <div class="feat"><span class="ico"><svg viewBox="0 0 24 24"><path d="m14 4 6 6-3 1-7 7-3 1 1-3 7-7 1-3Z"/><path d="m4 20 4-4"/></svg></span><h3>1v1 quiz battles</h3><p>Challenge a friend with a link: ten questions, ten seconds each, live scores.</p></div>
       <div class="feat"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg></span><h3>Notes that sync</h3><p>Your highlights and personal notes follow you between your phone and laptop.</p></div>
     </div>
-    <p class="muted small note">The tools differ a little between subjects. The list on each subject card above is exactly what that subject has.</p>
   </section>
 
   <section id="how" class="steps reveal">
@@ -89,10 +146,13 @@
 
   <section id="faq" class="faq reveal">
     <div class="sec-head"><div><div class="kicker">Help</div><h2>Questions</h2></div></div>
-    <details><summary>I paid but the subject site still looks locked.</summary><p>Reload the subject site once. If it is still locked, sign in on this page and press "Check my payment" below. If money was taken, access is added automatically, and you can write to <a href="mailto:notesbugsreportandsupport@gmail.com">notesbugsreportandsupport@gmail.com</a> with your payment ID.</p></details>
-    <details><summary>Which account should I use?</summary><p>Your VIT student Google account, on both this page and the subject site. Access is personal and tied to that email.</p></details>
-    <details><summary>Is this run by VIT?</summary><p>No. The notes are made by a student to help with studying and are not official VIT material.</p></details>
-    <details><summary>Can I get a refund?</summary><p>See the <a href="refund.html">refund and cancellation policy</a>.</p></details>
+    <details><summary>Do I have to pay to read the notes?</summary><div class="ans"><p>No. The notes for every module are free to read on the subject sites. Pro only adds the study tools on top.</p></div></details>
+    <details><summary>I paid but the subject site still looks locked.</summary><div class="ans"><p>Reload the subject site once. If it is still locked, sign in on this page and press "Check my payment" below. If money was taken, access is added automatically, and you can write to <a href="mailto:notesbugsreportandsupport@gmail.com">notesbugsreportandsupport@gmail.com</a> with your payment ID.</p></div></details>
+    <details><summary>Which account should I use?</summary><div class="ans"><p>Your VIT student Google account, on both this page and the subject site. Access is personal and tied to that email.</p></div></details>
+    <details><summary>Does it work on my phone?</summary><div class="ans"><p>Yes. Everything works in a phone browser, and your progress, bookmarks and notes sync between your phone and laptop when you sign in with the same account.</p></div></details>
+    <details><summary>Is paying here safe?</summary><div class="ans"><p>Payment is handled by Razorpay over UPI. This site never sees your bank or UPI details, only a confirmation that the payment went through.</p></div></details>
+    <details><summary>Is this run by VIT?</summary><div class="ans"><p>No. The notes are made by a student to help with studying and are not official VIT material.</p></div></details>
+    <details><summary>Can I get a refund?</summary><div class="ans"><p>See the <a href="refund.html">refund and cancellation policy</a>.</p></div></details>
     <div class="restore"><button class="btn" id="restore-btn" type="button">Check my payment</button> <span class="muted small" id="restore-msg" role="status"></span></div>
   </section>
 </main>
@@ -100,9 +160,14 @@
 <footer class="foot">
   <div class="foot-in">
     <div class="foot-brand"><a class="brand" href="./"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h6A3.5 3.5 0 0 1 12 8v12.5a2.5 2.5 0 0 0-2.5-2.5h-7z"/><path d="M21.5 4.5h-6A3.5 3.5 0 0 0 12 8v12.5a2.5 2.5 0 0 1 2.5-2.5h7z"/></svg></span><span>Notes Pro</span></a><p>Free study notes for Applied Chemistry, Basic Engineering and Technical English, with optional Pro access sold here. Not official VIT material.</p></div>
-    <p class="legal-links"><a href="terms.html">Terms</a><a href="refund.html">Refunds and cancellations</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></p>
+    <div class="foot-col"><h4>Read free</h4><a href="https://bachy105.vercel.app" rel="noopener">Applied Chemistry</a><a href="https://baeee101.vercel.app" rel="noopener">Basic Engineering</a><a href="https://baeng101.vercel.app" rel="noopener">Technical English</a></div>
+    <div class="foot-col"><h4>Store</h4><a href="#subjects">Get Pro</a><a href="#faq">Help</a><a href="contact.html">Contact</a></div>
+    <div class="foot-col"><h4>Legal</h4><a href="terms.html">Terms</a><a href="refund.html">Refunds and cancellations</a><a href="privacy.html">Privacy</a></div>
   </div>
+  <div class="foot-base"><span>© Notes Pro</span><a href="#top">Back to top ↑</a></div>
 </footer>
+
+<div class="sticky-cta" id="sticky" hidden><a class="btn primary" href="#subjects">Pick your subject · Pro from ₹10</a></div>
 
 <dialog id="signin-dlg" class="dlg">
   <form method="dialog"><button class="dlg-x" aria-label="Close" value="x">×</button></form>
@@ -116,6 +181,8 @@
 </dialog>
 
 <div class="toast" id="toast" role="status" hidden></div>
+<div class="burst" id="burst" aria-hidden="true"></div>
 <script src="js/store.js"></script>
+<script src="js/ui.js"></script>
 </body>
 </html>

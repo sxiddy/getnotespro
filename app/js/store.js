@@ -36,14 +36,15 @@
     $('#hero-msg').textContent = cur && !cur.owned ? 'You came from ' + cur.name + '. Its card is highlighted below.' : '';
     $('#cards').innerHTML = S.products.map((p) => {
       const i = INFO[p.code] || { blurb: '', points: [] };
+      const exp = !!(window.stExp && window.stExp.has(p.code));
       const action = p.owned
         ? `<a class="btn primary" href="${esc(p.site)}" rel="noopener">Open ${esc(p.code)}</a>`
         : u ? `<button class="btn primary" data-buy="${p.code}" type="button">Pay ${rs(p.price)} with UPI</button>`
           : `<button class="btn primary" data-signin="${p.code}" type="button">Sign in to buy</button>`;
       return `<article class="card a-${esc(p.code)}${p.code === want ? ' focus' : ''}" id="card-${p.code}">
-        <div class="card-top"><span class="card-ico"><svg viewBox="0 0 24 24">${ICON[p.code] || ICON.BAEEE101}</svg></span><span class="chip">${esc(p.code)}</span></div>
+        <span class="spot" aria-hidden="true"></span><div class="card-top"><span class="card-ico"><svg viewBox="0 0 24 24">${ICON[p.code] || ICON.BAEEE101}</svg></span><span class="chip">${esc(p.code)}</span></div>
         <h3>${esc(p.name)}</h3><p>${esc(i.blurb)}</p>
-        <ul>${i.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+        <ul class="${exp ? '' : 'collapsed'}">${i.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>${i.points.length > 3 ? `<button class="more-btn" type="button" data-more="Show all ${i.points.length} Pro tools" aria-expanded="${exp ? 'true' : 'false'}">${exp ? 'Show fewer' : 'Show all ' + i.points.length + ' Pro tools'}</button>` : ''}
         <div class="buy">${p.owned ? '<p class="owned">You have Pro for this subject.</p>' : `<div class="price">${rs(p.price)}<span>one time</span></div>`}
         ${action}${p.owned ? '' : `<a class="btn free" href="${esc(p.site)}" rel="noopener">Read the notes free</a>`}<p class="card-msg" data-msg="${p.code}" role="status"></p></div></article>`;
     }).join('');
@@ -96,7 +97,7 @@
         prefill: { email: o.email }, notes: { product: 'pro-store', item: code, email: o.email }, theme: { color: '#7cc0ff' },
         method: { upi: true, card: false, netbanking: false, wallet: false, emi: false, paylater: false },
         handler: async (r) => {
-          try { await api('/api/verify', r); await boot(); toast('Pro unlocked for ' + p.name + '.'); }
+          try { await api('/api/verify', r); await boot(); toast('Pro unlocked for ' + p.name + '.'); if (window.stCelebrate) window.stCelebrate(code); }
           catch (e) { await checkOrder(o.orderId, msg); }
         },
         modal: { ondismiss: () => { if (btn) btn.disabled = false; setTimeout(() => checkOrder(o.orderId, null, true), 4000); } },
