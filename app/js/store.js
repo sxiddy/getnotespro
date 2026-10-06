@@ -8,6 +8,11 @@
     BAEEE101: { blurb: 'Basic engineering for VIT: electrical circuits, machines, electronics, communication, graphics, CAD and manufacturing.', points: ['Interactive models of circuits and machines', 'Question bank, quiz and flashcards', 'Formula sheets and module summaries', '1v1 quiz battles'] },
     BAENG101: { blurb: 'Technical English for VIT: technical writing, grammar, reading and communication, rebuilt as short tabbed notes.', points: ['Interactive exercises', 'Question bank, quiz and flashcards', 'Summaries for every module', '1v1 quiz battles'] },
   };
+  const ICON = {
+    BACHY105: '<path d="M9 3h6M10 3v6.2L4.6 18a2 2 0 0 0 1.7 3h11.4a2 2 0 0 0 1.7-3L14 9.2V3"/><path d="M7.5 15h9"/>',
+    BAEEE101: '<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>',
+    BAENG101: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13ZM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/>',
+  };
   let S = null, pending = null;
   const want = (new URLSearchParams(location.search).get('subject') || '').toUpperCase();
 
@@ -34,11 +39,12 @@
         ? `<a class="btn primary" href="${esc(p.site)}" rel="noopener">Open ${esc(p.code)}</a>`
         : u ? `<button class="btn primary" data-buy="${p.code}" type="button">Pay ${rs(p.price)} with UPI</button>`
           : `<button class="btn primary" data-signin="${p.code}" type="button">Sign in to buy</button>`;
-      return `<article class="card${p.code === want ? ' focus' : ''}" id="card-${p.code}">
-        <small>${esc(p.code)}</small><h3>${esc(p.name)}</h3><p>${esc(i.blurb)}</p>
+      return `<article class="card a-${esc(p.code)}${p.code === want ? ' focus' : ''}" id="card-${p.code}">
+        <div class="card-top"><span class="card-ico"><svg viewBox="0 0 24 24">${ICON[p.code] || ICON.BAEEE101}</svg></span><span class="chip">${esc(p.code)}</span></div>
+        <h3>${esc(p.name)}</h3><p>${esc(i.blurb)}</p>
         <ul>${i.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-        ${p.owned ? '<p class="owned">You have Pro for this subject.</p>' : `<div class="price">${rs(p.price)} <span>one time</span></div>`}
-        ${action}<p class="card-msg" data-msg="${p.code}" role="status"></p></article>`;
+        <div class="buy">${p.owned ? '<p class="owned">You have Pro for this subject.</p>' : `<div class="price">${rs(p.price)}<span>one time</span></div>`}
+        ${action}<p class="card-msg" data-msg="${p.code}" role="status"></p></div></article>`;
     }).join('');
     if (want && !render.scrolled && cur) { render.scrolled = true; const el = $('#card-' + want); if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150); }
   }
@@ -119,6 +125,13 @@
     const b = e.target.closest('[data-buy]'); if (b) return buy(b.dataset.buy);
     const s = e.target.closest('[data-signin]'); if (s) openSignIn(s.dataset.signin);
   });
+
+  // Sections fade in as they scroll into view (everything is visible straight away when JS or IntersectionObserver is missing).
+  const revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    revealEls.forEach((el) => io.observe(el));
+  } else revealEls.forEach((el) => el.classList.add('in'));
 
   async function boot() {
     S = await api('/api/session');
