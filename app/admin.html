@@ -4,97 +4,108 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Admin · Notes Pro</title>
+<title>Admin · Getnotespro</title>
 <!-- UI: Tabler (https://github.com/tabler/tabler, MIT licence), loaded from a CDN -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/css/tabler.min.css">
 <style>
-  body { font-feature-settings: "cv03", "cv04", "cv11"; }
   .mono { font-family: ui-monospace, "JetBrains Mono", monospace; font-size: 13px; }
-  .table-wrap { max-height: 560px; overflow: auto; }
+  .table-wrap { max-height: 520px; overflow: auto; }
   #gate { min-height: 100vh; }
+  details > summary { cursor: pointer; font-weight: 600; padding: 14px 18px; list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "▸ "; }
+  details[open] > summary::before { content: "▾ "; }
+  .big { font-size: 2.2rem; font-weight: 700; line-height: 1.1; }
 </style>
 </head>
 <body>
 <div id="gate" class="page page-center">
   <div class="container container-tight py-4">
-    <div class="text-center mb-4"><span class="h1">Notes Pro admin</span></div>
+    <div class="text-center mb-4"><span class="h1">Getnotespro admin</span></div>
     <form class="card card-md" id="gate-form" autocomplete="off">
       <div class="card-body">
-        <h2 class="card-title text-center mb-4">Enter the admin key</h2>
-        <div class="mb-3"><input type="password" class="form-control" id="key" placeholder="ADMIN_KEY" autocomplete="off"></div>
+        <h2 class="card-title text-center mb-4">Enter your admin password</h2>
+        <div class="mb-3"><input type="password" class="form-control" id="key" placeholder="Admin password" autocomplete="off"></div>
         <div class="text-danger mb-2" id="gate-msg" role="alert"></div>
-        <button class="btn btn-primary w-100" type="submit">Open dashboard</button>
+        <button class="btn btn-primary w-100" type="submit">Open</button>
       </div>
     </form>
   </div>
 </div>
 
 <div id="app" class="page" hidden>
-  <header class="navbar navbar-expand-md d-print-none">
-    <div class="container-xl">
-      <span class="navbar-brand">Notes Pro admin</span>
-      <div class="navbar-nav flex-row ms-auto align-items-center gap-2">
-        <span class="text-secondary small d-none d-sm-inline" id="stamp"></span>
-        <button class="btn btn-sm" id="refresh" type="button">Refresh</button>
-        <button class="btn btn-sm btn-outline-secondary" id="logout" type="button">Lock</button>
-      </div>
+  <div class="container-xl py-4" style="max-width:1100px">
+    <div class="d-flex align-items-center mb-4 gap-2">
+      <h1 class="h2 mb-0 me-auto">Getnotespro</h1>
+      <span class="text-secondary small d-none d-sm-inline" id="stamp"></span>
+      <button class="btn btn-sm" id="refresh" type="button">Refresh</button>
+      <button class="btn btn-sm btn-outline-secondary" id="logout" type="button">Lock</button>
     </div>
-  </header>
-  <div class="page-wrapper">
-    <div class="page-body"><div class="container-xl">
-      <div class="row row-deck row-cards mb-3" id="kpis"></div>
 
-      <div class="row row-cards mb-3" id="subjects"></div>
+    <div class="row g-3 mb-2" id="kpis"></div>
+    <p class="text-secondary mb-4" id="by-subject"></p>
 
-      <div class="card mb-3">
-        <div class="card-header">
-          <ul class="nav nav-tabs card-header-tabs" role="tablist">
-            <li class="nav-item"><a href="#tab-pay" class="nav-link active" data-bs-toggle="tab">Payments</a></li>
-            <li class="nav-item"><a href="#tab-ref" class="nav-link" data-bs-toggle="tab">Refunds</a></li>
-            <li class="nav-item"><a href="#tab-stu" class="nav-link" data-bs-toggle="tab">Students</a></li>
-            <li class="nav-item"><a href="#tab-acc" class="nav-link" data-bs-toggle="tab">Access tools</a></li>
-          </ul>
-          <div class="ms-auto"><input class="form-control form-control-sm" id="q" type="search" placeholder="Search email" style="width:220px"></div>
-        </div>
-        <div class="tab-content">
-          <div class="tab-pane active show" id="tab-pay"><div class="table-wrap"><table class="table table-vcenter card-table table-sm"><thead><tr><th>Date and time (IST)</th><th>Student email</th><th>Subject</th><th>Amount</th><th>Status</th><th>Payment ID</th><th></th></tr></thead><tbody id="pay-rows"></tbody></table></div><div class="card-footer"><button class="btn btn-sm" id="csv" type="button">Download payments as CSV</button></div></div>
-          <div class="tab-pane" id="tab-ref"><div class="table-wrap"><table class="table table-vcenter card-table table-sm"><thead><tr><th>Date and time (IST)</th><th>Student email</th><th>Subject</th><th>Refunded</th><th>Type</th><th>Reason</th><th>Refund ID</th><th>Payment ID</th></tr></thead><tbody id="ref-rows"></tbody></table></div></div>
-          <div class="tab-pane" id="tab-stu"><div class="table-wrap"><table class="table table-vcenter card-table table-sm"><thead><tr><th>Student</th><th>First seen</th><th>Last sign-in</th><th>Sign-ins</th><th>Pro for</th></tr></thead><tbody id="stu-rows"></tbody></table></div></div>
-          <div class="tab-pane" id="tab-acc">
-            <div class="card-body">
-              <div class="row g-4">
-                <div class="col-md-6">
-                  <h3 class="card-title">Give or remove Pro</h3>
-                  <p class="text-secondary small">Use this to fix a payment that did not unlock, or to give free access. A grant is marked "manual" and is not counted as revenue.</p>
-                  <div class="mb-2"><input class="form-control" id="a-email" type="email" placeholder="student@vitstudent.ac.in"></div>
-                  <div class="mb-2"><select class="form-select" id="a-prod"></select></div>
-                  <div class="btn-list"><button class="btn btn-primary" id="a-grant" type="button">Give Pro</button><button class="btn btn-outline-danger" id="a-revoke" type="button">Remove Pro</button><button class="btn" id="a-look" type="button">Look up student</button></div>
-                  <div class="mt-3 mono" id="a-out" role="status"></div>
-                </div>
-                <div class="col-md-6">
-                  <h3 class="card-title">Check Razorpay for missed payments</h3>
-                  <p class="text-secondary small">Asks Razorpay for this store's payments from the last days and unlocks anyone who paid but is not recorded here. Safe to run any time.</p>
-                  <div class="input-group mb-2" style="max-width:260px"><input class="form-control" id="r-days" type="number" min="1" max="90" value="30"><span class="input-group-text">days</span></div>
-                  <button class="btn btn-primary" id="r-go" type="button">Check Razorpay</button>
-                  <div class="mt-3 mono" id="r-out" role="status"></div>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div class="card mb-3">
+      <div class="card-header">
+        <h2 class="card-title">Payments</h2>
+        <div class="ms-auto d-flex gap-2">
+          <input class="form-control form-control-sm" id="q" type="search" placeholder="Search by email" style="width:220px">
+          <button class="btn btn-sm" id="csv" type="button">Download</button>
         </div>
       </div>
-      <p class="text-secondary small">Prices and the Razorpay keys are set in Vercel (environment variables). This page only reads and changes who has Pro.</p>
-    </div></div>
+      <div class="table-wrap"><table class="table table-vcenter card-table table-sm">
+        <thead><tr><th>Date and time (IST)</th><th>Student email</th><th>Subject</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+        <tbody id="pay-rows"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card mb-3"><details>
+      <summary>Refund history</summary>
+      <div class="table-wrap"><table class="table table-vcenter card-table table-sm">
+        <thead><tr><th>Date and time (IST)</th><th>Student email</th><th>Subject</th><th>Refunded</th><th>Reason</th></tr></thead>
+        <tbody id="ref-rows"></tbody>
+      </table></div>
+    </details></div>
+
+    <div class="card mb-3"><details>
+      <summary>Give or remove access for one student</summary>
+      <div class="card-body pt-0">
+        <p class="text-secondary small">Use this if a student paid but did not get access, or to give someone free access.</p>
+        <div class="row g-2">
+          <div class="col-md-5"><input class="form-control" id="a-email" type="email" placeholder="student@vitstudent.ac.in"></div>
+          <div class="col-md-3"><select class="form-select" id="a-prod"></select></div>
+          <div class="col-md-4 btn-list"><button class="btn btn-primary" id="a-grant" type="button">Give access</button><button class="btn btn-outline-danger" id="a-revoke" type="button">Remove access</button><button class="btn" id="a-look" type="button">Look up</button></div>
+        </div>
+        <div class="mt-3 mono" id="a-out" role="status"></div>
+      </div>
+    </details></div>
+
+    <div class="card mb-3"><details>
+      <summary>A student paid but it is not in the list?</summary>
+      <div class="card-body pt-0">
+        <p class="text-secondary small">This asks Razorpay for recent payments and adds any that are missing. It is safe to press any time.</p>
+        <div class="d-flex gap-2 align-items-center"><button class="btn btn-primary" id="r-go" type="button">Check Razorpay</button><span class="text-secondary small">Looks back <input id="r-days" type="number" min="1" max="90" value="30" style="width:64px"> days</span></div>
+        <div class="mt-3 mono" id="r-out" role="status"></div>
+      </div>
+    </details></div>
+
+    <div class="card mb-3"><details>
+      <summary>Everyone who has signed in</summary>
+      <div class="table-wrap"><table class="table table-vcenter card-table table-sm">
+        <thead><tr><th>Student email</th><th>First seen</th><th>Last sign-in</th><th>Sign-ins</th><th>Has access to</th></tr></thead>
+        <tbody id="stu-rows"></tbody>
+      </table></div>
+    </details></div>
   </div>
 </div>
 
 <div class="modal modal-blur fade" id="rf-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-  <div class="modal-header"><h5 class="modal-title">Refund a payment</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+  <div class="modal-header"><h5 class="modal-title">Refund this payment</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
   <div class="modal-body">
     <div class="mb-3 mono" id="rf-info"></div>
-    <div class="mb-3"><label class="form-label">Amount in rupees <span class="text-secondary">(leave empty for a full refund)</span></label><input class="form-control" id="rf-amt" type="number" min="1" step="1" placeholder="full amount"></div>
-    <div class="mb-3"><label class="form-label">Reason</label><input class="form-control" id="rf-reason" maxlength="200" placeholder="e.g. charged twice"></div>
-    <div class="alert alert-warning mb-0 small">A full refund also removes Pro for this subject. Razorpay returns the money to the same UPI account, usually in 5 to 7 working days. This cannot be undone.</div>
+    <div class="mb-3"><label class="form-label">How much to give back, in rupees <span class="text-secondary">(leave empty to refund everything)</span></label><input class="form-control" id="rf-amt" type="number" min="1" step="1" placeholder="everything"></div>
+    <div class="mb-3"><label class="form-label">Reason (optional)</label><input class="form-control" id="rf-reason" maxlength="200" placeholder="e.g. paid twice"></div>
+    <div class="alert alert-warning mb-0 small">A full refund also removes the student's access. The money goes back to their UPI account in about 5 to 7 working days. This cannot be undone.</div>
     <div class="mt-3 mono text-danger" id="rf-msg" role="alert"></div>
   </div>
   <div class="modal-footer"><button type="button" class="btn me-auto" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-danger" id="rf-go">Refund</button></div>

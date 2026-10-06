@@ -22,11 +22,9 @@
   function render() {
     const T = D.totals;
     $('#stamp').innerHTML = 'Updated ' + when(D.now);
-    const kpi = (label, val, sub) => `<div class="col-sm-6 col-lg"><div class="card"><div class="card-body"><div class="subheader">${label}</div><div class="h1 mb-0">${val}</div><div class="text-secondary small">${sub || '&nbsp;'}</div></div></div></div>`;
-    $('#kpis').innerHTML = kpi('Revenue', rs(T.revenue), 'after refunds, before fees') + kpi('Paid unlocks', T.payments, 'active real payments') + kpi('Refunded', rs(T.refunded || 0), (T.refunds || 0) + ' refund' + (T.refunds === 1 ? '' : 's')) + kpi('Manual grants', T.manual, 'not counted as revenue') + kpi('Students seen', T.students, 'signed in or owning Pro');
-    $('#subjects').innerHTML = D.products.map((p) => `<div class="col-md-4"><div class="card"><div class="card-body">
-      <div class="d-flex justify-content-between"><div><div class="subheader">${esc(p.code)}</div><div class="h3 mb-1">${esc(p.name)}</div></div><span class="badge bg-blue-lt align-self-start">${rs(p.price)}</span></div>
-      <div class="text-secondary">${p.count} paid · ${p.manual} manual</div><div class="h2 mt-2 mb-0">${rs(p.revenue)}</div></div></div></div>`).join('');
+    const kpi = (label, val, sub) => `<div class="col-md-4"><div class="card"><div class="card-body"><div class="text-secondary">${label}</div><div class="big">${val}</div><div class="text-secondary small">${sub || '&nbsp;'}</div></div></div></div>`;
+    $('#kpis').innerHTML = kpi('Money received', rs(T.revenue), 'after refunds') + kpi('Students who paid', T.payments, 'currently have access') + kpi('Refunded', rs(T.refunded || 0), (T.refunds || 0) + ' refund' + (T.refunds === 1 ? '' : 's'));
+    $('#by-subject').textContent = D.products.map((p) => p.name + ': ' + p.count + ' paid (' + rs(p.revenue) + ')').join('   ·   ');
     const opts = D.products.map((p) => `<option value="${esc(p.code)}">${esc(p.code)} · ${esc(p.name)}</option>`).join('');
     if (!$('#a-prod').options.length) $('#a-prod').innerHTML = opts;
     filter();
@@ -36,8 +34,9 @@
     if (!D) return;
     const q = $('#q').value.trim().toLowerCase();
     const has = (e) => !q || String(e).toLowerCase().includes(q);
-    $('#pay-rows').innerHTML = D.payments.filter((p) => has(p.email) || has(p.id)).map((p) => `<tr><td>${when(p.at)}</td><td>${esc(p.email)}</td><td><span class="badge bg-blue-lt">${esc(p.product)}</span></td><td>${p.manual ? '' : rs(p.amount)}</td><td>${badge(p)}${p.status === 'refunded' && p.refundedAt ? '<div class="text-secondary small">' + when(p.refundedAt) + '</div>' : ''}</td><td class="mono">${esc(p.id)}</td><td>${p.status === 'paid' ? `<button class="btn btn-sm btn-outline-danger" data-refund="${esc(p.email)}|${esc(p.product)}|${p.amount}|${esc(p.id)}">Refund</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="text-secondary">No payments yet.</td></tr>';
-    $('#ref-rows').innerHTML = (D.refunds || []).filter((r) => has(r.email) || has(r.payment)).map((r) => `<tr><td>${when(r.at)}</td><td>${esc(r.email)}</td><td><span class="badge bg-blue-lt">${esc(r.product)}</span></td><td>${rs(r.amount)}</td><td>${r.full ? 'full (Pro removed)' : 'partial'}</td><td>${esc(r.reason)}${r.by === 'razorpay' ? ' <span class="text-secondary small">(from Razorpay)</span>' : ''}</td><td class="mono">${esc(r.id)}</td><td class="mono">${esc(r.payment)}</td></tr>`).join('') || '<tr><td colspan="8" class="text-secondary">No refunds yet.</td></tr>';
+    const name = (c) => { const p = D.products.find((x) => x.code === c); return p ? p.name : c; };
+    $('#pay-rows').innerHTML = D.payments.filter((p) => has(p.email) || has(p.id)).map((p) => `<tr><td>${when(p.at)}</td><td>${esc(p.email)}</td><td>${esc(name(p.product))}</td><td>${p.manual ? '' : rs(p.amount)}</td><td title="${esc(p.id)}">${badge(p)}${p.status === 'refunded' && p.refundedAt ? '<div class="text-secondary small">' + when(p.refundedAt) + '</div>' : ''}</td><td>${p.status === 'paid' ? `<button class="btn btn-sm btn-outline-danger" data-refund="${esc(p.email)}|${esc(p.product)}|${p.amount}|${esc(p.id)}">Refund</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="text-secondary">No payments yet.</td></tr>';
+    $('#ref-rows').innerHTML = (D.refunds || []).filter((r) => has(r.email) || has(r.payment)).map((r) => `<tr><td>${when(r.at)}</td><td>${esc(r.email)}</td><td>${esc(name(r.product))}</td><td>${rs(r.amount)}${r.full ? '' : ' (part)'}</td><td>${esc(r.reason)}${r.by === 'razorpay' ? ' <span class="text-secondary small">(done in Razorpay)</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="text-secondary">No refunds yet.</td></tr>';
     $('#stu-rows').innerHTML = D.students.filter((s) => has(s.email)).map((s) => `<tr><td>${esc(s.email)}</td><td>${when(s.first)}</td><td>${when(s.last)}</td><td>${s.logins}</td><td>${s.owned.map((c) => `<span class="badge bg-green-lt me-1">${esc(c)}</span>`).join('') || '<span class="text-secondary">none</span>'}</td></tr>`).join('') || '<tr><td colspan="5" class="text-secondary">No students yet.</td></tr>';
   }
   async function load() {
