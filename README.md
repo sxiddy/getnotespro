@@ -30,7 +30,7 @@ node tools/legal.js              # regenerates the terms, privacy, refund and co
 ```
 
 ## Adding a subject
-1. `api/_lib.js` PRODUCTS: add one line (`CODE: { name, tag, site, price }`). `tag` groups subjects in the filter that appears once there are more than 4.
+1. `api/_lib.js` PRODUCTS: add one line (`CODE: { name, tag, site, price }`). The first three subjects show on the page as usual; once there are more, a search box finds the rest by code or name. `tag` is an optional label that search also matches.
 2. `app/js/store.js` INFO: add the blurb and the list of Pro tools for that subject (an `ICON` entry is optional).
 3. Link the subject site: `node tools/link-subject.js <repo> <CODE> "<name>"`, then set `STORE_URL` and `STORE_SECRET` on it.
 The cards, search and filters, the "Read free" links, the footer list and the subject count all follow PRODUCTS. Live previews in `app/js/ui.js` (DEMOS) only show for subjects that exist.

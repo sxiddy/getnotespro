@@ -366,3 +366,4 @@ input[type=range]:focus-visible { outline: 2px solid var(--e); outline-offset: 6
 .cards.many { grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 14px; }
 .cards.many .card { padding: 18px; } .cards.many .card h3 { font-size: 21px; }
 .empty { grid-column: 1 / -1; padding: 30px 0; text-align: center; }
+.thint { font-size: 13.5px; color: var(--text-dim); }

@@ -10,7 +10,7 @@ const USER_COOKIE = 'st_user'; // signed-in student: { e: email }
 const MAX_AGE = 400 * 24 * 3600; // browsers cap cookies at 400 days
 
 // One entry per subject site (add a line here, a blurb in app/js/store.js INFO, and the subject appears on the store;
-// 'tag' groups subjects in the filter that shows up once there are more than 4). Price is in paise; set PRICE_<CODE> in Vercel to change it (minimum 100 = ₹1).
+// 'tag' is an optional label that search also matches; the first three subjects show by default, the rest are found by searching. Price is in paise; set PRICE_<CODE> in Vercel to change it (minimum 100 = ₹1).
 const PRODUCTS = {
   BACHY105: { name: 'Applied Chemistry', tag: 'Chemistry', site: 'https://bachy105.vercel.app', price: 1000 },
   BAEEE101: { name: 'Basic Engineering', tag: 'Engineering', site: 'https://baeee101.vercel.app', price: 1000 },

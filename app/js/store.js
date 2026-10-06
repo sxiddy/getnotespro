@@ -14,27 +14,31 @@
     BAEEE101: '<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>',
     BAENG101: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13ZM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/>',
   };
-  let S = null, pending = null, query = '', tagF = 'All';
+  let S = null, pending = null, query = '';
   // colours: the first three subjects keep theirs, new ones cycle through the palette
   const COLOR = { BACHY105: 'var(--cat)', BAEEE101: 'var(--e)', BAENG101: 'var(--an)' }, PAL = ['var(--good)', '#ff8fa3', '#6fd6d0', '#f5d76e', '#9fb4ff', '#ffa06b'];
   const colorOf = (p, i) => COLOR[p.code] || PAL[Math.max(0, i - 3) % PAL.length];
-  const tags = () => [...new Set(S.products.map((p) => p.tag).filter(Boolean))];
-  const shownProducts = () => { const q = query.trim().toLowerCase(); return S.products.filter((p) => (tagF === 'All' || p.tag === tagF) && (!q || (p.name + ' ' + p.code + ' ' + (p.tag || '')).toLowerCase().includes(q))); };
-  // search and filter chips appear once there are more than 4 subjects
+  const FEATURED = 3; // the first three subjects are shown as usual; the rest are found by searching their code or name
+  const shownProducts = () => {
+    const q = query.trim().toLowerCase();
+    if (q) return S.products.filter((p) => (p.code + ' ' + p.name + ' ' + (p.tag || '')).toLowerCase().includes(q));
+    return S.products.filter((p, i) => i < FEATURED || p.code === want);
+  };
+  // the search box appears once there are more than three subjects
   function renderTools() {
-    const box = $('#tools'), many = S.products.length > 4; box.hidden = !many; if (!many) return;
+    const box = $('#tools'), many = S.products.length > FEATURED; box.hidden = !many; if (!many) return;
     if (!box.dataset.ready) {
-      box.dataset.ready = '1'; box.innerHTML = '<input id="sq" type="search" placeholder="Search subjects" aria-label="Search subjects"><div class="chips" id="tchips"></div>';
+      box.dataset.ready = '1'; box.innerHTML = '<input id="sq" type="search" placeholder="Search by subject code, e.g. BAMAT101" aria-label="Search subjects by code or name" autocomplete="off"><span class="thint" id="thint"></span>';
       $('#sq').addEventListener('input', (e) => { query = e.target.value; render(); });
-      $('#tchips').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { tagF = b.dataset.t; render(); } });
     }
-    $('#tchips').innerHTML = ['All', ...tags()].map((x) => '<button type="button" data-t="' + esc(x) + '" class="' + (x === tagF ? 'on' : '') + '">' + esc(x) + '</button>').join('');
+    const shown = shownProducts().length;
+    $('#thint').textContent = query.trim() ? shown + ' match' + (shown === 1 ? '' : 'es') + ' of ' + S.products.length + ' subjects' : 'Showing ' + shown + ' of ' + S.products.length + ' subjects. Search a code to find the others.';
   }
   // everything on the page that lists subjects follows the product list
   function fillDynamic() {
     const n = S.products.length, sn = $('#stat-n'); if (sn) { sn.dataset.count = n; if (!sn.dataset.done) sn.textContent = n; }
-    const fr = $('#free-row'); if (fr && !fr.dataset.ready) { fr.dataset.ready = '1'; fr.insertAdjacentHTML('beforeend', S.products.map((p, i) => '<a class="pill" href="' + esc(p.site) + '" rel="noopener" style="--a:' + colorOf(p, i) + '"><i></i>' + esc(p.name) + '</a>').join('')); }
-    const ff = $('#foot-free'); if (ff && !ff.dataset.ready) { ff.dataset.ready = '1'; ff.insertAdjacentHTML('beforeend', S.products.map((p) => '<a href="' + esc(p.site) + '" rel="noopener">' + esc(p.name) + '</a>').join('')); }
+    const fr = $('#free-row'); if (fr && !fr.dataset.ready) { fr.dataset.ready = '1'; fr.insertAdjacentHTML('beforeend', S.products.slice(0, FEATURED).map((p, i) => '<a class="pill" href="' + esc(p.site) + '" rel="noopener" style="--a:' + colorOf(p, i) + '"><i></i>' + esc(p.name) + '</a>').join('') + (n > FEATURED ? '<a class="pill" href="#subjects" style="--a:var(--text-dim)"><i></i>+' + (n - FEATURED) + ' more</a>' : '')); }
+    const ff = $('#foot-free'); if (ff && !ff.dataset.ready) { ff.dataset.ready = '1'; ff.insertAdjacentHTML('beforeend', S.products.slice(0, 6).map((p) => '<a href="' + esc(p.site) + '" rel="noopener">' + esc(p.name) + '</a>').join('') + (n > 6 ? '<a href="#subjects">All ' + n + ' subjects</a>' : '')); }
     const mine = S.products.filter((p) => p.owned), m = $('#mine'); m.hidden = !mine.length;
     m.innerHTML = mine.length ? '<span class="muted small">Your Pro subjects</span>' + mine.map((p) => '<a class="btn sm" href="' + esc(p.site) + '" rel="noopener">Open ' + esc(p.name) + '</a>').join('') : '';
     document.dispatchEvent(new CustomEvent('st:products', { detail: S.products }));
@@ -58,7 +62,7 @@
     $('#signin-btn').hidden = !!u; $('#signout-btn').hidden = !u;
     const cur = S.products.find((p) => p.code === want);
     $('#hero-msg').textContent = cur && !cur.owned ? 'You came from ' + cur.name + '. Its card is highlighted below.' : '';
-    renderTools(); $('#cards').classList.toggle('many', S.products.length > 4);
+    renderTools(); $('#cards').classList.toggle('many', shownProducts().length > 4);
     $('#cards').innerHTML = shownProducts().map((p) => {
       const i = INFO[p.code] || { blurb: '', points: [] };
       const exp = !!(window.stExp && window.stExp.has(p.code));
@@ -72,7 +76,7 @@
         <ul class="${exp ? '' : 'collapsed'}">${i.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>${i.points.length > 3 ? `<button class="more-btn" type="button" data-more="Show all ${i.points.length} Pro tools" aria-expanded="${exp ? 'true' : 'false'}">${exp ? 'Show fewer' : 'Show all ' + i.points.length + ' Pro tools'}</button>` : ''}
         <div class="buy">${p.owned ? '<p class="owned">You have Pro for this subject.</p>' : `<div class="price">${rs(p.price)}<span>one time</span></div>`}
         ${action}${p.owned ? '' : `<a class="btn free" href="${esc(p.site)}" rel="noopener">Read the notes free</a>`}<p class="card-msg" data-msg="${p.code}" role="status"></p></div></article>`;
-    }).join('') || '<p class="muted empty">No subject matches that. Try another word or pick All.</p>';
+    }).join('') || '<p class="muted empty">No subject matches that. Check the code and try again.</p>';
     fillDynamic();
     if (want && !render.scrolled && cur) { render.scrolled = true; const el = $('#card-' + want); if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150); }
   }
