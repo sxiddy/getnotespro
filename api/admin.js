@@ -2,6 +2,7 @@
 //   GET  /api/admin -> { products, totals, payments, students, now }
 //   POST /api/admin { action, ... }:
 //   GET  /api/admin?part=visits -> { sites: [{ code, name, ok, error?, visits: {day: n}, funnel }] }  visitors counted by each notes website itself (store visits are not counted)
+//   GET  /api/admin?part=people -> { people: [{ email, first, last, logins, sites }], sites } everyone who signed in on any notes site or the store (unique emails)
 //     grant { email, product, hours? }  give Pro for one subject without a payment (recorded as manual); hours = it ends by itself after that long, absent = forever
 //     revoke { email, product }     take Pro for one subject away
 //     lookup { email }              everything about one student
@@ -12,18 +13,34 @@ const store = require('./_store');
 
 const codes = Object.keys(PRODUCTS);
 
-// each notes website counts its own visitors; ask each one for its numbers with the shared admin key
+// each notes website counts its own visitors and knows who signed in; ask each one with the shared admin key
+async function fetchSite(code) {
+  const p = PRODUCTS[code], out = { code, name: p.name, ok: false, json: {} };
+  try {
+    const r = await fetch(p.site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY') }, signal: AbortSignal.timeout(8000) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { out.error = r.status === 401 ? 'That site has a different ADMIN_KEY.' : (j.error || 'HTTP ' + r.status); return out; }
+    out.ok = true; out.json = j;
+  } catch (e) { out.error = 'Could not reach the site.'; }
+  return out;
+}
 async function siteVisits() {
-  return Promise.all(codes.map(async (code) => {
-    const p = PRODUCTS[code], out = { code, name: p.name, ok: false, visits: {}, funnel: null };
-    try {
-      const r = await fetch(p.site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY') }, signal: AbortSignal.timeout(8000) });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) { out.error = r.status === 401 ? 'That site has a different ADMIN_KEY.' : (j.error || 'HTTP ' + r.status); return out; }
-      out.ok = true; out.visits = j.visits || {}; out.funnel = j.funnel || null;
-    } catch (e) { out.error = 'Could not reach the site.'; }
-    return out;
-  }));
+  return (await Promise.all(codes.map(fetchSite))).map((s) => ({ code: s.code, name: s.name, ok: s.ok, error: s.error, visits: s.json.visits || {}, funnel: s.json.funnel || null }));
+}
+// everyone who has signed in on any notes website or on this store, one entry per email
+async function people() {
+  const sites = await Promise.all(codes.map(fetchSite)), by = {};
+  const add = (email, code, x) => {
+    const e = (by[email] = by[email] || { email, first: '', last: '', logins: 0, sites: [] });
+    const f = x.first || '', l = x.lastSeen || x.last || '';
+    if (f && (!e.first || f < e.first)) e.first = f;
+    if (l && l > e.last) e.last = l;
+    e.logins += +x.logins || 0;
+    if (!e.sites.includes(code)) e.sites.push(code);
+  };
+  sites.forEach((s) => (s.json.students || []).forEach((x) => { if (x.email) add(String(x.email).toLowerCase(), s.code, x); }));
+  (await snapshot()).students.forEach((x) => add(x.email, 'STORE', x));
+  return { people: Object.values(by).sort((a, b) => String(b.last || b.first).localeCompare(String(a.last || a.first))), sites: sites.map((s) => ({ code: s.code, name: s.name, ok: s.ok, error: s.error, count: (s.json.students || []).length })) };
 }
 const parse = (s) => { try { return JSON.parse(s) || {}; } catch (e) { return {}; } };
 
@@ -91,6 +108,7 @@ module.exports = handle(async (req, res) => {
   if (!key || !safeEqual(key, expected)) return send(res, 401, { error: 'Wrong admin key.' });
   if (!store.configured()) return send(res, 500, { error: 'The database is not connected.' });
 
+  if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'people') return send(res, 200, await people());
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'visits') {
     const [vs] = store.configured() ? await store.pipeline([['HGETALL', 'visits']]) : [[]];
     return send(res, 200, { sites: await siteVisits(), store: { visits: store.pairs(vs) }, now: new Date().toISOString() });

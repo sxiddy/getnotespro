@@ -146,13 +146,25 @@
       </div>
     </details></div>
 
-    <div class="card mb-3"><details>
-      <summary>Everyone who has signed in</summary>
+    <div class="card mb-3" id="ppl-card">
+      <div class="card-header flex-wrap gap-2">
+        <h2 class="card-title">Everyone who signed in</h2>
+        <span class="text-secondary small" id="ppl-count">Loading…</span>
+        <div class="ms-auto d-flex flex-wrap gap-2">
+          <input class="form-control form-control-sm" id="p-q" type="search" placeholder="Search email" style="width:220px">
+          <select class="form-select form-select-sm w-auto" id="p-site" aria-label="Signed in on"></select>
+          <select class="form-select form-select-sm w-auto" id="p-acc" aria-label="Access"><option value="all">Any access</option><option value="none">No Pro yet</option><option value="has">Has Pro</option></select>
+          <select class="form-select form-select-sm w-auto" id="p-sort" aria-label="Sort"><option value="last">Sort: last seen</option><option value="first">Sort: newest</option><option value="logins">Sort: most sign-ins</option><option value="email">Sort: email A–Z</option></select>
+        </div>
+      </div>
+      <div class="sub-give" id="p-bulk" style="border-bottom:1px solid var(--line)"><label class="d-flex gap-2 align-items-center mb-0"><input type="checkbox" id="p-all"> <span class="lbl">Select all shown</span></label><span class="lbl ms-2" id="p-sel">0 selected</span><select class="form-select form-select-sm w-auto ms-auto" id="p-bsub"></select><select class="form-select form-select-sm w-auto" id="p-bdur"></select><button class="btn btn-sm btn-primary" id="p-bgo" type="button" disabled>Give access to selected</button></div>
       <div class="table-wrap"><table class="table table-vcenter card-table table-sm">
-        <thead><tr><th>Student email</th><th>First seen</th><th>Last sign-in</th><th>Sign-ins</th><th>Has access to</th></tr></thead>
-        <tbody id="stu-rows"></tbody>
+        <thead><tr><th style="width:34px"></th><th>Student email</th><th>Signed in on</th><th>First seen</th><th>Last seen</th><th>Sign-ins</th><th>Pro access</th></tr></thead>
+        <tbody id="p-rows"></tbody>
       </table></div>
-    </details></div>
+      <div class="card-footer d-flex gap-2 align-items-center"><button class="btn btn-sm" id="p-more" type="button" hidden>Show more</button><button class="btn btn-sm btn-ghost-secondary" id="p-less" type="button" hidden>Show less</button><span class="text-secondary small" id="p-shown"></span></div>
+      <div class="px-3 pb-3 text-secondary small" id="p-note"></div>
+    </div>
   </div>
 </div>
 

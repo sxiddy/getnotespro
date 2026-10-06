@@ -9,7 +9,8 @@
   const when = (iso) => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? esc(iso) : '<span title="' + esc(iso) + '">' + fmt(d, true) + '</span>'; };
   const whenText = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : fmt(d, false); };
   let KEY = '', D = null, RF = null, SHOWN = 10;
-  const OPEN = new Set();
+  const OPEN = new Set(), POPEN = new Set(), PSEL = new Set();
+  let P = null, PSHOWN = 10;
   const STEP = 20, FIRST = 10;
   const digits = (s) => String(s || '').replace(/\D/g, '');
   const phoneFmt = (c) => { const d = digits(c); if (!d) return ''; const n = d.length > 10 ? d.slice(-10) : d, cc = d.length > 10 ? '+' + d.slice(0, d.length - 10) + ' ' : ''; return cc + n.slice(0, 5) + ' ' + n.slice(5); };
@@ -81,7 +82,6 @@
     $('#pay-shown').textContent = groups.length ? 'Showing ' + Math.min(SHOWN, groups.length) + ' of ' + groups.length + ' students' : '';
     $('#pay-more').hidden = groups.length <= SHOWN; $('#pay-less').hidden = SHOWN <= FIRST;
     $('#ref-rows').innerHTML = (D.refunds || []).filter((r) => has(r.email) || has(r.payment)).map((r) => `<tr><td>${when(r.at)}</td><td>${esc(r.email)}</td><td>${esc(name(r.product))}</td><td>${rs(r.amount)}${r.full ? '' : ' (part)'}</td><td>${esc(r.reason)}${r.by === 'razorpay' ? ' <span class="text-secondary small">(done in Razorpay)</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="text-secondary">No refunds yet.</td></tr>';
-    $('#stu-rows').innerHTML = D.students.filter((s) => has(s.email)).map((s) => `<tr><td>${esc(s.email)}</td><td>${when(s.first)}</td><td>${when(s.last)}</td><td>${s.logins}</td><td>${s.owned.map((c) => `<span class="badge bg-green-lt me-1">${esc(c)}</span>`).join('') || '<span class="text-secondary">none</span>'}</td></tr>`).join('') || '<tr><td colspan="5" class="text-secondary">No students yet.</td></tr>';
   }
   // visitors per day on each notes website (each site counts its own; the store is not counted)
   async function loadVisits() {
@@ -96,8 +96,75 @@
       box.innerHTML = `<div class="table-wrap"><table class="table table-vcenter card-table table-sm"><thead><tr><th>Notes website</th><th>Today</th><th>Last 7 days</th><th>Last 30 days</th><th>Pro page</th></tr></thead><tbody>${rows}<tr><td><b>All notes sites</b></td><td><b>${tot[29]}</b></td><td><b>${tot.slice(-7).reduce((a, n) => a + n, 0)}</b></td><td><b>${tot.reduce((a, n) => a + n, 0)}</b></td><td></td></tr><tr><td>Notes Pro store</td><td>${sum(V.store.visits, 1)}</td><td>${sum(V.store.visits, 7)}</td><td>${sum(V.store.visits, 30)}</td><td></td></tr></tbody></table></div><div class="text-secondary small mt-3 mb-1">Visitors per day, last 30 days (all notes sites)</div><div style="display:flex;gap:2px;height:90px">${bars}</div>`;
     } catch (e) { box.innerHTML = '<span class="text-danger">' + esc(e.message) + '</span>'; }
   }
+  // ---------------------------------------------------------------- everyone who signed in (all notes sites + store, unique emails)
+  const activeBy = () => { const m = {}; (D ? D.payments : []).forEach((p) => { if (p.status === 'paid' || p.status === 'manual') (m[p.email] = m[p.email] || {})[p.product] = p; }); return m; };
+  async function loadPeople() {
+    try { P = await call('GET', undefined, '?part=people'); fillPeopleFilters(); peopleRender(); }
+    catch (e) { $('#ppl-count').textContent = e.message; }
+  }
+  function fillPeopleFilters() {
+    if ($('#p-site').options.length) return;
+    $('#p-site').innerHTML = '<option value="all">Any site</option>' + D.products.map((p) => '<option value="' + esc(p.code) + '">' + esc(p.code) + '</option>').join('') + '<option value="STORE">Notes Pro store</option>';
+    $('#p-bsub').innerHTML = D.products.map((p) => '<option value="' + esc(p.code) + '">' + esc(p.name) + '</option>').join('');
+    $('#p-bdur').innerHTML = DURS;
+  }
+  function peopleVisible() {
+    const q = $('#p-q').value.trim().toLowerCase(), site = $('#p-site').value, acc = $('#p-acc').value, so = $('#p-sort').value, act = activeBy();
+    const list = P.people.filter((x) => (!q || x.email.includes(q)) && (site === 'all' || x.sites.includes(site)) && (acc === 'all' || (acc === 'has') === !!act[x.email]));
+    const by = { last: (a, b) => String(b.last || b.first).localeCompare(String(a.last || a.first)), first: (a, b) => String(b.first).localeCompare(String(a.first)), logins: (a, b) => b.logins - a.logins, email: (a, b) => a.email.localeCompare(b.email) }[so];
+    return list.sort(by);
+  }
+  function peopleRender() {
+    if (!P || !D) return;
+    const list = peopleVisible(), shown = list.slice(0, PSHOWN), act = activeBy();
+    const lineFor = (x, p) => { const has = (act[x.email] || {})[p.code]; return has
+      ? `<div class="sub-line"><span class="nm">${esc(p.name)}</span>${badge(has)}<span class="meta">${has.manual ? 'given by you' : rs(has.amount) + ' paid'}${has.until ? ' · ' + ends(has) : ''}</span><button class="btn btn-sm" data-revoke="${esc(x.email)}|${esc(p.code)}|${has.status}">Revoke</button></div>`
+      : `<div class="sub-line"><span class="nm">${esc(p.name)}</span><span class="badge bg-secondary-lt">no Pro</span><span class="meta"></span><select class="form-select form-select-sm w-auto" data-gd>${DURS}</select><button class="btn btn-sm btn-primary" data-pgive="${esc(x.email)}|${esc(p.code)}">Give access</button></div>`; };
+    $('#p-rows').innerHTML = shown.map((x) => {
+      const open = POPEN.has(x.email), mine = act[x.email] || {};
+      const head = `<tr class="grp-row${open ? ' open' : ''}" data-pp="${esc(x.email)}"><td><input type="checkbox" data-psel="${esc(x.email)}" ${PSEL.has(x.email) ? 'checked' : ''}></td><td><span class="chev">▸</span>${esc(x.email)}</td><td>${x.sites.map((c) => '<span class="chip" style="opacity:.85">' + esc(c === 'STORE' ? 'STORE' : c) + '</span>').join('')}</td><td>${x.first ? when(x.first) : '<span class="text-secondary">—</span>'}</td><td>${x.last ? when(x.last) : '<span class="text-secondary">—</span>'}</td><td>${x.logins}</td><td>${Object.keys(mine).length ? Object.keys(mine).map((c) => '<span class="chip">' + esc(c) + '</span>').join('') : '<span class="text-secondary small">none</span>'}</td></tr>`;
+      return open ? head + `<tr class="sub-row"><td colspan="7"><div class="sub-panel">${D.products.map((p) => lineFor(x, p)).join('')}</div></td></tr>` : head;
+    }).join('') || '<tr><td colspan="7" class="text-secondary">No one matches that.</td></tr>';
+    const bad = P.sites.filter((s) => !s.ok);
+    $('#ppl-count').textContent = list.length + ' of ' + P.people.length + ' unique students';
+    $('#p-shown').textContent = list.length ? 'Showing ' + Math.min(PSHOWN, list.length) + ' of ' + list.length : '';
+    $('#p-more').hidden = list.length <= PSHOWN; $('#p-less').hidden = PSHOWN <= FIRST;
+    $('#p-note').textContent = bad.length ? 'Could not read: ' + bad.map((s) => s.name + ' (' + s.error + ')').join('; ') + '.' : 'Counts each email once, even if they signed in on several sites. Phone numbers are only known for students who paid here.';
+    $('#p-sel').textContent = PSEL.size + ' selected'; $('#p-bgo').disabled = !PSEL.size; $('#p-all').checked = !!shown.length && shown.every((x) => PSEL.has(x.email));
+  }
+  const prst = () => { PSHOWN = FIRST; peopleRender(); };
+  $('#p-q').addEventListener('input', prst);
+  ['#p-site', '#p-acc', '#p-sort'].forEach((s) => $(s).addEventListener('change', prst));
+  $('#p-more').addEventListener('click', () => { PSHOWN += STEP; peopleRender(); });
+  $('#p-less').addEventListener('click', () => { PSHOWN = FIRST; peopleRender(); });
+  $('#p-all').addEventListener('change', (e) => { peopleVisible().slice(0, PSHOWN).forEach((x) => { if (e.target.checked) PSEL.add(x.email); else PSEL.delete(x.email); }); peopleRender(); });
+  $('#p-bgo').addEventListener('click', async () => {
+    const code = $('#p-bsub').value, hours = +$('#p-bdur').value || undefined, emails = [...PSEL], btn = $('#p-bgo');
+    if (!confirm('Give ' + emails.length + ' student' + (emails.length === 1 ? '' : 's') + ' access to ' + code + (hours ? ' for ' + $('#p-bdur').selectedOptions[0].text : ' with no end date') + '?')) return;
+    btn.disabled = true; let ok = 0, skipped = 0;
+    for (const email of emails) {
+      btn.textContent = 'Working… ' + (ok + skipped) + '/' + emails.length;
+      try { await call('POST', { action: 'grant', email, product: code, hours }); ok++; } catch (err) { skipped++; }
+    }
+    btn.textContent = 'Give access to selected'; PSEL.clear();
+    alert('Gave access to ' + ok + (skipped ? '. Skipped ' + skipped + ' (already paid, or not a student email).' : '.'));
+    await load();
+  });
+  document.addEventListener('click', async (e) => {
+    const g = e.target.closest('[data-pgive]');
+    if (g) {
+      const [email, product] = g.dataset.pgive.split('|'); g.disabled = true;
+      try { await call('POST', { action: 'grant', email, product, hours: +g.closest('.sub-line').querySelector('[data-gd]').value || undefined }); await load(); } catch (err) { alert(err.message); g.disabled = false; }
+      return;
+    }
+    if (e.target.closest('[data-psel]')) { const c = e.target.closest('[data-psel]'); if (c.checked) PSEL.add(c.dataset.psel); else PSEL.delete(c.dataset.psel); peopleRender(); return; }
+    if (e.target.closest('button, a, select, .sub-panel')) return;
+    const row = e.target.closest('[data-pp]');
+    if (row) { const k = row.dataset.pp; if (POPEN.has(k)) POPEN.delete(k); else POPEN.add(k); peopleRender(); }
+  });
+
   async function load() {
-    try { D = await call('GET'); show(true); render(); loadVisits(); }
+    try { D = await call('GET'); show(true); render(); loadVisits(); if (P) peopleRender(); else loadPeople(); }
     catch (e) { if (e.status === 401 || !D) { show(false); $('#gate-msg').textContent = e.message; try { sessionStorage.removeItem('st_admin'); } catch (x) { /* ignore */ } } else alert(e.message); }
   }
 
@@ -147,7 +214,7 @@
       return;
     }
     if (e.target.closest('button, a, select, .sub-panel')) return;
-    const row = e.target.closest('.grp-row');
+    const row = e.target.closest('.grp-row[data-g]');
     if (row) { const k = row.dataset.g; if (OPEN.has(k)) OPEN.delete(k); else OPEN.add(k); filter(); }
   });
 
