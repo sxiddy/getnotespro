@@ -93,123 +93,117 @@
   const TAU = Math.PI * 2;
   const DEMOS = [
     {
-      id: 'bands', title: 'Band gaps and temperature', code: 'BACHY105', subject: 'Applied Chemistry', col: COL.cat,
-      blurb: 'Heat a metal, a semiconductor and an insulator. Only the semiconductor gets better at conducting as it warms.',
-      ctrl: [{ k: 'T', label: 'Temperature', min: 0, max: 600, step: 10, val: 300, fmt: (v) => v + ' K' }],
-      read: (v) => v.T === 0 ? '<b>0 K:</b> every electron is frozen in the valence band, so the semiconductor acts as an insulator.' : `At <b>${v.T} K</b> heat lifts electrons across silicon's ~1 eV gap and leaves holes behind, so its conductivity <b>rises</b>. The metal only scatters its electrons more, so it dips slightly. The insulator's gap is too big.`,
+      id: 'battery', title: 'Phone battery', code: 'BACHY105', subject: 'Applied Chemistry', col: COL.cat,
+      blurb: 'What happens inside your phone battery. Lithium ions shuttle one way when you charge and the other way when you use it.',
+      ctrl: [{ k: 'mode', label: 'Phone is', type: 'toggle', opts: [['use', 'In use'], ['chg', 'Charging']], val: 'use' }, { k: 'lvl', label: 'Battery level', min: 0, max: 100, step: 1, val: 70, fmt: (v) => v + '%' }],
+      read: (v) => v.mode === 'chg' ? `<b>Charging:</b> the charger pushes electrons round the outside, and lithium ions travel through the electrolyte into the graphite. At <b>${v.lvl}%</b> most of the lithium is stored there.` : `<b>In use:</b> lithium ions move from the graphite to the cathode and the freed electrons run through your phone. At <b>${v.lvl}%</b>, the lithium that is left in the graphite is what powers it.`,
       draw(g, w, h, t, v) {
-        const kB = 8.617e-5, cols = [{ n: 'Conductor', gap: -1 }, { n: 'Semiconductor (Si)', gap: 1.1 }, { n: 'Insulator', gap: 6 }];
-        const cnt = (c) => {
-          if (c.gap < 0) return 12; if (v.T <= 0 || c.gap > 3) return 0;
-          const f = (T) => Math.pow(T, 1.5) * Math.exp(-c.gap / (2 * kB * T)), lo = Math.log(f(150)), hi = Math.log(f(600));
-          return Math.round(Math.max(0, Math.min(1, (Math.log(f(v.T)) - lo) / (hi - lo))) * 14);
-        };
-        const cw = w / 3, bw = cw * 0.7, bh = h * 0.2;
-        cols.forEach((c, ci) => {
-          const x0 = ci * cw + (cw - bw) / 2, vbT = h * 0.62, gp = c.gap < 0 ? -bh * 0.4 : c.gap < 2 ? h * 0.12 : h * 0.26, cbB = vbT - gp, cbT = cbB - bh;
-          g.fillStyle = 'rgba(124,192,255,.08)'; g.strokeStyle = COL.line; g.lineWidth = 1.2;
-          g.beginPath(); g.roundRect(x0, cbT, bw, bh, 6); g.fill(); g.stroke();
-          g.fillStyle = 'rgba(124,192,255,.28)'; g.beginPath(); g.roundRect(x0, vbT, bw, bh, 6); g.fill(); g.stroke();
-          g.font = '600 12px "Hanken Grotesk", sans-serif'; g.textAlign = 'center'; g.fillStyle = '#f4f4f6'; g.fillText(c.n, x0 + bw / 2, 40);
-          g.font = '500 10px "JetBrains Mono", monospace'; g.fillStyle = COL.dim; g.fillText('conduction', x0 + bw / 2, cbT + 14); g.fillText('valence', x0 + bw / 2, vbT + bh - 8);
-          g.fillStyle = COL.cat; g.font = '500 11px "JetBrains Mono", monospace';
-          g.fillText(c.gap < 0 ? 'bands overlap' : 'gap ' + c.gap + ' eV', x0 + bw / 2, c.gap < 0 ? cbT - 8 : (cbB + vbT) / 2 + 4);
-          const k = cnt(c);
-          for (let i = 0; i < 14; i++) {
-            if (i >= k) continue;
-            const px = x0 + 14 + ((i * 37) % 100) / 100 * (bw - 28), j = Math.sin(t * 2 + i * 1.7) * 5;
-            g.fillStyle = COL.e; g.beginPath(); g.arc(px + j, c.gap < 0 ? vbT - bh * 0.15 + (i % 4) * 6 : cbT + bh * 0.45 + (i % 3) * 7, 3.6, 0, TAU); g.fill();
-            if (c.gap >= 0) { g.strokeStyle = COL.bad; g.lineWidth = 1.5; g.beginPath(); g.arc(px - j * 0.6, vbT + bh * 0.4 + (i % 3) * 7, 3.6, 0, TAU); g.stroke(); }
-          }
-          const by = h - 34, bwid = bw, frac = c.gap < 0 ? Math.max(0.5, Math.min(1, 1 - v.T / 1500)) : k / 14;
-          g.fillStyle = '#27272c'; g.beginPath(); g.roundRect(x0, by, bwid, 9, 5); g.fill();
-          if (frac > 0) { g.fillStyle = COL.good; g.beginPath(); g.roundRect(x0, by, Math.max(9, bwid * frac), 9, 5); g.fill(); }
-          g.fillStyle = COL.dim; g.font = '500 10px "JetBrains Mono", monospace'; g.fillText('conductivity', x0 + bw / 2, h - 8);
-        });
+        const N = 20, nA = Math.round(v.lvl / 100 * N), chg = v.mode === 'chg', flow = !((chg && v.lvl >= 100) || (!chg && v.lvl <= 0));
+        const ax0 = w * 0.08, ax1 = w * 0.34, cx0 = w * 0.66, cx1 = w * 0.92, y0 = h * 0.44, y1 = h * 0.84, wy = h * 0.2;
+        g.fillStyle = 'rgba(124,192,255,.07)'; g.fillRect(ax1, y0, cx0 - ax1, y1 - y0);
+        g.fillStyle = 'rgba(255,255,255,.07)'; g.strokeStyle = COL.line; g.lineWidth = 1.5;
+        g.beginPath(); g.roundRect(ax0, y0, ax1 - ax0, y1 - y0, 8); g.fill(); g.stroke();
+        g.fillStyle = 'rgba(255,181,107,.10)'; g.beginPath(); g.roundRect(cx0, y0, cx1 - cx0, y1 - y0, 8); g.fill(); g.stroke();
+        g.font = '600 12px "Hanken Grotesk", sans-serif'; g.textAlign = 'center'; g.fillStyle = COL.text;
+        g.fillText('Graphite (−)', (ax0 + ax1) / 2, y1 + 20); g.fillText('Cathode (+)', (cx0 + cx1) / 2, y1 + 20);
+        g.fillStyle = COL.dim; g.font = '500 11px "JetBrains Mono", monospace'; g.fillText('electrolyte', (ax1 + cx0) / 2, y1 + 20);
+        // ions stored in each electrode
+        const slots = (x0, x1, i, n) => { const cols = 4, r = Math.floor(i / cols), c = i % cols; return [x0 + (x1 - x0) * (0.18 + 0.64 * c / (cols - 1)), y0 + (y1 - y0) * (0.2 + 0.6 * r / Math.ceil(n / cols - 0.5 || 1)) * 0.95]; };
+        g.fillStyle = COL.good;
+        for (let i = 0; i < N; i++) {
+          const inA = i < nA, [x, y] = inA ? slots(ax0, ax1, i, N) : slots(cx0, cx1, i - nA, N);
+          g.beginPath(); g.arc(x + Math.sin(t * 2 + i) * 2, y, 5, 0, TAU); g.fill();
+        }
+        g.fillStyle = '#0e1a13'; g.font = '700 8px sans-serif';
+        // ions travelling through the electrolyte
+        if (flow) for (let i = 0; i < 5; i++) {
+          let p = (t * 0.32 + i / 5) % 1; if (chg) p = 1 - p;
+          const x = ax1 + (cx0 - ax1) * p, y = y0 + (y1 - y0) * (0.2 + 0.6 * ((i * 0.37) % 1));
+          g.fillStyle = COL.good; g.globalAlpha = 0.9; g.beginPath(); g.arc(x, y, 5, 0, TAU); g.fill(); g.globalAlpha = 1;
+        }
+        g.fillStyle = '#e8fff0'; g.font = '700 9px "JetBrains Mono", monospace'; g.fillText('Li⁺', ax1 + (cx0 - ax1) / 2, y0 + 16);
+        // outside circuit
+        const ax = (ax0 + ax1) / 2, cx = (cx0 + cx1) / 2;
+        g.strokeStyle = COL.dim; g.lineWidth = 2; g.beginPath(); g.moveTo(ax, y0); g.lineTo(ax, wy); g.lineTo(cx, wy); g.lineTo(cx, y0); g.stroke();
+        const bw = w * 0.2, bx = w / 2 - bw / 2;
+        g.fillStyle = COL.bg; g.strokeStyle = chg ? COL.good : COL.cat; g.lineWidth = 2; g.beginPath(); g.roundRect(bx, wy - 18, bw, 36, 10); g.fill(); g.stroke();
+        g.fillStyle = chg ? COL.good : COL.cat; g.font = '600 13px "Hanken Grotesk", sans-serif'; g.fillText(chg ? '🔌 Charger' : '📱 Phone', w / 2, wy + 5);
+        if (flow) { g.fillStyle = COL.e; const L = (ax - cx) ; for (let i = 0; i < 8; i++) { let p = (t * 0.3 + i / 8) % 1; if (chg) p = 1 - p; const tot = (y0 - wy) * 2 + (cx - ax), d = p * tot; let x, y; if (d < y0 - wy) { x = ax; y = y0 - d; } else if (d < y0 - wy + (cx - ax)) { x = ax + (d - (y0 - wy)); y = wy; } else { x = cx; y = wy + (d - (y0 - wy) - (cx - ax)); } if (Math.abs(x - w / 2) < bw / 2 && y === wy) continue; g.beginPath(); g.arc(x, y, 3.4, 0, TAU); g.fill(); } }
+        g.fillStyle = COL.e; g.font = '600 11px "JetBrains Mono", monospace'; g.fillText('e⁻', ax + 14, wy - 8);
+        g.fillStyle = '#f4f4f6'; g.font = '700 22px "Hanken Grotesk", sans-serif'; g.fillText(v.lvl + '%', w / 2, (y0 + y1) / 2 + 6);
         g.textAlign = 'start';
       },
     },
     {
-      id: 'wave', title: 'AC wave and phasor', code: 'BAEEE101', subject: 'Basic Engineering', col: COL.e,
-      blurb: 'Change the phase and watch the current fall behind the voltage while the phasors turn.',
-      ctrl: [{ k: 'f', label: 'Frequency', min: 1, max: 5, step: 0.5, val: 2, fmt: (v) => v.toFixed(1) + ' Hz (slowed down)' }, { k: 'phi', label: 'Phase lag φ', min: 0, max: 180, step: 5, val: 50, fmt: (v) => v + '°' }],
-      read: (v) => `Current lags voltage by <b>${v.phi}°</b> · power factor cos φ = <b>${Math.cos(v.phi * Math.PI / 180).toFixed(2)}</b>${v.phi > 90 ? ' (negative: power flows back)' : ''}`,
+      id: 'solar', title: 'Solar panel', code: 'BACHY105', subject: 'Applied Chemistry', col: COL.an,
+      blurb: 'How sunlight becomes electricity in a solar cell. More light frees more electrons, and the bulb shines brighter.',
+      ctrl: [{ k: 'sun', label: 'Sunlight', min: 0, max: 100, step: 5, val: 70, fmt: (v) => v === 0 ? 'night' : v < 35 ? 'cloudy' : v < 75 ? 'bright' : 'full sun' }],
+      read: (v) => v.sun === 0 ? '<b>Night:</b> no photons reach the cell, so no electrons are freed and the bulb stays off.' : `Each photon that hits the junction frees an <b>electron</b> and leaves a <b>hole</b>. The junction pushes the electrons round the wire, so <b>${v.sun}%</b> sunlight gives roughly <b>${v.sun}%</b> of the current.`,
       draw(g, w, h, t, v) {
-        const sp = w * 0.62, y0 = h / 2, A = h * 0.3, th = TAU * v.f * 0.12 * t, ph = v.phi * Math.PI / 180;
-        g.strokeStyle = COL.line; g.lineWidth = 1; g.beginPath(); g.moveTo(10, y0); g.lineTo(sp - 6, y0); g.moveTo(10, y0 - A * 1.15); g.lineTo(10, y0 + A * 1.15); g.stroke();
-        const wave = (col, off) => { g.strokeStyle = col; g.lineWidth = 2.4; g.beginPath(); for (let x = 10; x <= sp - 6; x += 2) { const u = (x - 10) / (sp - 16) * 3 * TAU; const y = y0 - A * Math.sin(u - th - off); x === 10 ? g.moveTo(x, y) : g.lineTo(x, y); } g.stroke(); };
-        wave(COL.e, 0); wave(COL.cat, ph);
-        const cx = sp + (w - sp) / 2, r = Math.min(w - sp, h) * 0.36;
-        g.strokeStyle = COL.line; g.beginPath(); g.arc(cx, y0, r, 0, TAU); g.moveTo(cx - r - 6, y0); g.lineTo(cx + r + 6, y0); g.moveTo(cx, y0 - r - 6); g.lineTo(cx, y0 + r + 6); g.stroke();
-        const arrow = (a, col) => { const x = cx + r * Math.cos(a), y = y0 - r * Math.sin(a); g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 2.6; g.beginPath(); g.moveTo(cx, y0); g.lineTo(x, y); g.stroke(); g.beginPath(); g.arc(x, y, 4.5, 0, TAU); g.fill(); };
-        g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, y0, r * 0.3, th - ph, th, false); g.stroke();
-        arrow(th - ph, COL.cat); arrow(th, COL.e);
-        g.font = '600 12px "JetBrains Mono", monospace'; g.fillStyle = COL.e; g.fillText('V', 14, 18); g.fillStyle = COL.cat; g.fillText('I', 32, 18);
+        const s = v.sun / 100, px = w * 0.1, pw = w * 0.5, py = h * 0.58, nh = h * 0.07, ph = h * 0.17, bx = w * 0.82, by = h * 0.4, br = Math.min(w, h) * 0.07;
+        // sun and rays
+        const sx = w * 0.22, sy = h * 0.14; g.fillStyle = 'rgba(255,200,90,' + (0.25 + 0.75 * s) + ')'; g.shadowColor = '#ffc85a'; g.shadowBlur = 24 * s; g.beginPath(); g.arc(sx, sy, h * 0.065, 0, TAU); g.fill(); g.shadowBlur = 0;
+        // panel
+        g.fillStyle = 'rgba(124,192,255,.28)'; g.fillRect(px, py, pw, nh); g.fillStyle = 'rgba(240,140,140,.2)'; g.fillRect(px, py + nh, pw, ph);
+        g.strokeStyle = COL.line; g.lineWidth = 1.5; g.strokeRect(px, py, pw, nh + ph); g.setLineDash([4, 4]); g.beginPath(); g.moveTo(px, py + nh); g.lineTo(px + pw, py + nh); g.stroke(); g.setLineDash([]);
+        g.font = '600 11px "JetBrains Mono", monospace'; g.fillStyle = COL.e; g.fillText('n-type', px + 8, py + nh - 8 > py + 12 ? py + 12 : py + 12); g.fillStyle = COL.bad; g.fillText('p-type', px + 8, py + nh + 18);
+        // photons
+        const M = 12, tx = px + pw / 2, ty = py;
+        g.fillStyle = '#ffd877';
+        for (let i = 0; i < M; i++) { if (i >= Math.round(s * M)) continue; const p = (t * 0.4 + i / M) % 1, x = sx + (px + pw * (0.1 + 0.8 * ((i * 0.37) % 1)) - sx) * p, y = sy + (ty - sy) * p; g.globalAlpha = 0.9; g.beginPath(); g.arc(x, y, 3.4, 0, TAU); g.fill(); }
+        g.globalAlpha = 1;
+        // wire loop
+        const pts = [[px + pw, py + nh / 2], [bx, py + nh / 2], [bx, by + br], null, [bx, by - br], [bx, py + nh + ph + 22], [px + pw / 2, py + nh + ph + 22], [px + pw / 2, py + nh + ph]];
+        g.strokeStyle = COL.dim; g.lineWidth = 2; g.beginPath(); g.moveTo(...pts[0]); g.lineTo(...pts[1]); g.lineTo(...pts[2]); g.moveTo(...pts[4]); g.lineTo(...pts[5]); g.lineTo(...pts[6]); g.lineTo(...pts[7]); g.stroke();
+        // bulb
+        g.fillStyle = 'rgba(255,224,130,' + (0.08 + 0.92 * s) + ')'; g.shadowColor = '#ffe082'; g.shadowBlur = 36 * s; g.beginPath(); g.arc(bx, by, br, 0, TAU); g.fill(); g.shadowBlur = 0; g.strokeStyle = COL.dim; g.lineWidth = 2; g.beginPath(); g.arc(bx, by, br, 0, TAU); g.stroke();
+        // electrons round the loop
+        const path = [pts[0], pts[1], pts[2], pts[4], pts[5], pts[6], pts[7]], seg = [], tot = path.reduce((a, p, i) => { if (!i) return 0; const d = Math.hypot(p[0] - path[i - 1][0], p[1] - path[i - 1][1]); seg.push(d); return a + d; }, 0);
+        const E = 14; g.fillStyle = COL.e;
+        for (let i = 0; i < E; i++) { if (i >= Math.round(s * E)) continue; let d = ((t * 0.12 * (0.4 + s) + i / E) % 1) * tot, k = 0; while (k < seg.length - 1 && d > seg[k]) { d -= seg[k]; k++; } const a = path[k], b = path[k + 1], f = seg[k] ? d / seg[k] : 0; g.beginPath(); g.arc(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, 3.4, 0, TAU); g.fill(); }
+        g.fillStyle = COL.dim; g.font = '500 11px "JetBrains Mono", monospace'; g.fillText('electrons', bx - 62, py + nh + ph + 40);
       },
     },
     {
-      id: 'motor', title: 'Induction motor', code: 'BAEEE101', subject: 'Basic Engineering', col: COL.cat,
-      blurb: 'Three coils make a field that turns. The rotor chases it, always a little behind (slip).',
+      id: 'charger', title: 'Phone charger', code: 'BAEEE101', subject: 'Basic Engineering', col: COL.e,
+      blurb: 'Your charger turns 230 V from the wall into about 5 V. Change the turns on the output coil to see the voltage change.',
+      ctrl: [{ k: 'n2', label: 'Turns on output coil', min: 10, max: 600, step: 2, val: 22, fmt: (v) => v + ' turns (input has 1000)' }],
+      read: (v) => { const vo = 230 * v.n2 / 1000; return `Output = 230 V × ${v.n2}/1000 = <b>${vo.toFixed(1)} V</b> · ${vo < 12 ? 'safe for a phone' : vo < 60 ? 'too high for a phone' : 'dangerous: needs a proper adapter'} · it only works on AC, because the flux must keep changing`; },
+      draw(g, w, h, t, v) {
+        const x0 = w * 0.3, x1 = w * 0.7, y0 = h * 0.16, y1 = h * 0.84, th = w * 0.065, ph = Math.sin(t * TAU * 0.4), vo = 230 * v.n2 / 1000;
+        g.fillStyle = '#2a2a30'; g.strokeStyle = COL.line; g.lineWidth = 1.5; g.beginPath(); g.rect(x0, y0, x1 - x0, y1 - y0); g.rect(x0 + th, y0 + th, x1 - x0 - 2 * th, y1 - y0 - 2 * th); g.fill('evenodd'); g.stroke();
+        // flux glow and arrows
+        g.strokeStyle = 'rgba(124,192,255,' + (0.15 + 0.7 * Math.abs(ph)) + ')'; g.lineWidth = 4; g.setLineDash([10, 9]); g.lineDashOffset = -t * 40 * Math.sign(ph || 1);
+        g.beginPath(); g.rect(x0 + th / 2, y0 + th / 2, x1 - x0 - th, y1 - y0 - th); g.stroke(); g.setLineDash([]);
+        const coil = (cx, n, col) => { g.strokeStyle = col; g.lineWidth = 3; for (let i = 0; i < n; i++) { const y = y0 + th + 8 + (y1 - y0 - 2 * th - 16) * (i + 0.5) / n; g.beginPath(); g.ellipse(cx, y, th * 0.95, th * 0.3, 0, 0, TAU); g.stroke(); } };
+        coil(x0 + th / 2, 14, COL.e); coil(x1 - th / 2, Math.max(2, Math.round(2 + v.n2 / 600 * 12)), COL.cat);
+        g.font = '600 13px "Hanken Grotesk", sans-serif'; g.textAlign = 'center';
+        g.fillStyle = COL.e; g.fillText('Wall socket', w * 0.12, h * 0.46); g.font = '700 22px "Hanken Grotesk", sans-serif'; g.fillText('230 V', w * 0.12, h * 0.46 + 28); g.font = '500 11px "JetBrains Mono", monospace'; g.fillStyle = COL.dim; g.fillText('1000 turns', w * 0.12, h * 0.46 + 46);
+        g.fillStyle = COL.cat; g.font = '600 13px "Hanken Grotesk", sans-serif'; g.fillText('Your phone', w * 0.88, h * 0.46); g.font = '700 22px "Hanken Grotesk", sans-serif'; g.fillText(vo.toFixed(1) + ' V', w * 0.88, h * 0.46 + 28); g.font = '500 11px "JetBrains Mono", monospace'; g.fillStyle = COL.dim; g.fillText(v.n2 + ' turns', w * 0.88, h * 0.46 + 46);
+        g.fillStyle = COL.dim; g.font = '500 11px "JetBrains Mono", monospace'; g.fillText('alternating magnetic flux', w / 2, h * 0.5 + 4);
+        g.textAlign = 'start';
+      },
+    },
+    {
+      id: 'motor', title: 'Ceiling fan motor', code: 'BAEEE101', subject: 'Basic Engineering', col: COL.cat,
+      blurb: 'Why a fan spins. Three coils make a magnetic field that turns, and the rotor chases it, always a little behind (slip).',
       ctrl: [{ k: 'poles', label: 'Poles', min: 2, max: 6, step: 2, val: 4, fmt: (v) => v }, { k: 'slip', label: 'Slip', min: 0, max: 20, step: 1, val: 5, fmt: (v) => v + '%' }],
-      read: (v) => { const ns = 120 * 50 / v.poles; return `Field speed Ns = 120f/P = <b>${ns} rpm</b> · rotor <b>${Math.round(ns * (1 - v.slip / 100))} rpm</b> · rotor frequency s·f = <b>${(v.slip / 100 * 50).toFixed(1)} Hz</b>`; },
+      read: (v) => { const ns = 120 * 50 / v.poles; return `Field speed Ns = 120f/P = <b>${ns} rpm</b> · fan <b>${Math.round(ns * (1 - v.slip / 100))} rpm</b> · rotor frequency s·f = <b>${(v.slip / 100 * 50).toFixed(1)} Hz</b>`; },
       draw(g, w, h, t, v) {
         const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.44, ns = 120 * 50 / v.poles, wf = TAU * 0.28 * (ns / 1500), a = wf * t, ar = wf * (1 - v.slip / 100) * t;
         g.fillStyle = COL.panel; g.strokeStyle = COL.line; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill(); g.stroke();
-        const ph = [[0, 0], [1, 120], [2, 240]];
         for (let k = 0; k < 6; k++) {
           const p = k % 3, ang = (k * 60) * Math.PI / 180, sign = k < 3 ? 1 : -1;
-          // coil k sits at k*60 degrees; phases a, b, c repeat every 120 degrees
-          const i = Math.sin(a - (p === 0 ? 0 : p === 1 ? TAU / 3 : 2 * TAU / 3)) * sign * (k < 3 ? 1 : 1);
-          const x = cx + R * 0.82 * Math.cos(ang), y = cy - R * 0.82 * Math.sin(ang), al = Math.abs(i);
-          g.fillStyle = [COL.e, COL.cat, COL.an][p]; g.globalAlpha = 0.18 + 0.82 * al; g.beginPath(); g.arc(x, y, R * 0.11, 0, TAU); g.fill(); g.globalAlpha = 1;
+          const i = Math.sin(a - p * TAU / 3) * sign;
+          const x = cx + R * 0.82 * Math.cos(ang), y = cy - R * 0.82 * Math.sin(ang);
+          g.fillStyle = [COL.e, COL.cat, COL.an][p]; g.globalAlpha = 0.18 + 0.82 * Math.abs(i); g.beginPath(); g.arc(x, y, R * 0.11, 0, TAU); g.fill(); g.globalAlpha = 1;
         }
-        // field arrow
         g.strokeStyle = COL.good; g.fillStyle = COL.good; g.lineWidth = 3; g.beginPath(); g.moveTo(cx - R * 0.62 * Math.cos(a), cy + R * 0.62 * Math.sin(a)); g.lineTo(cx + R * 0.62 * Math.cos(a), cy - R * 0.62 * Math.sin(a)); g.stroke();
         g.beginPath(); g.arc(cx + R * 0.62 * Math.cos(a), cy - R * 0.62 * Math.sin(a), 6, 0, TAU); g.fill();
-        // rotor
-        g.save(); g.translate(cx, cy); g.rotate(-ar); g.fillStyle = COL.bg; g.strokeStyle = COL.dim; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, R * 0.42, 0, TAU); g.fill(); g.stroke();
-        g.strokeStyle = COL.cat; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(-R * 0.34, 0); g.lineTo(R * 0.34, 0); g.moveTo(0, -R * 0.34); g.lineTo(0, R * 0.34); g.stroke(); g.restore();
-        g.font = '600 11px "JetBrains Mono", monospace'; g.fillStyle = COL.good; g.fillText('field', 12, 18); g.fillStyle = COL.cat; g.fillText('rotor', 12, 34);
-      },
-    },
-    {
-      id: 'opamp', title: 'Op-amp gain', code: 'BAEEE101', subject: 'Basic Engineering', col: COL.an,
-      blurb: 'Flip between inverting and non-inverting, change the resistor and see the output wave (and when it clips).',
-      ctrl: [{ k: 'mode', label: 'Circuit', type: 'toggle', opts: [['inv', 'Inverting'], ['non', 'Non-inverting']], val: 'inv' }, { k: 'rf', label: 'Feedback R', min: 10, max: 100, step: 5, val: 100, fmt: (v) => v + ' kΩ (input R = 10 kΩ)' }, { k: 'vin', label: 'Input peak', min: 0.1, max: 1.5, step: 0.1, val: 0.8, fmt: (v) => v.toFixed(1) + ' V' }],
-      read: (v) => { const g = v.mode === 'inv' ? -v.rf / 10 : 1 + v.rf / 10, vo = Math.abs(g) * v.vin; return `Gain = <b>${g.toFixed(1)}</b> · output peak <b>${Math.min(vo, 12).toFixed(1)} V</b>${vo > 12 ? ' <span style="color:#f08c8c">(clipped at the ±12 V supply)</span>' : ''}${v.mode === 'inv' ? ' · output is flipped' : ' · output is in phase'}`; },
-      draw(g, w, h, t, v) {
-        const y0 = h / 2, S = (h / 2 - 8) / 13, gain = v.mode === 'inv' ? -v.rf / 10 : 1 + v.rf / 10, th = TAU * 0.25 * t;
-        g.strokeStyle = COL.line; g.lineWidth = 1; g.beginPath(); g.moveTo(8, y0); g.lineTo(w - 8, y0); g.stroke();
-        g.setLineDash([5, 5]); g.strokeStyle = 'rgba(240,140,140,.45)'; g.beginPath(); g.moveTo(8, y0 - 12 * S); g.lineTo(w - 8, y0 - 12 * S); g.moveTo(8, y0 + 12 * S); g.lineTo(w - 8, y0 + 12 * S); g.stroke(); g.setLineDash([]);
-        const wave = (col, f, lw) => { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); for (let x = 8; x <= w - 8; x += 2) { const u = (x - 8) / (w - 16) * 2 * TAU - th; const y = y0 - Math.max(-12, Math.min(12, f(Math.sin(u)))) * S; x === 8 ? g.moveTo(x, y) : g.lineTo(x, y); } g.stroke(); };
-        wave(COL.e, (s) => s * v.vin, 2); wave(COL.an, (s) => s * v.vin * gain, 2.8);
-        g.font = '600 11px "JetBrains Mono", monospace'; g.fillStyle = COL.e; g.fillText('input', 12, 18); g.fillStyle = COL.an; g.fillText('output', 12, 34); g.fillStyle = 'rgba(240,140,140,.8)'; g.fillText('+12 V', w - 48, y0 - 12 * S - 5); g.fillText('−12 V', w - 48, y0 + 12 * S + 13);
-      },
-    },
-    {
-      id: 'beer', title: 'Beer–Lambert law', code: 'BACHY105', subject: 'Applied Chemistry', col: COL.cat,
-      blurb: 'Make the solution stronger or the cell longer and watch less light get through.',
-      ctrl: [{ k: 'c', label: 'Concentration', min: 0, max: 10, step: 0.5, val: 4, fmt: (v) => v.toFixed(1) + ' mM' }, { k: 'l', label: 'Path length', min: 1, max: 5, step: 0.5, val: 2, fmt: (v) => v.toFixed(1) + ' cm' }],
-      read: (v) => { const A = 40 * (v.c / 1000) * v.l; return `A = εcl = 40 × ${(v.c / 1000).toFixed(4)} × ${v.l} = <b>${A.toFixed(2)}</b> · light through = 10<sup>−A</sup> = <b>${Math.round(Math.pow(10, -A) * 100)}%</b>`; },
-      draw(g, w, h, t, v) {
-        const A = 40 * (v.c / 1000) * v.l, T = Math.pow(10, -A), cy = h / 2, bh = h * 0.26, lx = w * 0.1, cw = w * (0.07 + 0.05 * v.l), cx0 = w * 0.34, cx1 = cx0 + cw, dx = w * 0.9;
-        const I = (x) => x < cx0 ? 1 : x > cx1 ? T : Math.pow(10, -A * (x - cx0) / cw);
-        // beam glow
-        const gr = g.createLinearGradient(lx, 0, dx, 0); gr.addColorStop(0, 'rgba(255,240,200,.28)'); gr.addColorStop((cx0 - lx) / (dx - lx), 'rgba(255,240,200,.28)'); gr.addColorStop((cx1 - lx) / (dx - lx), 'rgba(255,240,200,' + (0.28 * T).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(255,240,200,' + (0.28 * T).toFixed(3) + ')');
-        g.fillStyle = gr; g.fillRect(lx, cy - bh / 2, dx - lx, bh);
-        // cuvette
-        const al = 0.1 + 0.6 * Math.min(1, v.c / 10);
-        g.fillStyle = 'rgba(255,181,107,' + al.toFixed(3) + ')'; g.fillRect(cx0, cy - h * 0.3, cw, h * 0.6);
-        g.strokeStyle = COL.dim; g.lineWidth = 2; g.strokeRect(cx0, cy - h * 0.3, cw, h * 0.6);
-        // photons
-        const N = 16; g.fillStyle = '#fff4d0';
-        for (let i = 0; i < N; i++) { const p = ((t * 0.22 + i / N) % 1), x = lx + (dx - lx) * p, y = cy + Math.sin(i * 7.3) * bh * 0.4; g.globalAlpha = Math.max(0.08, I(x)); g.beginPath(); g.arc(x, y, 2.6, 0, TAU); g.fill(); }
-        g.globalAlpha = 1;
-        // lamp and detector
-        g.fillStyle = '#fff4d0'; g.beginPath(); g.arc(lx - 8, cy, 13, 0, TAU); g.fill();
-        g.strokeStyle = COL.line; g.lineWidth = 1.5; g.strokeRect(dx + 6, cy - h * 0.3, 18, h * 0.6);
-        g.fillStyle = COL.good; const fh = h * 0.6 * T; g.fillRect(dx + 6, cy + h * 0.3 - fh, 18, fh);
-        g.font = '600 11px "JetBrains Mono", monospace'; g.fillStyle = COL.dim; g.fillText('lamp', lx - 22, cy + 30); g.fillText(Math.round(T * 100) + '%', dx - 4, cy - h * 0.3 - 8);
+        g.save(); g.translate(cx, cy); g.rotate(-ar);
+        g.fillStyle = 'rgba(255,181,107,.85)'; for (let k = 0; k < 3; k++) { g.save(); g.rotate(k * TAU / 3); g.beginPath(); g.roundRect(R * 0.05, -R * 0.1, R * 0.4, R * 0.2, R * 0.1); g.fill(); g.restore(); }
+        g.fillStyle = COL.bg; g.strokeStyle = COL.dim; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, R * 0.12, 0, TAU); g.fill(); g.stroke(); g.restore();
+        g.font = '600 11px "JetBrains Mono", monospace'; g.fillStyle = COL.good; g.fillText('field', 12, 18); g.fillStyle = COL.cat; g.fillText('fan', 12, 34);
       },
     },
   ];
