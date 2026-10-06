@@ -7,7 +7,37 @@
 <title>Admin · Getnotespro</title>
 <!-- UI: Tabler (https://github.com/tabler/tabler, MIT licence), loaded from a CDN -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/css/tabler.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,500&display=swap">
 <style>
+  /* chemistry-site palette: graphite greys, white as the highlight (same as the BACHY105 admin) */
+  :root, [data-bs-theme="dark"] {
+    --bg: #151517; --bg-2: #1b1b1e; --surface: #202024; --surface-2: #27272c; --line: #2f2f35; --line-2: #3a3a41;
+    --text: #b3b3bb; --text-2: #cfcfd6; --text-dim: #80808a; --white: #f4f4f6;
+    --tblr-body-bg: #151517; --tblr-body-color: #b3b3bb; --tblr-bg-surface: #1b1b1e; --tblr-bg-surface-secondary: #202024;
+    --tblr-bg-forms: #202024; --tblr-border-color: #2f2f35; --tblr-border-color-translucent: #2f2f35; --tblr-secondary: #80808a;
+    --tblr-secondary-rgb: 128,128,138; --tblr-muted: #80808a; --tblr-heading-color: #f4f4f6; --tblr-link-color: #cfcfd6;
+    --tblr-primary: #f4f4f6; --tblr-primary-rgb: 244,244,246; --tblr-font-sans-serif: "Hanken Grotesk", "Segoe UI", system-ui, sans-serif;
+    --tblr-font-monospace: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  body { background: var(--bg); color: var(--text); font-family: "Hanken Grotesk", "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  h1, h2, .h1, .h2, .card-title { color: var(--white); }
+  .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; box-shadow: none; }
+  .card-header { border-bottom: 1px solid var(--line); background: transparent; }
+  .big, .h1 { font-family: "Source Serif 4", Georgia, serif; font-weight: 500; color: var(--white); }
+  .form-control, .form-select { background: var(--surface); border: 1px solid var(--line-2); color: var(--white); border-radius: 10px; }
+  .form-control:focus, .form-select:focus { background: var(--surface); border-color: #4a4a52; color: var(--white); box-shadow: none; }
+  .btn { background: var(--bg-2); color: var(--text-2); border: 1px solid var(--line-2); border-radius: 10px; }
+  .btn:hover { background: var(--surface); color: var(--white); border-color: #4a4a52; }
+  .btn-primary { --tblr-btn-bg: #f4f4f6; --tblr-btn-color: #151517; --tblr-btn-hover-bg: #ffffff; --tblr-btn-hover-color: #151517; --tblr-btn-border-color: #f4f4f6; background: #f4f4f6; color: #151517; border-color: #f4f4f6; }
+  .btn-primary:hover { background: #fff; color: #151517; }
+  .btn-outline-danger { color: #f08c8c; border-color: #3a3a41; background: transparent; }
+  .btn-outline-danger:hover { background: rgba(240,140,140,.12); color: #f08c8c; border-color: #f08c8c; }
+  .table { --tblr-table-bg: transparent; --tblr-table-border-color: var(--line); color: var(--text); }
+  .table thead th { color: var(--text-dim); font-weight: 500; border-bottom-color: var(--line-2); background: transparent; }
+  .badge.bg-green, .text-green { color: #86d4a9 !important; }
+  .text-secondary { color: var(--text-dim) !important; }
+  .text-danger { color: #f08c8c !important; }
+  ::selection { background: rgba(244,244,246,.24); color: var(--white); }
   .mono { font-family: ui-monospace, "JetBrains Mono", monospace; font-size: 13px; }
   .table-wrap { max-height: 520px; overflow: auto; }
   #gate { min-height: 100vh; }
