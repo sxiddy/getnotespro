@@ -9,13 +9,13 @@ const page = (title, lead, body) => `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>${title} · Notes Pro</title>
+<title>${title} · Notix</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,500&display=swap">
 <link rel="stylesheet" href="css/store.css">
 </head>
 <body class="prose-page">
 <div class="wrap">
-  <div class="eyebrow"><span class="code">NOTES PRO</span><a href="./" style="color:inherit">Back to the store</a></div>
+  <div class="eyebrow"><span class="code">NOTIX</span><a href="./" style="color:inherit">Back to the store</a></div>
   <h1>${title}</h1>
   <p class="lead">${lead}</p>
 ${body}
@@ -25,7 +25,7 @@ ${body}
 </html>
 `;
 const out = {
-  'terms.html': page('Terms and conditions', `These terms apply to Notes Pro (https://getnotespro.vercel.app), a website that sells one-time Pro access for study note websites made for VIT students: ${SUBJ}. Last updated 6 October 2026.`, `
+  'terms.html': page('Terms and conditions', `These terms apply to Notix (https://getnotespro.vercel.app), a website that sells one-time Pro access for study note websites made for VIT students: ${SUBJ}. Last updated 6 October 2026.`, `
   <h2>What you get</h2>
   <ul>
     <li>The notes on each subject website are free. A <b>one-time payment</b>, shown on this website in Indian rupees, unlocks the <b>Pro features for that subject</b>: interactive models, the question bank, quiz, flashcards, formula sheet and summaries, and quiz battles.</li>
@@ -52,7 +52,7 @@ const out = {
   <h2>Changes and contact</h2>
   <p>These terms may be updated; the date above shows the latest version. Questions: ${mail}, or see the <a href="contact.html">contact page</a>.</p>`),
 
-  'refund.html': page('Refund and cancellation policy', `Notes Pro sells one-time digital Pro access for the subject note websites (the notes themselves are free). Last updated 6 October 2026.`, `
+  'refund.html': page('Refund and cancellation policy', `Notix sells one-time digital Pro access for the subject note websites (the notes themselves are free). Last updated 6 October 2026.`, `
   <h2>Cancellations</h2>
   <p>The payment is one-time and access starts straight away, so there is no order to cancel and nothing renews. If you tap Pay by mistake, close the UPI checkout before approving the payment in your UPI app.</p>
   <h2>When you get a refund</h2>
@@ -67,13 +67,13 @@ const out = {
   <h2>How refunds are paid</h2>
   <p>Approved refunds are made through Razorpay to the same UPI or bank account you paid from, usually within 5 to 7 working days. Pro for that subject ends when a refund is made; the free notes stay open.</p>`),
 
-  'contact.html': page('Contact us', `Notes Pro sells Pro access for study note websites made for VIT students: ${SUBJ}.`, `
+  'contact.html': page('Contact us', `Notix sells Pro access for study note websites made for VIT students: ${SUBJ}.`, `
   <h2>Email</h2>
   <p>${mail}<br>For payments, refunds, sign-in problems, mistakes in the notes, or anything else. Replies within 3 working days.</p>
   <h2>Payment problems</h2>
   <p>If money was taken but Pro did not unlock, first reload the subject website. Then sign in on this website and use "Check my payment". If that does not help, email the Razorpay payment ID (it starts with pay_) from your student email, and say which subject you bought.</p>`),
 
-  'privacy.html': page('Privacy', `Notes Pro is a small store run by a student. This page explains what it stores about you and why. Last updated 6 October 2026.`, `
+  'privacy.html': page('Privacy', `Notix is a small store run by a student. This page explains what it stores about you and why. Last updated 6 October 2026.`, `
   <h2>What is stored</h2>
   <ul>
     <li><b>Your VIT student email</b>, from "Sign in with Google". It is used to let you in and to link your payments to your account. Your name and profile photo from Google are not stored.</li>

@@ -1,4 +1,4 @@
-/* Notes Pro admin: reads /api/admin with the key kept for this tab only (sessionStorage). */
+/* Notix admin: reads /api/admin with the key kept for this tab only (sessionStorage). */
 (function () {
   'use strict';
   const $ = (s) => document.querySelector(s);
