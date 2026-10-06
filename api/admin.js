@@ -5,7 +5,7 @@
 //     revoke { email, product }     take Pro for one subject away
 //     lookup { email }              everything about one student
 //     refund { email, product, amount? (paise; empty = full), reason }   refund through Razorpay; a full refund ends Pro
-//     reconcile { days? }           ask Razorpay for recent payments of this store and record any that are missing
+//     reconcile { days? }           ask Razorpay for recent payments of this store, record any that are missing and fill in missing phone numbers
 const { send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, PRODUCTS, priceOf, razorpay, recordPaid, recordRefund, DOMAIN, handle } = require('./_lib');
 const store = require('./_store');
 
@@ -24,12 +24,12 @@ async function snapshot() {
   codes.forEach((c, i) => {
     for (const email in paid[c]) {
       const x = parse(paid[c][email]);
-      payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: !!x.manual, order: x.order || '', method: x.method || '', status: x.manual ? 'manual' : 'paid' });
+      payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: !!x.manual, order: x.order || '', method: x.method || '', contact: x.contact || '', status: x.manual ? 'manual' : 'paid' });
       if (x.manual) per[i].manual++; else { per[i].count++; per[i].revenue += x.amount || 0; }
     }
   });
   codes.forEach((c) => {
-    for (const email in refd[c]) { const x = parse(refd[c][email]); payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: false, order: x.order || '', method: x.method || '', status: 'refunded', refundedAt: x.refundedAt || '' }); }
+    for (const email in refd[c]) { const x = parse(refd[c][email]); payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: false, order: x.order || '', method: x.method || '', contact: x.contact || '', status: 'refunded', refundedAt: x.refundedAt || '' }); }
   });
   payments.sort((a, b) => String(b.at).localeCompare(String(a.at)));
   const emails = new Set([...Object.keys(first), ...Object.keys(last), ...codes.flatMap((c) => Object.keys(paid[c]))]);
@@ -42,7 +42,7 @@ async function snapshot() {
 
 async function reconcile(days) {
   const from = Math.floor(Date.now() / 1000) - Math.min(Math.max(days || 30, 1), 90) * 86400;
-  let found = 0, added = 0, skipped = 0;
+  let found = 0, added = 0, skipped = 0, filled = 0;
   for (let skip = 0; skip < 500; skip += 100) {
     const r = await razorpay('GET', `/payments?count=100&skip=${skip}&from=${from}`);
     const items = r.items || [];
@@ -57,13 +57,17 @@ async function reconcile(days) {
       found++;
       const email = normEmail(n.email);
       if (!isStudentEmail(email)) { skipped++; continue; }
-      const [has] = await store.pipeline([['HEXISTS', 'paid:' + n.item, email]]);
-      if (has === 1 || has === '1') continue;
+      const [has, rec] = await store.pipeline([['HEXISTS', 'paid:' + n.item, email], ['HGET', 'paid:' + n.item, email]]);
+      if (has === 1 || has === '1') { // already recorded: just add the phone number if it was saved without one
+        const x = parse(rec);
+        if (!x.contact && p.contact) { x.contact = p.contact; await store.pipeline([['HSET', 'paid:' + n.item, email, JSON.stringify(x)]]); filled++; }
+        continue;
+      }
       await recordPaid(email, n.item, p); added++;
     }
     if (items.length < 100) break;
   }
-  return { found, added, skipped };
+  return { found, added, skipped, filled };
 }
 
 module.exports = handle(async (req, res) => {

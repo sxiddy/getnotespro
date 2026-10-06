@@ -139,7 +139,7 @@ async function checkPayment(paymentId, orderId) {
 async function recordPaid(email, code, p) {
   const store = require('./_store');
   if (!store.configured()) throw Object.assign(new Error('Storage is not set up, so access cannot be saved.'), { status: 500 });
-  await store.pipeline([['HSET', 'paid:' + code, email, JSON.stringify({ id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: p.amount, order: p.order_id || '', method: p.method || '' })]]);
+  await store.pipeline([['HSET', 'paid:' + code, email, JSON.stringify({ id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: p.amount, order: p.order_id || '', method: p.method || '', contact: p.contact || '' })]]);
 }
 async function ownedBy(email) {
   const store = require('./_store');

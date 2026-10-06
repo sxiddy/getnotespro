@@ -77,17 +77,23 @@
     <p class="text-secondary mb-4" id="by-subject"></p>
 
     <div class="card mb-3">
-      <div class="card-header">
+      <div class="card-header flex-wrap gap-2">
         <h2 class="card-title">Payments</h2>
-        <div class="ms-auto d-flex gap-2">
-          <input class="form-control form-control-sm" id="q" type="search" placeholder="Search by email" style="width:220px">
+        <span class="text-secondary small" id="pay-count"></span>
+        <div class="ms-auto d-flex flex-wrap gap-2">
+          <input class="form-control form-control-sm" id="q" type="search" placeholder="Search email, phone or payment ID" style="width:260px">
+          <select class="form-select form-select-sm w-auto" id="f-sub" aria-label="Subject"></select>
+          <select class="form-select form-select-sm w-auto" id="f-status" aria-label="Status"><option value="all">Any status</option><option value="paid">Paid</option><option value="refunded">Refunded</option><option value="manual">Given manually</option></select>
+          <select class="form-select form-select-sm w-auto" id="f-when" aria-label="When"><option value="all">Any time</option><option value="today">Today</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select>
+          <select class="form-select form-select-sm w-auto" id="f-sort" aria-label="Sort"><option value="new">Sort: newest</option><option value="old">Sort: oldest</option><option value="amt">Sort: highest amount</option><option value="email">Sort: email A–Z</option></select>
           <button class="btn btn-sm" id="csv" type="button">Download</button>
         </div>
       </div>
       <div class="table-wrap"><table class="table table-vcenter card-table table-sm">
-        <thead><tr><th>Date and time (IST)</th><th>Student email</th><th>Subject</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Date and time (IST)</th><th>Student email</th><th>Phone</th><th>Subject</th><th>Amount</th><th>Status</th><th></th></tr></thead>
         <tbody id="pay-rows"></tbody>
       </table></div>
+      <div class="card-footer d-flex gap-2 align-items-center"><button class="btn btn-sm" id="pay-more" type="button" hidden>Show more</button><button class="btn btn-sm btn-ghost-secondary" id="pay-less" type="button" hidden>Show less</button><span class="text-secondary small" id="pay-shown"></span></div>
     </div>
 
     <div class="card mb-3"><details>

@@ -8,7 +8,11 @@
   // exact time to the second in IST; the ISO (UTC) value is in the tooltip
   const when = (iso) => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? esc(iso) : '<span title="' + esc(iso) + '">' + fmt(d, true) + '</span>'; };
   const whenText = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : fmt(d, false); };
-  let KEY = '', D = null, RF = null;
+  let KEY = '', D = null, RF = null, SHOWN = 10;
+  const STEP = 20, FIRST = 10;
+  const digits = (s) => String(s || '').replace(/\D/g, '');
+  const phoneFmt = (c) => { const d = digits(c); if (!d) return ''; const n = d.length > 10 ? d.slice(-10) : d, cc = d.length > 10 ? '+' + d.slice(0, d.length - 10) + ' ' : ''; return cc + n.slice(0, 5) + ' ' + n.slice(5); };
+  const ist = (d) => new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   try { KEY = sessionStorage.getItem('st_admin') || ''; } catch (e) { /* ignore */ }
 
   async function call(method, data) {
@@ -27,15 +31,37 @@
     $('#by-subject').textContent = D.products.map((p) => p.name + ': ' + p.count + ' paid (' + rs(p.revenue) + ')').join('   ·   ');
     const opts = D.products.map((p) => `<option value="${esc(p.code)}">${esc(p.code)} · ${esc(p.name)}</option>`).join('');
     if (!$('#a-prod').options.length) $('#a-prod').innerHTML = opts;
+    if (!$('#f-sub').options.length) $('#f-sub').innerHTML = '<option value="all">All subjects</option>' + opts;
     filter();
   }
   const badge = (p) => p.status === 'refunded' ? '<span class="badge bg-red-lt">refunded</span>' : p.status === 'manual' ? '<span class="badge bg-yellow-lt">manual</span>' : '<span class="badge bg-green-lt">paid</span>';
+  // the payments that match the search and filters (all of them; the table shows the first SHOWN)
+  function visible() {
+    const q = $('#q').value.trim().toLowerCase(), qd = digits(q);
+    const sub = $('#f-sub').value, st = $('#f-status').value, wh = $('#f-when').value, so = $('#f-sort').value;
+    const now = Date.now(), n = ist(new Date()), sinceMidnight = n - new Date(n).setHours(0, 0, 0, 0);
+    const since = wh === 'today' ? now - sinceMidnight : wh === '7' ? now - 7 * 864e5 : wh === '30' ? now - 30 * 864e5 : 0;
+    const list = D.payments.filter((p) => {
+      if (sub !== 'all' && p.product !== sub) return false;
+      if (st !== 'all' && p.status !== st) return false;
+      if (since && !(Date.parse(p.at) >= since)) return false;
+      if (!q) return true;
+      return String(p.email).toLowerCase().includes(q) || String(p.id).toLowerCase().includes(q) || String(p.order).toLowerCase().includes(q) || (qd.length >= 3 && digits(p.contact).includes(qd));
+    });
+    const by = { new: (a, b) => String(b.at).localeCompare(String(a.at)), old: (a, b) => String(a.at).localeCompare(String(b.at)), amt: (a, b) => (b.amount || 0) - (a.amount || 0), email: (a, b) => String(a.email).localeCompare(String(b.email)) }[so];
+    return list.sort(by);
+  }
   function filter() {
     if (!D) return;
     const q = $('#q').value.trim().toLowerCase();
     const has = (e) => !q || String(e).toLowerCase().includes(q);
     const name = (c) => { const p = D.products.find((x) => x.code === c); return p ? p.name : c; };
-    $('#pay-rows').innerHTML = D.payments.filter((p) => has(p.email) || has(p.id)).map((p) => `<tr><td>${when(p.at)}</td><td>${esc(p.email)}</td><td>${esc(name(p.product))}</td><td>${p.manual ? '' : rs(p.amount)}</td><td title="${esc(p.id)}">${badge(p)}${p.status === 'refunded' && p.refundedAt ? '<div class="text-secondary small">' + when(p.refundedAt) + '</div>' : ''}</td><td>${p.status === 'paid' ? `<button class="btn btn-sm btn-outline-danger" data-refund="${esc(p.email)}|${esc(p.product)}|${p.amount}|${esc(p.id)}">Refund</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="text-secondary">No payments yet.</td></tr>';
+    const list = visible(), shown = list.slice(0, SHOWN);
+    $('#pay-rows').innerHTML = shown.map((p) => `<tr><td>${when(p.at)}</td><td>${esc(p.email)}</td><td class="mono">${p.contact ? '<a href="tel:' + esc(p.contact) + '" class="text-reset">' + esc(phoneFmt(p.contact)) + '</a>' : '<span class="text-secondary">—</span>'}</td><td>${esc(name(p.product))}</td><td>${p.manual ? '' : rs(p.amount)}</td><td title="${esc(p.id)}">${badge(p)}${p.status === 'refunded' && p.refundedAt ? '<div class="text-secondary small">' + when(p.refundedAt) + '</div>' : ''}</td><td>${p.status === 'paid' ? `<button class="btn btn-sm btn-outline-danger" data-refund="${esc(p.email)}|${esc(p.product)}|${p.amount}|${esc(p.id)}">Refund</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="text-secondary">' + (D.payments.length ? 'No payment matches that. Clear the search or set the filters back to Any.' : 'No payments yet.') + '</td></tr>';
+    const money = list.reduce((a, p) => a + (p.status === 'paid' ? p.amount || 0 : 0), 0);
+    $('#pay-count').textContent = list.length + ' payment' + (list.length === 1 ? '' : 's') + (money ? ' · ' + rs(money) + ' paid' : '');
+    $('#pay-shown').textContent = list.length ? 'Showing ' + Math.min(SHOWN, list.length) + ' of ' + list.length : '';
+    $('#pay-more').hidden = list.length <= SHOWN; $('#pay-less').hidden = SHOWN <= FIRST;
     $('#ref-rows').innerHTML = (D.refunds || []).filter((r) => has(r.email) || has(r.payment)).map((r) => `<tr><td>${when(r.at)}</td><td>${esc(r.email)}</td><td>${esc(name(r.product))}</td><td>${rs(r.amount)}${r.full ? '' : ' (part)'}</td><td>${esc(r.reason)}${r.by === 'razorpay' ? ' <span class="text-secondary small">(done in Razorpay)</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="text-secondary">No refunds yet.</td></tr>';
     $('#stu-rows').innerHTML = D.students.filter((s) => has(s.email)).map((s) => `<tr><td>${esc(s.email)}</td><td>${when(s.first)}</td><td>${when(s.last)}</td><td>${s.logins}</td><td>${s.owned.map((c) => `<span class="badge bg-green-lt me-1">${esc(c)}</span>`).join('') || '<span class="text-secondary">none</span>'}</td></tr>`).join('') || '<tr><td colspan="5" class="text-secondary">No students yet.</td></tr>';
   }
@@ -47,7 +73,11 @@
   $('#gate-form').addEventListener('submit', (e) => { e.preventDefault(); KEY = $('#key').value; try { sessionStorage.setItem('st_admin', KEY); } catch (x) { /* ignore */ } $('#key').value = ''; load(); });
   $('#refresh').addEventListener('click', load);
   $('#logout').addEventListener('click', () => { KEY = ''; D = null; try { sessionStorage.removeItem('st_admin'); } catch (x) { /* ignore */ } show(false); });
-  $('#q').addEventListener('input', filter);
+  const reset = () => { SHOWN = FIRST; filter(); };
+  $('#q').addEventListener('input', reset);
+  ['#f-sub', '#f-status', '#f-when', '#f-sort'].forEach((s) => $(s).addEventListener('change', reset));
+  $('#pay-more').addEventListener('click', () => { SHOWN += STEP; filter(); });
+  $('#pay-less').addEventListener('click', () => { SHOWN = FIRST; filter(); });
 
   async function act(action) {
     const out = $('#a-out'); out.textContent = 'Working…';
@@ -55,7 +85,7 @@
       const r = await call('POST', { action, email: $('#a-email').value, product: $('#a-prod').value });
       if (action === 'lookup') {
         const s = r.student;
-        out.innerHTML = `${esc(s.email)}<br>First seen: ${when(s.first) || 'never'}<br>Last sign-in: ${when(s.last) || 'never'} (${s.logins} sign-ins)<br>Pro for: ${s.owned.join(', ') || 'none'}<br>Payments: ${r.payments.map((p) => esc(p.product) + ' ' + (p.manual ? 'manual' : rs(p.amount)) + ' ' + esc(p.status) + ' ' + esc(p.id)).join('; ') || 'none'}`;
+        out.innerHTML = `${esc(s.email)}${(r.payments.find((p) => p.contact) || {}).contact ? '<br>Phone: ' + esc(phoneFmt(r.payments.find((p) => p.contact).contact)) : ''}<br>First seen: ${when(s.first) || 'never'}<br>Last sign-in: ${when(s.last) || 'never'} (${s.logins} sign-ins)<br>Pro for: ${s.owned.join(', ') || 'none'}<br>Payments: ${r.payments.map((p) => esc(p.product) + ' ' + (p.manual ? 'manual' : rs(p.amount)) + ' ' + esc(p.status) + ' ' + esc(p.id)).join('; ') || 'none'}`;
       } else { out.textContent = action === 'grant' ? 'Pro given.' : 'Pro removed.'; await load(); }
     } catch (e) { out.textContent = e.message; }
   }
@@ -64,7 +94,7 @@
   $('#a-look').addEventListener('click', () => act('lookup'));
   $('#r-go').addEventListener('click', async () => {
     const out = $('#r-out'); out.textContent = 'Asking Razorpay…';
-    try { const r = await call('POST', { action: 'reconcile', days: $('#r-days').value }); out.textContent = `Found ${r.found} paid store payments, unlocked ${r.added} that were missing${r.skipped ? ', skipped ' + r.skipped + ' with a non-student email' : ''}.`; await load(); }
+    try { const r = await call('POST', { action: 'reconcile', days: $('#r-days').value }); out.textContent = `Found ${r.found} paid store payments, unlocked ${r.added} that were missing${r.filled ? ', added ' + r.filled + ' missing phone number' + (r.filled === 1 ? '' : 's') : ''}${r.skipped ? ', skipped ' + r.skipped + ' with a non-student email' : ''}.`; await load(); }
     catch (e) { out.textContent = e.message; }
   });
 
@@ -95,7 +125,7 @@
   $('#csv').addEventListener('click', () => {
     if (!D) return;
     const q = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const rows = [['date_time_ist', 'iso_time_utc', 'student_email', 'subject', 'amount_inr', 'status', 'payment_id', 'order_id', 'method']].concat(D.payments.map((p) => [whenText(p.at), p.at, p.email, p.product, p.manual ? '' : (p.amount / 100).toFixed(2), p.status, p.id, p.order || '', p.method || '']));
+    const rows = [['date_time_ist', 'iso_time_utc', 'student_email', 'subject', 'amount_inr', 'status', 'payment_id', 'order_id', 'method', 'phone']].concat(visible().map((p) => [whenText(p.at), p.at, p.email, p.product, p.manual ? '' : (p.amount / 100).toFixed(2), p.status, p.id, p.order || '', p.method || '', p.contact || '']));
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([rows.map((r) => r.map(q).join(',')).join('\n')], { type: 'text/csv' }));
     a.download = 'notes-pro-payments-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
