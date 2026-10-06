@@ -29,9 +29,13 @@ main section { margin: 0 0 84px; scroll-margin-top: 80px; }
 /* ---- top bar */
 .top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border-bottom: 1px solid color-mix(in srgb, var(--line) 80%, transparent); }
 .top-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 62px; }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--white); text-decoration: none; font-weight: 700; letter-spacing: -0.005em; }
+.brand { display: flex; align-items: center; gap: 11px; color: var(--white); text-decoration: none; }
+.word { font: 600 25px/1 var(--serif); letter-spacing: -0.035em; color: var(--white); padding-bottom: 2px; }
+.word i { font-style: italic; font-weight: 500; background: linear-gradient(135deg, var(--e), var(--an)); -webkit-background-clip: text; background-clip: text; color: transparent; padding-right: 2px; }
 .mark svg, .dlg-mark svg { width: 62%; height: 62%; }
-.mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: linear-gradient(135deg, var(--e), var(--an)); color: #111; font: 700 17px var(--mono); box-shadow: 0 4px 16px color-mix(in srgb, var(--e) 30%, transparent); }
+.mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: var(--white); border: 1px solid transparent; background: linear-gradient(145deg, #25252b, #17171a) padding-box, linear-gradient(135deg, var(--e), var(--an)) border-box; box-shadow: 0 0 0 4px color-mix(in srgb, var(--an) 8%, transparent), 0 6px 20px color-mix(in srgb, var(--e) 22%, transparent); transition: box-shadow .3s var(--ease), transform .3s var(--ease); }
+.mark svg { stroke-width: 1.9; }
+.brand:hover .mark { transform: rotate(-6deg) scale(1.05); box-shadow: 0 0 0 5px color-mix(in srgb, var(--an) 14%, transparent), 0 8px 26px color-mix(in srgb, var(--e) 34%, transparent); }
 .top-r { display: flex; align-items: center; gap: 6px; }
 .top-link { color: var(--text-2); text-decoration: none; font-size: 15px; padding: 7px 12px; border-radius: 999px; transition: background .2s, color .2s; }
 .top-link:hover { background: var(--surface); color: var(--white); }
