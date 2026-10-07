@@ -1,14 +1,17 @@
-// Tells the owner when something needs attention: a WhatsApp message (CallMeBot) and an email (Resend).
+// Tells the owner when something needs attention: a Telegram message and an email (Resend).
 // Both are optional. With no keys set every call does nothing, so the store works the same.
-//   CALLMEBOT_PHONE, CALLMEBOT_KEY   WhatsApp to the owner's own number (see README "Alerts and backups")
+//   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID   Telegram message to the owner (see README "Alerts and backups")
 //   RESEND_API_KEY, OWNER_EMAIL      email to the owner (Resend's free plan can send to its own account email)
 const store = require('./_store');
 
-async function whatsapp(text) {
-  const phone = process.env.CALLMEBOT_PHONE, key = process.env.CALLMEBOT_KEY;
-  if (!phone || !key) return false;
+async function telegram(text) {
+  const token = process.env.TELEGRAM_BOT_TOKEN, chat = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chat) return false;
   try {
-    const r = await fetch('https://api.callmebot.com/whatsapp.php?phone=' + encodeURIComponent(phone.replace(/[^\d]/g, '')) + '&apikey=' + encodeURIComponent(key) + '&text=' + encodeURIComponent(String(text).slice(0, 1500)), { signal: AbortSignal.timeout(10000) });
+    const r = await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text: String(text).slice(0, 3500), disable_web_page_preview: true }), signal: AbortSignal.timeout(10000),
+    });
     return r.ok;
   } catch (e) { return false; }
 }
@@ -34,8 +37,8 @@ async function alert(id, text) {
       const [first, count] = await store.pipeline([['SET', 'alert:' + hour + ':' + id, '1', 'NX', 'EX', 7200], ['INCR', 'alertcount:' + hour], ['EXPIRE', 'alertcount:' + hour, 7200]]);
       if (!first || +count > 8) return false;
     }
-    return await whatsapp('Notix alert: ' + text);
+    return await telegram('Notix alert: ' + text);
   } catch (e) { return false; }
 }
 
-module.exports = { whatsapp, email, alert };
+module.exports = { telegram, email, alert };

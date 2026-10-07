@@ -184,7 +184,7 @@ function handle(fn) {
     try { await fn(req, res); }
     catch (e) {
       const status = e.status || 500;
-      // a crash in the store (not a student's mistake) is reported to the owner's WhatsApp, at most once an hour per problem
+      // a crash in the store (not a student's mistake) is reported to the owner's Telegram, at most once an hour per problem
       if (status >= 500) { try { await require('./_notify').alert(String(req.url || '').split('?')[0] + ':' + String(e.message).slice(0, 40), (req.method || '') + ' ' + String(req.url || '').split('?')[0] + ' failed: ' + String(e.message || 'unknown').slice(0, 200)); } catch (x) { /* ignore */ } }
       send(res, status, { error: e.message || 'Something went wrong' });
     }

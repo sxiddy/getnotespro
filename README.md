@@ -44,9 +44,9 @@ Set these in Vercel (Project, Settings, Environment Variables). Everything is op
 
 | Variable | What for |
 | --- | --- |
-| `CALLMEBOT_PHONE`, `CALLMEBOT_KEY` | WhatsApp messages to your own number. Get the key by saving +34 623 80 11 90 as a contact and sending it "I allow callmebot to send me messages" on WhatsApp (see callmebot.com). Phone is digits only with country code, e.g. 919876543210 |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Telegram messages to you. In Telegram message @BotFather, send /newbot, pick a name, and copy the token it gives. Then open your new bot and press Start (send it any message), and message @userinfobot to get your numeric chat id |
 | `RESEND_API_KEY`, `OWNER_EMAIL` | The weekly backup email. Free key from resend.com; OWNER_EMAIL must be the email of that Resend account |
 | `CRON_SECRET` | Any long random text. Vercel sends it with the scheduled jobs so only Vercel can start them |
 
-What you get: an instant WhatsApp message when a store page crashes (once an hour per problem, 8 an hour at most); a daily check of the store, its database, Razorpay and the three sites (a message only if something is wrong); and every Monday a WhatsApp summary of the week plus an email with a JSON backup of all payments, refunds and sign-ins.
+What you get: an instant Telegram message when a store page crashes (once an hour per problem, 8 an hour at most); a daily check of the store, its database, Razorpay and the three sites (a message only if something is wrong); and every Monday a Telegram summary of the week plus an email with a JSON backup of all payments, refunds and sign-ins.
 Try a job by hand (replace KEY with your ADMIN_KEY): `/api/cron?job=check&key=KEY` or `/api/cron?job=weekly&key=KEY`.

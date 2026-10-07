@@ -1,10 +1,10 @@
 // Scheduled jobs (Vercel Cron, see vercel.json). Vercel calls this with "Authorization: Bearer <CRON_SECRET>".
 //   /api/cron?job=check    every day: is the store, its database, Razorpay and each subject site answering? Messages you only if not.
-//   /api/cron?job=weekly   every Monday: a WhatsApp summary of the week, and an email with a full backup of the database.
+//   /api/cron?job=weekly   every Monday: a Telegram summary of the week, and an email with a full backup of the database.
 // To try one by hand, open it with the header x-admin-key: <ADMIN_KEY> (or add &key=<ADMIN_KEY>).
 const { send, safeEqual, env, PRODUCTS, razorpay, handle } = require('./_lib');
 const store = require('./_store');
-const { whatsapp, email } = require('./_notify');
+const { telegram, email } = require('./_notify');
 
 const codes = Object.keys(PRODUCTS);
 const rs = (p) => '₹' + (p / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 });
@@ -26,7 +26,7 @@ async function check() {
     try { const r = await fetch(PRODUCTS[c].site + '/', { signal: AbortSignal.timeout(9000) }); if (!r.ok) bad.push(c + ' site answered ' + r.status); }
     catch (e) { bad.push(c + ' site did not answer'); }
   }));
-  if (bad.length) await whatsapp('Notix check failed:\n- ' + bad.join('\n- '));
+  if (bad.length) await telegram('Notix check failed:\n- ' + bad.join('\n- '));
   return { ok: !bad.length, problems: bad };
 }
 
@@ -58,10 +58,10 @@ async function weekly() {
     'Visits: store ' + storeV + (sites.length ? ', ' + sites.map(([c, n]) => c + ' ' + (n == null ? '?' : n)).join(', ') : ''),
   ];
   const text = lines.join('\n');
-  const sentWa = await whatsapp(text);
+  const sentWa = await telegram(text);
   const file = Buffer.from(JSON.stringify({ at: new Date().toISOString(), data }, null, 1)).toString('base64');
   const sentMail = await email('Notix weekly summary and backup', text + '\n\nThe attached file is a full backup of the store database (payments, refunds, sign-ins). Keep it somewhere safe.', [{ filename: 'notix-backup-' + new Date().toISOString().slice(0, 10) + '.json', content: file }]);
-  return { ok: true, summary: lines, whatsapp: sentWa, email: sentMail };
+  return { ok: true, summary: lines, telegram: sentWa, email: sentMail };
 }
 
 module.exports = handle(async (req, res) => {
