@@ -219,3 +219,12 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 
 .cursor-glow { display: none; } .card { transform: none; } .card:hover { transform: translateY(-3px); } .mock { will-change: auto; }
 .tile canvas { contain: strict; } .card, .pcard, .cartbar, .tabs { contain: layout paint; } .cartbar { contain: none; }
+
+.aurora.rest i { animation-play-state: paused; }
+
+/* performance: nothing on the page repaints while you scroll */
+.aurora i { animation: none !important; will-change: auto; }
+.aurora { contain: strict; }
+.badge i { animation: none !important; }
+.row { scroll-snap-type: none; }
+.fx { will-change: auto; }

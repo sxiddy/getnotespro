@@ -44,7 +44,7 @@
     t.size = () => { const r = t.cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1); if (!r.width) return; t.W = r.width; t.H = r.height; t.cv.width = t.W * dpr; t.cv.height = t.H * dpr; t.g.setTransform(dpr, 0, 0, dpr, 0, 0); t.paint(1.2); };
     t.paint = (sec) => { if (!t.W) return; t.g.clearRect(0, 0, t.W, t.H); try { demo.draw.call(demo, t.g, t.W, t.H, sec, t.vals); } catch (e) { /* ignore */ } };
     if ('ResizeObserver' in window) new ResizeObserver(t.size).observe(t.cv);
-    if ('IntersectionObserver' in window) new IntersectionObserver((es) => { t.vis = es[0].isIntersecting; if (t.vis) t.paint(1.2); }, { threshold: 0.05 }).observe(el); else t.vis = true;
+    t.vis = true; // tiles are only created once they are near the screen, and only animate while hovered or open
     tiles.add(t); t.size();
     return t;
   }
@@ -56,6 +56,8 @@
   }
   const play = (t, on) => { t.on = !!on && !reduce; t.el.classList.toggle('playing', t.on); if (t.on && !raf) { t.t0 = performance.now() - 1200; raf = requestAnimationFrame(loop); } if (!on) t.paint(1.2); };
   function wireTile(el, d) {
+    // the canvas is set up only when its tile first scrolls near the screen, so the page loads and scrolls light
+    const start = () => {
     const t = Tile(el, d, false);
     if (fine) { el.addEventListener('pointerenter', () => play(t, true)); el.addEventListener('pointerleave', () => play(t, false)); }
     el.addEventListener('focusin', () => play(t, true)); el.addEventListener('focusout', () => play(t, false));
@@ -63,7 +65,8 @@
       if (e.target.closest('[data-open]')) return;
       if (!fine) { const was = t.on; tiles.forEach((o) => { if (o !== t && o.on && !o.big) play(o, false); }); play(t, !was); }
     });
-    return t;
+    };
+    if ('IntersectionObserver' in window) { const io = new IntersectionObserver((es) => { if (es[0].isIntersecting) { io.disconnect(); start(); } }, { rootMargin: '300px' }); io.observe(el); } else start();
   }
   const tileHTML = (d, extra) => `<div class="tile" data-demo="${d.id}" style="--a:${d.col}"><canvas aria-label="${esc(d.title)} animation"></canvas><span class="live"><i></i>${fine ? 'hover' : 'tap'} to play</span>${extra || ''}</div>`;
   const demoFor = (code, n) => { const id = (BEST[code] || [])[n || 0]; return DEMOS.find((d) => d.id === id); };
@@ -294,6 +297,8 @@
     const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
     fx.forEach((el, i) => { el.style.transitionDelay = (i % 4) * 60 + 'ms'; io.observe(el); });
   } else fx.forEach((el) => el.classList.add('in'));
+  // the moving background rests while the page scrolls
+  { const au = $('.aurora'); let st = 0, on = false; addEventListener('scroll', () => { if (!on) { on = true; au.classList.add('rest'); } clearTimeout(st); st = setTimeout(() => { on = false; au.classList.remove('rest'); }, 160); }, { passive: true }); }
   // bottom tabs follow the section on screen
   if ('IntersectionObserver' in window) {
     const so = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) $$('#tabs [data-t]').forEach((a) => a.classList.toggle('on', a.dataset.t === e.target.id)); }), { rootMargin: '-40% 0px -50% 0px' });
