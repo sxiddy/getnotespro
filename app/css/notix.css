@@ -233,19 +233,18 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .cursor-glow { display: block; left: -60px; top: -60px; width: 120px; height: 120px; z-index: 70; border-radius: 50%; background: radial-gradient(circle, rgba(150, 205, 255, .55) 0%, rgba(160, 150, 255, .22) 35%, rgba(124, 192, 255, 0) 70%); opacity: 0; transition: opacity .25s; will-change: transform; }
 .cursor-glow.on { opacity: 1; }
 
-/* custom mouse cursor (mouse only): a dot that sticks to the pointer and a ring that glides after it */
+/* custom mouse cursor (mouse only), iPad style: a small dot that melts into whatever you can click */
 .cur { display: none; }
 @media (hover: hover) and (pointer: fine) {
   body.has-cur, body.has-cur * { cursor: none !important; }
   body.has-cur input[type=search], body.has-cur input[type=email] { cursor: text !important; }
-  .cur { display: block; position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .25s; will-change: transform; }
+  .cur { display: block; position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none; width: 12px; height: 12px; border-radius: 99px; background: #fff; mix-blend-mode: difference; opacity: 0; contain: strict; will-change: transform, width, height;
+    transition: width .22s var(--ease), height .22s var(--ease), border-radius .22s var(--ease), background-color .2s, opacity .25s, margin .22s var(--ease); margin: -6px 0 0 -6px; }
   .cur.on { opacity: 1; }
-  .cur-dot { width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgba(12, 12, 15, .55); }
-  .cur-ring { width: 36px; height: 36px; margin: -18px 0 0 -18px; }
-  .cur-ring i { display: block; width: 100%; height: 100%; border-radius: 50%; border: 2px solid rgba(160, 205, 255, .85); background: radial-gradient(circle, rgba(124, 192, 255, .1), transparent 70%); transition: transform .22s var(--ease), border-color .22s, background .22s; }
-  .cur-ring.link i { transform: scale(1.55); border-color: rgba(199, 164, 255, .9); background: radial-gradient(circle, rgba(199, 164, 255, .18), transparent 70%); }
-  .cur-ring.down i { transform: scale(.7); border-color: #fff; }
-  .cur-ring.link.down i { transform: scale(1.2); }
-  .cur-ring.text i { transform: scale(.4, 1.1); border-radius: 8px; }
+  .cur.snap { mix-blend-mode: normal; background: rgba(150, 205, 255, .14); box-shadow: inset 0 0 0 1.5px rgba(160, 205, 255, .6); margin: 0; transition: transform .2s var(--ease), width .22s var(--ease), height .22s var(--ease), border-radius .22s var(--ease), background-color .2s, opacity .25s; }
+  .cur.big { width: 46px; height: 46px; margin: -23px 0 0 -23px; mix-blend-mode: normal; background: rgba(150, 205, 255, .12); box-shadow: inset 0 0 0 1.5px rgba(160, 205, 255, .55); }
+  .cur.text { width: 2px; height: 24px; margin: -12px 0 0 -1px; border-radius: 2px; }
+  .cur.down { filter: brightness(1.4); }
+  .cur.down:not(.snap):not(.text) { width: 8px; height: 8px; margin: -4px 0 0 -4px; }
 }
-@media (prefers-reduced-motion: reduce) { .cur-ring i { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .cur { transition: none; } }
