@@ -4,7 +4,7 @@
 // To try one by hand, open it with the header x-admin-key: <ADMIN_KEY> (or add &key=<ADMIN_KEY>).
 const { send, safeEqual, env, PRODUCTS, razorpay, handle } = require('./_lib');
 const store = require('./_store');
-const { telegram, email } = require('./_notify');
+const { telegram, email, esc } = require('./_notify');
 
 const codes = Object.keys(PRODUCTS);
 const rs = (p) => '₹' + (p / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 });
@@ -26,7 +26,7 @@ async function check() {
     try { const r = await fetch(PRODUCTS[c].site + '/', { signal: AbortSignal.timeout(9000) }); if (!r.ok) bad.push(c + ' site answered ' + r.status); }
     catch (e) { bad.push(c + ' site did not answer'); }
   }));
-  if (bad.length) await telegram('Notix check failed:\n- ' + bad.join('\n- '));
+  if (bad.length) await telegram('🚨 <b>Notix check failed</b>\n\n' + bad.map((b) => '• ' + esc(b)).join('\n'));
   return { ok: !bad.length, problems: bad };
 }
 
@@ -49,19 +49,25 @@ async function weekly() {
     try { const r = await fetch(PRODUCTS[c].site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY') }, signal: AbortSignal.timeout(9000) }); const j = await r.json(); const v = j.visits || {}; return [c, days.reduce((n, d) => n + (+(v[d] && v[d].total != null ? v[d].total : v[d]) || 0), 0)]; }
     catch (e) { return [c, null]; }
   }));
-  const top = Object.entries(per).sort((a, b) => b[1] - a[1]).map(([c, n]) => PRODUCTS[c].name + ' ' + n).join(', ') || 'none';
+  const subjects = Object.entries(per).sort((a, b) => b[1] - a[1]).map(([c, n]) => esc(PRODUCTS[c].name) + ' ' + n).join(' · ') || 'none yet';
   const lines = [
-    'Notix, last 7 days',
-    'Pro sold: ' + sales + ' (' + rs(revenue) + ')' + (refunds.length ? ', refunded ' + refunds.length + ' (' + rs(refunded) + ')' : ''),
-    'By subject: ' + top,
-    'New students signed in on the store: ' + newPeople,
-    'Visits: store ' + storeV + (sites.length ? ', ' + sites.map(([c, n]) => c + ' ' + (n == null ? '?' : n)).join(', ') : ''),
+    '📊 <b>Notix weekly</b>',
+    '<i>Last 7 days</i>',
+    '',
+    '💰 <b>' + rs(revenue) + '</b> from ' + sales + (sales === 1 ? ' sale' : ' sales'),
+    ...(refunds.length ? ['↩️ Refunded ' + refunds.length + ' (' + rs(refunded) + ')'] : []),
+    '📚 ' + subjects,
+    '🙋 ' + newPeople + ' new ' + (newPeople === 1 ? 'sign-in' : 'sign-ins'),
+    '',
+    '👀 <b>Visits</b>',
+    'Store ' + storeV,
+    ...sites.map(([c, n]) => esc(c) + ' ' + (n == null ? '?' : n)),
   ];
   const text = lines.join('\n');
   const sentWa = await telegram(text);
   const file = Buffer.from(JSON.stringify({ at: new Date().toISOString(), data }, null, 1)).toString('base64');
-  const sentMail = await email('Notix weekly summary and backup', text + '\n\nThe attached file is a full backup of the store database (payments, refunds, sign-ins). Keep it somewhere safe.', [{ filename: 'notix-backup-' + new Date().toISOString().slice(0, 10) + '.json', content: file }]);
-  return { ok: true, summary: lines, telegram: sentWa, email: sentMail };
+  const sentMail = await email('Notix weekly summary and backup', text.replace(/<[^>]+>/g, '') + '\n\nThe attached file is a full backup of the store database (payments, refunds, sign-ins). Keep it somewhere safe.', [{ filename: 'notix-backup-' + new Date().toISOString().slice(0, 10) + '.json', content: file }]);
+  return { ok: true, summary: text.split('\n'), telegram: sentWa, email: sentMail };
 }
 
 module.exports = handle(async (req, res) => {

@@ -4,13 +4,16 @@
 //   RESEND_API_KEY, OWNER_EMAIL      email to the owner (Resend's free plan can send to its own account email)
 const store = require('./_store');
 
+// The text may use <b> and <i>; anything else typed into it must go through esc() first.
+const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 async function telegram(text) {
   const token = process.env.TELEGRAM_BOT_TOKEN, chat = process.env.TELEGRAM_CHAT_ID;
   if (!token || !chat) return false;
   try {
     const r = await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chat, text: String(text).slice(0, 3500), disable_web_page_preview: true }), signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({ chat_id: chat, text: String(text).slice(0, 3500), parse_mode: 'HTML', disable_web_page_preview: true }), signal: AbortSignal.timeout(10000),
     });
     return r.ok;
   } catch (e) { return false; }
@@ -37,8 +40,8 @@ async function alert(id, text) {
       const [first, count] = await store.pipeline([['SET', 'alert:' + hour + ':' + id, '1', 'NX', 'EX', 7200], ['INCR', 'alertcount:' + hour], ['EXPIRE', 'alertcount:' + hour, 7200]]);
       if (!first || +count > 8) return false;
     }
-    return await telegram('Notix alert: ' + text);
+    return await telegram('🚨 <b>Notix alert</b>\n' + esc(text));
   } catch (e) { return false; }
 }
 
-module.exports = { telegram, email, alert };
+module.exports = { telegram, email, alert, esc };
