@@ -309,12 +309,15 @@
     addEventListener('pointermove', (e) => {
       if (e.pointerType && e.pointerType !== 'mouse') return;
       x = e.clientX; y = e.clientY; dot.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
-      if (!seen) { seen = true; rx = x; ry = y; document.body.classList.add('has-cur'); dot.classList.add('on'); ring.classList.add('on'); }
+      if (!seen) { seen = true; rx = x; ry = y; if (!document.body.classList.contains('dlg-open')) document.body.classList.add('has-cur'); dot.classList.add('on'); ring.classList.add('on'); }
       const el = e.target.closest ? e.target : null;
       ring.classList.toggle('link', !!(el && el.closest(CL)));
       ring.classList.toggle('text', !!(el && el.closest('input[type=search],input[type=email]')));
       if (!run) { run = true; requestAnimationFrame(tick); }
     }, { passive: true });
+    // pop-up windows sit above the page, so the real cursor comes back while one is open
+    const dlgs = $$('dialog'), sync = () => { const open = dlgs.some((d) => d.open); document.body.classList.toggle('dlg-open', open); document.body.classList.toggle('has-cur', seen && !open); dot.style.visibility = ring.style.visibility = open ? 'hidden' : ''; };
+    dlgs.forEach((d) => new MutationObserver(sync).observe(d, { attributes: true, attributeFilter: ['open'] }));
     addEventListener('pointerdown', () => ring.classList.add('down')); addEventListener('pointerup', () => ring.classList.remove('down'));
     document.addEventListener('pointerleave', () => { dot.classList.remove('on'); ring.classList.remove('on'); });
     document.addEventListener('pointerenter', () => { if (seen) { dot.classList.add('on'); ring.classList.add('on'); } });
