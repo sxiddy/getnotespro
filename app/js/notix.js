@@ -297,38 +297,6 @@
     const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
     fx.forEach((el, i) => { el.style.transitionDelay = (i % 4) * 60 + 'ms'; io.observe(el); });
   } else fx.forEach((el) => el.classList.add('in'));
-  // custom cursor (iPad style): a small dot; over buttons and links it melts into the shape of the thing you can click
-  if (fine && $('#cur')) {
-    const cur = $('#cur'), CL = 'a,button,summary,label,.btn,[data-open],[data-cart],[data-buy],input[type=range],.tabs *', TX = 'input[type=search],input[type=email]';
-    let x = 0, y = 0, lx = 0, ly = 0, seen = false, tgt = null, run = false;
-    const move = () => { lx += (x - lx) * 0.5; ly += (y - ly) * 0.5; if (!tgt) cur.style.transform = 'translate3d(' + lx.toFixed(1) + 'px,' + ly.toFixed(1) + 'px,0)'; if (!tgt && Math.abs(x - lx) + Math.abs(y - ly) > 0.3) requestAnimationFrame(move); else run = false; };
-    const snap = (el) => {
-      const r = el.getBoundingClientRect(), pad = 5, cs = getComputedStyle(el), rad = parseFloat(cs.borderTopLeftRadius) || 0;
-      cur.classList.remove('big', 'text'); cur.classList.add('snap');
-      cur.style.width = r.width + pad * 2 + 'px'; cur.style.height = r.height + pad * 2 + 'px';
-      cur.style.borderRadius = Math.min(rad + pad, (r.height + pad * 2) / 2) + 'px';
-      cur.style.transform = 'translate3d(' + (r.left - pad) + 'px,' + (r.top - pad) + 'px,0)';
-    };
-    // while the dot is wrapped round something, keep it matched to that thing (it may move: scrolling, hover lift)
-    let fl = 0; const follow = () => { if (!tgt) { fl = 0; return; } if (!tgt.isConnected) { tgt = null; free(''); fl = 0; return; } snap(tgt); fl = requestAnimationFrame(follow); };
-    const free = (mode) => { cur.classList.remove('snap', 'big', 'text'); if (mode) cur.classList.add(mode); cur.style.width = cur.style.height = cur.style.borderRadius = ''; };
-    addEventListener('pointermove', (e) => {
-      if (e.pointerType && e.pointerType !== 'mouse') return;
-      x = e.clientX; y = e.clientY;
-      if (!seen) { seen = true; lx = x; ly = y; if (!document.body.classList.contains('dlg-open')) document.body.classList.add('has-cur'); cur.classList.add('on'); }
-      const el = e.target.closest ? e.target : null, c = el && el.closest(CL), tx = el && el.closest(TX), big = el && !c && el.closest('.tile');
-      const small = c && c.getBoundingClientRect().width < 460 && c.getBoundingClientRect().height < 120;
-      if (tx) { tgt = null; free('text'); }
-      else if (c && small) { if (tgt !== c) { tgt = c; snap(c); if (!fl) fl = requestAnimationFrame(follow); } }
-      else { if (tgt || cur.classList.contains('snap') || cur.classList.contains('text')) { tgt = null; free(big ? 'big' : ''); } else if (big) free('big'); else if (cur.classList.contains('big')) free(''); }
-      if (!tgt && !run) { run = true; requestAnimationFrame(move); }
-    }, { passive: true });
-    addEventListener('scroll', () => { if (tgt) { const r = tgt.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) { tgt = null; free(''); } else snap(tgt); } }, { passive: true });
-    addEventListener('pointerdown', () => cur.classList.add('down')); addEventListener('pointerup', () => cur.classList.remove('down'));
-    document.addEventListener('pointerleave', () => cur.classList.remove('on')); document.addEventListener('pointerenter', () => { if (seen) cur.classList.add('on'); });
-    const dlgs = $$('dialog'), sync = () => { const open = dlgs.some((d) => d.open); document.body.classList.toggle('dlg-open', open); document.body.classList.toggle('has-cur', seen && !open); cur.style.visibility = open ? 'hidden' : ''; };
-    dlgs.forEach((d) => new MutationObserver(sync).observe(d, { attributes: true, attributeFilter: ['open'] }));
-  }
   // the moving background rests while the page scrolls
   { const au = $('.aurora'); let st = 0, on = false; addEventListener('scroll', () => { if (!on) { on = true; au.classList.add('rest'); } clearTimeout(st); st = setTimeout(() => { on = false; au.classList.remove('rest'); }, 160); }, { passive: true }); }
   // bottom tabs follow the section on screen

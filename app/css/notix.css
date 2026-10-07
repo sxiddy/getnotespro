@@ -233,18 +233,9 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .cursor-glow { display: block; left: -60px; top: -60px; width: 120px; height: 120px; z-index: 70; border-radius: 50%; background: radial-gradient(circle, rgba(150, 205, 255, .55) 0%, rgba(160, 150, 255, .22) 35%, rgba(124, 192, 255, 0) 70%); opacity: 0; transition: opacity .25s; will-change: transform; }
 .cursor-glow.on { opacity: 1; }
 
-/* custom mouse cursor (mouse only), iPad style: a small dot that melts into whatever you can click */
-.cur { display: none; }
+/* Mac-style mouse cursor (mouse only): black arrow with a white edge, pointing hand over clickable things, I-beam in text boxes */
 @media (hover: hover) and (pointer: fine) {
-  body.has-cur, body.has-cur * { cursor: none !important; }
-  body.has-cur input[type=search], body.has-cur input[type=email] { cursor: text !important; }
-  .cur { display: block; position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none; width: 12px; height: 12px; border-radius: 99px; background: #fff; mix-blend-mode: difference; opacity: 0; contain: strict; will-change: transform, width, height;
-    transition: width .22s var(--ease), height .22s var(--ease), border-radius .22s var(--ease), background-color .2s, opacity .25s, margin .22s var(--ease); margin: -6px 0 0 -6px; }
-  .cur.on { opacity: 1; }
-  .cur.snap { mix-blend-mode: normal; background: rgba(150, 205, 255, .14); box-shadow: inset 0 0 0 1.5px rgba(160, 205, 255, .6); margin: 0; transition: transform .2s var(--ease), width .22s var(--ease), height .22s var(--ease), border-radius .22s var(--ease), background-color .2s, opacity .25s; }
-  .cur.big { width: 46px; height: 46px; margin: -23px 0 0 -23px; mix-blend-mode: normal; background: rgba(150, 205, 255, .12); box-shadow: inset 0 0 0 1.5px rgba(160, 205, 255, .55); }
-  .cur.text { width: 2px; height: 24px; margin: -12px 0 0 -1px; border-radius: 2px; }
-  .cur.down { filter: brightness(1.4); }
-  .cur.down:not(.snap):not(.text) { width: 8px; height: 8px; margin: -4px 0 0 -4px; }
+  html, body { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='32' viewBox='0 0 28 32'><path d='M6 3.5v21.2l5.2-4.9 3.6 8.2 3.9-1.7-3.5-8 7.2-.4z' fill='%23000' stroke='%23fff' stroke-width='1.8' stroke-linejoin='round'/></svg>") 6 4, default; }
+  a, button, .btn, summary, [role=button], .tile, .pcard, .try, .more-btn, .cb-sum, .mock-opts button, .tog button, label, input[type=range], select, .tabs * { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M13 4.5c-1.2 0-2.1.9-2.1 2.1v10.2l-2-2.3c-.8-.9-2.1-1-3-.2-.8.7-.9 1.9-.3 2.7l5.3 7.7c1.2 1.7 2.9 2.6 5 2.6h4.1c3 0 5.1-2.2 5.1-5.2v-6c0-1.2-.9-2.1-2.1-2.1-.5 0-.9.1-1.3.4-.3-.9-1.1-1.5-2-1.5-.6 0-1.2.2-1.6.6-.4-.8-1.2-1.3-2.1-1.3-.5 0-1 .2-1.4.4V6.6c0-1.2-.9-2.1-2-2.1z' fill='%23fff' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'/><path d='M17 15v5M20.2 15.8V20M23.4 16.4V20' stroke='%23000' stroke-width='1.2' stroke-linecap='round'/></svg>") 13 5, pointer; }
+  input[type=search], input[type=email], textarea { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='32' viewBox='0 0 20 32'><path d='M6 5h8M10 5v22M6 27h8' fill='none' stroke='%23fff' stroke-width='4.2' stroke-linecap='round'/><path d='M6 5h8M10 5v22M6 27h8' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/></svg>") 10 16, text; }
 }
-@media (prefers-reduced-motion: reduce) { .cur { transition: none; } }
