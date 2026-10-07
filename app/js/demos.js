@@ -1,95 +1,7 @@
-/* Notix store: page polish (menu, progress bar, scroll spy, hero demo, live Pro previews, card glow, FAQ, celebration). */
+/* Notix: canvas previews of the subject sites' best animations. Each demo: draw(g,w,h,t,vals), controls, readout. */
 (function () {
   'use strict';
-  const $ = (s, r) => (r || document).querySelector(s), $$ = (s, r) => [...(r || document).querySelectorAll(s)];
-  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const COL = { e: '#7cc0ff', cat: '#ffb56b', an: '#c7a4ff', good: '#86d4a9', bad: '#f08c8c', line: '#3a3a41', dim: '#80808a', text: '#cfcfd6', bg: '#151517', panel: '#1b1b1e' };
-  window.stExp = new Set();
-
-  // ------------------------------------------------------------ header: menu, progress, scroll spy
-  const mb = $('#menu-btn'), mn = $('#mnav');
-  if (mb && mn) {
-    mb.addEventListener('click', () => { const on = mn.hidden; mn.hidden = !on; mb.setAttribute('aria-expanded', String(on)); mb.classList.toggle('open', on); });
-    mn.addEventListener('click', (e) => { if (e.target.closest('a')) { mn.hidden = true; mb.setAttribute('aria-expanded', 'false'); mb.classList.remove('open'); } });
-  }
-  const prog = $('#progress');
-  let ticking = false;
-  function onScroll() {
-    if (ticking) return; ticking = true;
-    requestAnimationFrame(() => {
-      ticking = false;
-      const h = document.documentElement, max = h.scrollHeight - h.clientHeight;
-      if (prog) prog.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, h.scrollTop / max) : 0) + ')';
-      $('#top').classList.toggle('scrolled', h.scrollTop > 8);
-    });
-  }
-  addEventListener('scroll', onScroll, { passive: true }); onScroll();
-  if ('IntersectionObserver' in window) {
-    const links = {}; $$('.top-link').forEach((a) => { links[a.getAttribute('href').slice(1)] = a; });
-    const spy = new IntersectionObserver((es) => es.forEach((e) => { const a = links[e.target.id]; if (a) a.classList.toggle('active', e.isIntersecting); }), { rootMargin: '-35% 0px -55% 0px' });
-    Object.keys(links).forEach((id) => { const el = document.getElementById(id); if (el) spy.observe(el); });
-  }
-
-  // ------------------------------------------------------------ sticky "pick your subject" bar on phones
-  const st = $('#sticky');
-  if (st && 'IntersectionObserver' in window) {
-    const seen = { hero: true, subjects: false, foot: false }; // hero visible at the start
-    const upd = () => { st.hidden = seen.hero || seen.subjects || seen.foot; };
-    const io = new IntersectionObserver((es) => { es.forEach((e) => { seen[e.target.dataset.k] = e.isIntersecting; }); upd(); });
-    [['.hero', 'hero'], ['#subjects', 'subjects'], ['.foot', 'foot']].forEach(([s, k]) => { const el = $(s); if (el) { el.dataset.k = k; io.observe(el); } });
-    upd();
-  }
-
-  // ------------------------------------------------------------ count-up numbers
-  const nums = $$('[data-count]');
-  function countUp(el) {
-    const to = +el.dataset.count; if (reduce || !to) return;
-    const t0 = performance.now(), d = 900;
-    (function step(now) { const p = Math.min(1, (now - t0) / d); el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); })(t0);
-  }
-  if ('IntersectionObserver' in window && nums.length) {
-    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { countUp(e.target); io.unobserve(e.target); } }), { threshold: 0.6 });
-    nums.forEach((n) => io.observe(n));
-  }
-
-  // ------------------------------------------------------------ FAQ: smooth open and close
-  $$('.faq details').forEach((d) => {
-    const s = $('summary', d), a = $('.ans', d);
-    if (!s || !a || !a.animate) return;
-    s.addEventListener('click', (e) => {
-      if (reduce) return;
-      e.preventDefault();
-      if (d.open) { const h = a.offsetHeight; a.animate({ height: [h + 'px', '0px'], opacity: [1, 0] }, { duration: 200, easing: 'ease' }).onfinish = () => { d.open = false; }; }
-      else { d.open = true; const h = a.offsetHeight; a.animate({ height: ['0px', h + 'px'], opacity: [0, 1] }, { duration: 260, easing: 'ease' }); }
-    });
-  });
-
-  // ------------------------------------------------------------ hero demo: a real Nernst question
-  (function () {
-    const r = $('#mock-r'); if (!r) return;
-    const c = $('#mock-c'), e = $('#mock-e'), fb = $('#mock-fb'), opts = $('#mock-opts'), mock = $('#mock');
-    let picked = '';
-    const fmt = (v) => { const x = Math.pow(10, v); return (x >= 0.1 ? x.toFixed(2) : x.toFixed(3)) + ' M'; };
-    function upd() {
-      const v = +r.value; c.textContent = fmt(v); e.textContent = (1.10 + 0.0296 * v).toFixed(2) + ' V';
-      r.style.setProperty('--p', ((v + 3) / 3 * 100) + '%');
-      if (!picked) fb.textContent = v < -1 ? 'See the voltage drop as [Cu²⁺] falls? Now pick your answer.' : 'Pick an answer, then drag the slider to check it.';
-    }
-    r.addEventListener('input', () => { mock.classList.add('touched'); upd(); });
-    opts.addEventListener('click', (ev) => {
-      const b = ev.target.closest('[data-ans]'); if (!b) return;
-      picked = b.dataset.ans; mock.classList.add('touched');
-      $$('button', opts).forEach((x) => x.classList.remove('ok', 'no'));
-      const good = picked === 'down';
-      b.classList.add(good ? 'ok' : 'no');
-      if (!good) $('[data-ans="down"]', opts).classList.add('ok');
-      fb.textContent = good ? 'Correct. Nernst: E = E° + 0.0296 log[Cu²⁺], so lower [Cu²⁺] means a lower E. Drag the slider to see it.' : 'Not quite. By Nernst, E = E° + 0.0296 log[Cu²⁺], so E falls. Drag the slider to see it.';
-      fb.className = 'mock-fb ' + (good ? 'good' : 'bad');
-    });
-    upd();
-  })();
-
-  // ------------------------------------------------------------ live Pro previews (canvas)
   const TAU = Math.PI * 2;
   const DEMOS = [
     {
@@ -206,99 +118,40 @@
         g.font = '600 11px "JetBrains Mono", monospace'; g.fillStyle = COL.good; g.fillText('field', 12, 18); g.fillStyle = COL.cat; g.fillText('fan', 12, 34);
       },
     },
+    {
+      id: 'temp', title: 'Temperature and reaction speed', code: 'BACHY105', subject: 'Applied Chemistry', col: COL.cat, rank: 1,
+      blurb: 'Why heating speeds a reaction up. Hotter molecules move faster, and more of them hit hard enough to react (more than Ea).',
+      ctrl: [{ k: 'T', label: 'Temperature', min: 280, max: 600, step: 5, val: 350, fmt: (v) => v + ' K' }],
+      read: (v) => { const k = Math.exp(-50000 / 8.314 * (1 / v.T - 1 / 300)); return `Arrhenius: k = A·e<sup>−Ea/RT</sup>. At <b>${v.T} K</b> the rate is about <b>${k < 10 ? k.toFixed(1) : Math.round(k)}×</b> the rate at 300 K (for Ea = 50 kJ/mol).`; },
+      init(w, h) { const P = []; let s = 7; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; for (let i = 0; i < 46; i++) P.push({ x: r(), y: r(), a: r() * TAU, e: r() }); return P; },
+      draw(g, w, h, t, v) {
+        const P = this._p || (this._p = this.init(w, h)), sp = Math.sqrt(v.T / 300) * 0.07, hot = Math.min(1, (v.T - 280) / 320);
+        g.fillStyle = 'rgba(255,181,107,' + (0.04 + 0.1 * hot) + ')'; g.strokeStyle = COL.line; g.lineWidth = 1.5; g.beginPath(); g.roundRect(8, 8, w - 16, h - 16, 14); g.fill(); g.stroke();
+        let hit = 0;
+        P.forEach((p, i) => {
+          const a = p.a + Math.sin(t * 0.7 + i) * 0.6, x = 14 + ((p.x + Math.cos(a) * sp * t * (0.6 + p.e)) % 1 + 1) % 1 * (w - 28), y = 14 + ((p.y + Math.sin(a) * sp * t * (0.6 + p.e)) % 1 + 1) % 1 * (h - 28);
+          const en = p.e * (v.T / 300) * 1.15, rea = en > 1.25; if (rea) hit++;
+          g.fillStyle = rea ? COL.cat : COL.e; g.globalAlpha = rea ? 1 : 0.7; g.shadowColor = COL.cat; g.shadowBlur = rea ? 12 : 0;
+          g.beginPath(); g.arc(x, y, rea ? 5 : 3.6, 0, TAU); g.fill(); g.shadowBlur = 0; g.globalAlpha = 1;
+        });
+        g.fillStyle = COL.text; g.font = '600 12px "Nunito", sans-serif'; g.fillText(v.T + ' K · ' + hit + ' of ' + P.length + ' have enough energy', 18, h - 18);
+      },
+    },
+    {
+      id: 'grammar', title: 'Fix the sentence', code: 'BAENG101', subject: 'Technical English', col: COL.an, rank: 1,
+      blurb: 'Technical writing is about small fixes. Slide to correct the sentence one mistake at a time.',
+      ctrl: [{ k: 'fix', label: 'Fixes applied', min: 0, max: 3, step: 1, val: 0, fmt: (v) => v + ' of 3' }],
+      read: (v) => ['<b>Three mistakes.</b> Can you spot them? Slide to fix them one by one.', '<b>Fixed 1:</b> "The data show", because data is plural in formal writing.', '<b>Fixed 2:</b> "were collected", passive voice for a method.', '<b>Fixed 3:</b> "which", because a comma needs a non-defining clause. Clean and formal now.'][v.fix],
+      draw(g, w, h, t, v) {
+        const lines = [['The data ', 'shows', ' that the samples ', 'was', ' collected, ', 'that', ' were tested twice.'], ['The data ', 'show', ' that the samples ', 'was', ' collected, ', 'that', ' were tested twice.'], ['The data ', 'show', ' that the samples ', 'were', ' collected, ', 'that', ' were tested twice.'], ['The data ', 'show', ' that the samples ', 'were', ' collected, ', 'which', ' were tested twice.']][v.fix];
+        const bad = [v.fix < 1, v.fix < 2, v.fix < 3], fs = Math.max(13, Math.min(w / 24, 20));
+        g.font = '600 ' + fs + 'px "Nunito", sans-serif'; g.textBaseline = 'middle';
+        const full = lines.join(''), maxW = w - 36; let words = [], cur = '', ln = [];
+        let x = 18, y = h * 0.34, k = 0; const lh = fs * 1.9;
+        lines.forEach((seg, i) => { const isW = i % 2 === 1, isBad = isW && bad[(i - 1) / 2]; seg.split(/(\s+)/).forEach((tok) => { if (!tok) return; const tw = g.measureText(tok).width; if (x + tw > w - 18 && tok.trim()) { x = 18; y += lh; } if (isW) { g.fillStyle = isBad ? 'rgba(240,140,140,.22)' : 'rgba(134,212,169,.2)'; g.beginPath(); g.roundRect(x - 3, y - fs * 0.8, tw + 6, fs * 1.6, 6); g.fill(); } g.fillStyle = isW ? (isBad ? COL.bad : COL.good) : '#e9e9ee'; g.fillText(tok, x, y); x += tw; }); });
+        g.fillStyle = COL.dim; g.font = '600 11px "JetBrains Mono", monospace'; g.fillText(v.fix === 3 ? 'ready to submit' : 'needs ' + (3 - v.fix) + ' more fix' + (3 - v.fix > 1 ? 'es' : ''), 18, h - 18);
+      },
+    },
   ];
-
-  const pv = $('#pv');
-  if (pv) {
-    let cur = 0, vals = {}, raf = 0, t0 = performance.now(), visible = false, cv, g, W = 0, H = 0, ro;
-    pv.innerHTML = '<div class="pv-tabs" role="tablist"></div><div class="pv-body"><div class="pv-stage"><canvas aria-label="Animated preview"></canvas><span class="pv-live"><i></i>live</span></div><div class="pv-side"></div></div>';
-    const tabs = $('.pv-tabs', pv), side = $('.pv-side', pv); cv = $('canvas', pv); g = cv.getContext('2d');
-    DEMOS.forEach((d, i) => {
-      const b = document.createElement('button'); b.type = 'button'; b.role = 'tab'; b.id = 'pvt-' + d.id; b.dataset.i = i; b.style.setProperty('--a', d.col);
-      b.innerHTML = '<i></i>' + d.title; tabs.appendChild(b);
-    });
-    function size() { const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1); W = Math.max(200, r.width); H = Math.max(140, r.height); cv.width = W * dpr; cv.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); frame(performance.now(), true); }
-    function show(i) {
-      cur = i; const d = DEMOS[i];
-      $$('button', tabs).forEach((b, j) => { b.classList.toggle('on', j === i); b.setAttribute('aria-selected', String(j === i)); });
-      vals = {}; d.ctrl.forEach((c) => { vals[c.k] = c.val; });
-      pv.style.setProperty('--a', d.col);
-      side.innerHTML = `<div class="pv-chip" style="--a:${d.col}">${d.subject}</div><h3>${d.title}</h3><p class="pv-blurb">${d.blurb}</p><div class="pv-ctrls"></div><p class="pv-read" aria-live="polite"></p><div class="pv-cta"><button class="btn primary" type="button" data-go="${d.code}">Unlock in ${d.subject} Pro</button><span class="muted small">The full tool shows every step of the working.</span></div>`;
-      const box = $('.pv-ctrls', side);
-      d.ctrl.forEach((c) => {
-        const row = document.createElement('div'); row.className = 'pv-row';
-        if (c.type === 'toggle') {
-          row.innerHTML = `<span class="pv-lbl">${c.label}</span><div class="pv-tog">${c.opts.map((o) => `<button type="button" data-k="${c.k}" data-v="${o[0]}" class="${o[0] === c.val ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`;
-        } else {
-          row.innerHTML = `<label class="pv-lbl" for="pvc-${c.k}">${c.label}</label><output id="pvo-${c.k}">${c.fmt(c.val)}</output><input id="pvc-${c.k}" type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.val}" data-k="${c.k}">`;
-        }
-        box.appendChild(row);
-      });
-      readout(); frame(performance.now(), true);
-    }
-    function readout() { const d = DEMOS[cur]; $('.pv-read', side).innerHTML = d.read(vals); }
-    tabs.addEventListener('click', (e) => { const b = e.target.closest('button[data-i]'); if (b) show(+b.dataset.i); });
-    side.addEventListener('input', (e) => {
-      const r = e.target.closest('input[type=range]'); if (!r) return;
-      const c = DEMOS[cur].ctrl.find((x) => x.k === r.dataset.k); vals[c.k] = +r.value; $('#pvo-' + c.k).textContent = c.fmt(+r.value);
-      r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100) + '%'); readout(); if (reduce) frame(performance.now(), true);
-    });
-    side.addEventListener('click', (e) => {
-      const tg = e.target.closest('.pv-tog button');
-      if (tg) { vals[tg.dataset.k] = tg.dataset.v; $$('button', tg.parentNode).forEach((b) => b.classList.toggle('on', b === tg)); readout(); if (reduce) frame(performance.now(), true); return; }
-      const go = e.target.closest('[data-go]'); if (go) window.stGoCard(go.dataset.go);
-    });
-    function frame(now, once) {
-      if (!W) return; const d = DEMOS[cur], t = reduce ? 1.2 : (now - t0) / 1000;
-      g.clearRect(0, 0, W, H); d.draw(g, W, H, t, vals);
-      if (!once && visible && !reduce) raf = requestAnimationFrame((n) => frame(n));
-    }
-    if ('ResizeObserver' in window) { ro = new ResizeObserver(size); ro.observe(cv); } else addEventListener('resize', size);
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver((es) => { const v = es[0].isIntersecting; if (v && !visible) { visible = true; cancelAnimationFrame(raf); raf = requestAnimationFrame((n) => frame(n)); } else if (!v) { visible = false; cancelAnimationFrame(raf); } }, { threshold: 0.1 }).observe(pv);
-    } else { visible = true; }
-    // only offer previews for subjects that are on the store
-    document.addEventListener('st:products', (e) => {
-      const have = new Set(e.detail.map((p) => p.code)); let first = -1;
-      $$('button[data-i]', tabs).forEach((b, i) => { const ok = have.has(DEMOS[i].code); b.hidden = !ok; if (ok && first < 0) first = i; });
-      const sec = $('#preview'); if (sec) sec.hidden = first < 0;
-      if (first >= 0 && tabs.children[cur] && tabs.children[cur].hidden) show(first);
-    });
-    show(0); size();
-    $$('input[type=range]', side).forEach((r) => r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100) + '%'));
-  }
-
-  // ------------------------------------------------------------ jump to a subject card
-  window.stGoCard = function (code) {
-    const el = document.getElementById('card-' + code); if (!el) { location.hash = '#subjects'; return; }
-    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
-    el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 2200);
-  };
-
-  // ------------------------------------------------------------ subject cards: cursor glow, show all features
-  const cards = $('#cards');
-  if (cards) {
-    cards.addEventListener('pointermove', (e) => { const c = e.target.closest('.card'); if (!c) return; const r = c.getBoundingClientRect(); c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px'); });
-    cards.addEventListener('click', (e) => {
-      const b = e.target.closest('.more-btn'); if (!b) return;
-      const card = b.closest('.card'), ul = $('ul', card), code = card.id.replace('card-', '');
-      const open = ul.classList.toggle('collapsed') === false;
-      if (open) window.stExp.add(code); else window.stExp.delete(code);
-      b.textContent = open ? 'Show fewer' : b.dataset.more; b.setAttribute('aria-expanded', String(open));
-    });
-  }
-
-  // ------------------------------------------------------------ small celebration when Pro is unlocked
-  window.stCelebrate = function (code) {
-    const box = $('#burst'); if (!box || reduce) return;
-    const card = document.getElementById('card-' + code); if (card) { card.classList.add('flash'); setTimeout(() => card.classList.remove('flash'), 2200); }
-    const cols = [COL.e, COL.cat, COL.an, COL.good, '#f4f4f6'];
-    box.innerHTML = '';
-    for (let i = 0; i < 34; i++) {
-      const s = document.createElement('i'), a = Math.random() * TAU, d = 120 + Math.random() * 220;
-      s.style.cssText = `--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d - 80}px;--r:${Math.random() * 720 - 360}deg;background:${cols[i % cols.length]};animation-delay:${Math.random() * 120}ms`;
-      box.appendChild(s);
-    }
-    setTimeout(() => { box.innerHTML = ''; }, 1700);
-  };
+  window.NX_DEMOS = DEMOS; window.NX_COL = COL;
 })();

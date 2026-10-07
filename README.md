@@ -31,9 +31,9 @@ node tools/legal.js              # regenerates the terms, privacy, refund and co
 
 ## Adding a subject
 1. `api/_lib.js` PRODUCTS: add one line (`CODE: { name, tag, site, price }`). The first three subjects show on the page as usual; once there are more, a search box finds the rest by code or name. `tag` is an optional label that search also matches.
-2. `app/js/store.js` INFO: add the blurb and the list of Pro tools for that subject (an `ICON` entry is optional).
+2. `app/js/notix.js` INFO: add the blurb and the list of Pro tools for that subject (optional: a card is generated without it), and BEST to name its best previews.
 3. Link the subject site: `node tools/link-subject.js <repo> <CODE> "<name>"`, then set `STORE_URL` and `STORE_SECRET` on it.
-The cards, search and filters, the "Read free" links, the footer list and the subject count all follow PRODUCTS. Live previews in `app/js/ui.js` (DEMOS) only show for subjects that exist.
+The cards, search and filters, the "Read free" links, the footer list and the subject count all follow PRODUCTS. Previews live in `app/js/demos.js` and only show for subjects that exist; the home page is `app/index.html` + `app/css/notix.css`.
 
 ## Renaming the store
 `node tools/rebrand.js --name "Notix" --domain notix.in` is a dry run; add `--write` to apply it (name, address, reviewer username, legal pages). Then do the steps it prints (Vercel domain, Google origins, Razorpay website and brand name and webhook, `STORE_URL` on every subject site).

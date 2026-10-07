@@ -5,7 +5,7 @@
 //   Razorpay webhook (header x-razorpay-signature, secret RAZORPAY_WEBHOOK_SECRET): payment.authorized,
 //       payment.captured and order.paid unlock the student named in the order even if they closed the page.
 const crypto = require('crypto');
-const { send, body, hmac, safeEqual, env, razorpay, checkPayment, recordPaid, recordRefund, normEmail, getUser, isProduct, handle } = require('./_lib');
+const { send, body, hmac, safeEqual, env, razorpay, checkPayment, recordPaidAll, recordRefund, normEmail, getUser, itemsOf, handle } = require('./_lib');
 
 async function rawBody(req) {
   if (typeof req.body === 'string') return req.body;
@@ -17,14 +17,14 @@ async function rawBody(req) {
 async function unlockOrder(orderId, email) {
   const order = await razorpay('GET', '/orders/' + orderId);
   const n = order.notes || {};
-  if (n.product !== 'pro-store' || !isProduct(n.item)) return { ok: false, why: 'That order is not a Pro unlock.' };
+  if (n.product !== 'pro-store' || !itemsOf(n.item)) return { ok: false, why: 'That order is not a Pro unlock.' };
   if (email && n.email !== email) return { ok: false, why: 'That order belongs to a different account.' };
   const pays = ((await razorpay('GET', `/orders/${orderId}/payments`)).items || []).filter((p) => p.status === 'captured' || p.status === 'authorized');
   if (!pays.length) return { ok: false, pending: true, why: 'No completed payment on this order yet.' };
   const chk = await checkPayment(pays[0].id, orderId);
   if (!chk.ok) return { ok: false, why: chk.why };
-  await recordPaid(chk.email, chk.item, chk.payment);
-  return { ok: true, paymentId: chk.payment.id, item: chk.item };
+  await recordPaidAll(chk.email, chk.items, chk.payment);
+  return { ok: true, paymentId: chk.payment.id, item: chk.item, items: chk.items };
 }
 
 module.exports = handle(async (req, res) => {
@@ -47,9 +47,10 @@ module.exports = handle(async (req, res) => {
         if (!paymentId) return send(res, 200, { ok: true, ignored: 'no payment id' });
         const pay = await razorpay('GET', '/payments/' + paymentId);
         const order = pay.order_id ? await razorpay('GET', '/orders/' + pay.order_id) : null, n = (order && order.notes) || {};
-        if (!order || n.product !== 'pro-store' || !isProduct(n.item)) return send(res, 200, { ok: true, ignored: 'not a store payment' });
+        const its = itemsOf(n.item);
+        if (!order || n.product !== 'pro-store' || !its) return send(res, 200, { ok: true, ignored: 'not a store payment' });
         const full = (pay.amount_refunded || 0) >= pay.amount;
-        await recordRefund({ email: normEmail(n.email), code: n.item, paymentId, refundId: rf.id || ('rf_' + paymentId), amount: rf.amount || pay.amount_refunded || 0, full, reason: 'refund in Razorpay', by: 'razorpay' });
+        for (const code of its) await recordRefund({ email: normEmail(n.email), code, paymentId, refundId: (rf.id || ('rf_' + paymentId)) + (its.length > 1 ? '_' + code : ''), amount: rf.amount || pay.amount_refunded || 0, full, reason: 'refund in Razorpay', by: 'razorpay' });
         return send(res, 200, { ok: true, refunded: true, full });
       } catch (e) { return send(res, 500, { error: e.message }); }
     }
@@ -78,6 +79,6 @@ module.exports = handle(async (req, res) => {
   const chk = await checkPayment(p, o);
   if (!chk.ok) return send(res, 402, { error: chk.why });
   if (chk.email !== u.e) return send(res, 403, { error: 'This payment was made from a different account.' });
-  await recordPaid(u.e, chk.item, chk.payment);
-  send(res, 200, { ok: true, paymentId: p, item: chk.item });
+  await recordPaidAll(u.e, chk.items, chk.payment);
+  send(res, 200, { ok: true, paymentId: p, item: chk.item, items: chk.items });
 });

@@ -8,7 +8,7 @@
 //     lookup { email }              everything about one student
 //     refund { email, product, amount? (paise; empty = full), reason }   refund through Razorpay; a full refund ends Pro
 //     reconcile { days? }           ask Razorpay for recent payments of this store, record any that are missing and fill in missing phone numbers
-const { isLive, send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, PRODUCTS, priceOf, razorpay, recordPaid, recordRefund, DOMAIN, handle } = require('./_lib');
+const { isLive, send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, itemsOf, PRODUCTS, priceOf, razorpay, recordPaidAll, recordRefund, DOMAIN, handle } = require('./_lib');
 const store = require('./_store');
 
 const codes = Object.keys(PRODUCTS);
@@ -80,22 +80,23 @@ async function reconcile(days) {
     const items = r.items || [];
     for (const p of items) {
       const n = p.notes || {};
-      if (n.product !== 'pro-store' || !isProduct(n.item)) continue;
+      const its = itemsOf(n.item);
+      if (n.product !== 'pro-store' || !its) continue;
       if ((p.amount_refunded || 0) > 0) { // refunded in Razorpay: a full refund ends Pro here too
-        await recordRefund({ email: normEmail(n.email), code: n.item, paymentId: p.id, refundId: 'rf_' + p.id, amount: p.amount_refunded, full: p.amount_refunded >= p.amount, reason: 'refund in Razorpay', by: 'razorpay' });
+        for (const code of its) await recordRefund({ email: normEmail(n.email), code, paymentId: p.id, refundId: 'rf_' + p.id + (its.length > 1 ? '_' + code : ''), amount: p.amount_refunded, full: p.amount_refunded >= p.amount, reason: 'refund in Razorpay', by: 'razorpay' });
         continue;
       }
       if (p.status !== 'captured') continue;
       found++;
       const email = normEmail(n.email);
       if (!isStudentEmail(email)) { skipped++; continue; }
-      const [has, rec] = await store.pipeline([['HEXISTS', 'paid:' + n.item, email], ['HGET', 'paid:' + n.item, email]]);
+      const [has, rec] = await store.pipeline([['HEXISTS', 'paid:' + its[0], email], ['HGET', 'paid:' + its[0], email]]);
       if (has === 1 || has === '1') { // already recorded: just add the phone number if it was saved without one
         const x = parse(rec);
-        if (!x.contact && p.contact) { x.contact = p.contact; await store.pipeline([['HSET', 'paid:' + n.item, email, JSON.stringify(x)]]); filled++; }
+        if (!x.contact && p.contact) { x.contact = p.contact; await store.pipeline([['HSET', 'paid:' + its[0], email, JSON.stringify(x)]]); filled++; }
         continue;
       }
-      await recordPaid(email, n.item, p); added++;
+      await recordPaidAll(email, its, p); added++;
     }
     if (items.length < 100) break;
   }
@@ -132,9 +133,10 @@ module.exports = handle(async (req, res) => {
     const x = parse(rec);
     if (x.manual || !/^pay_/.test(x.id || '')) return send(res, 400, { error: 'That access was given manually, so there is no payment to refund. Use Remove Pro.' });
     const paise = parseInt(b.amount, 10), full = !(paise > 0) || paise >= x.amount;
+    const sharePaise = full ? x.amount : paise; // a subject bought in a cart refunds its own share, never the whole payment
     if (!full && paise < 100) return send(res, 400, { error: 'A partial refund must be at least ₹1.' });
     const reason = String(b.reason || '').slice(0, 200);
-    const rf = await razorpay('POST', '/payments/' + x.id + '/refund', Object.assign({ notes: { reason, by: 'admin', product: 'pro-store', email } }, full ? {} : { amount: paise }));
+    const rf = await razorpay('POST', '/payments/' + x.id + '/refund', Object.assign({ notes: { reason, by: 'admin', product: 'pro-store', email } }, x.bundle || !full ? { amount: sharePaise } : {}));
     const log = await recordRefund({ email, code: b.product, paymentId: x.id, refundId: rf.id, amount: rf.amount || (full ? x.amount : paise), full, reason, by: 'admin' });
     return send(res, 200, { ok: true, refund: log, status: rf.status });
   }

@@ -21,6 +21,8 @@ function priceOf(code) {
   return Number.isInteger(n) && n >= 100 ? n : PRODUCTS[code].price;
 }
 const isProduct = (c) => Object.prototype.hasOwnProperty.call(PRODUCTS, String(c));
+// an order's notes.item holds one subject code, or several joined by commas (a cart)
+const itemsOf = (s) => { const l = String(s || '').split(',').map((x) => x.trim()).filter(Boolean); return l.length && l.length <= 10 && l.every(isProduct) && new Set(l).size === l.length ? l : null; };
 
 function env(name) {
   const v = process.env[name];
@@ -130,17 +132,24 @@ async function checkPayment(paymentId, orderId) {
   if (p.currency !== 'INR' || !(p.amount >= 100)) return { ok: false, why: 'Payment amount does not match.' };
   const order = p.order_id ? await razorpay('GET', '/orders/' + p.order_id) : null;
   const n = (order && order.notes) || {};
-  if (!order || n.product !== 'pro-store' || !isProduct(n.item)) return { ok: false, why: 'Payment was not for a Pro unlock.' };
+  const items = itemsOf(n.item);
+  if (!order || n.product !== 'pro-store' || !items) return { ok: false, why: 'Payment was not for a Pro unlock.' };
   if (p.status === 'authorized') p = await razorpay('POST', `/payments/${paymentId}/capture`, { amount: p.amount, currency: 'INR' });
   if (p.status !== 'captured') return { ok: false, why: `Payment is ${p.status}, not completed.` };
-  return { ok: true, payment: p, order, email: normEmail(n.email), item: n.item };
+  return { ok: true, payment: p, order, email: normEmail(n.email), item: items[0], items };
 }
 
 // Pro access is kept in one hash per subject (paid:<CODE>), email -> payment details.
-async function recordPaid(email, code, p) {
+async function recordPaid(email, code, p, share) {
   const store = require('./_store');
   if (!store.configured()) throw Object.assign(new Error('Storage is not set up, so access cannot be saved.'), { status: 500 });
-  await store.pipeline([['HSET', 'paid:' + code, email, JSON.stringify({ id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: p.amount, order: p.order_id || '', method: p.method || '', contact: p.contact || '' })]]);
+  await store.pipeline([['HSET', 'paid:' + code, email, JSON.stringify(Object.assign({ id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: share == null ? p.amount : share, order: p.order_id || '', method: p.method || '', contact: p.contact || '' }, share == null ? {} : { bundle: p.amount }))]]);
+}
+// records every subject of a (possibly multi-subject) payment; each gets its own price as its share of the total
+async function recordPaidAll(email, items, p) {
+  if (items.length === 1) return recordPaid(email, items[0], p);
+  let left = p.amount;
+  for (let i = 0; i < items.length; i++) { const share = i === items.length - 1 ? left : Math.min(left, priceOf(items[i])); left -= share; await recordPaid(email, items[i], p, share); }
 }
 // a manual grant can end by itself: record.until is a time in ms
 const isLive = (raw) => { if (raw == null) return false; try { const x = JSON.parse(raw) || {}; return !(x.until && x.until <= Date.now()); } catch (e) { return true; } };
@@ -180,5 +189,5 @@ function handle(fn) {
 module.exports = {
   isLive,
   DOMAIN, PRODUCTS, priceOf, isProduct, env, send, body, hmac, safeEqual, normEmail, isStudentEmail, getUser, userCookie, clearUserCookie, REVIEW_EMAIL, reviewOn, reviewerCookie,
-  verifyGoogle, razorpay, checkPayment, recordPaid, recordRefund, ownedBy, handle,
+  verifyGoogle, razorpay, checkPayment, recordPaid, recordPaidAll, itemsOf, recordRefund, ownedBy, handle,
 };
