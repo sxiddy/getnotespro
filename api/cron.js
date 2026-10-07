@@ -70,9 +70,16 @@ async function weekly() {
   return { ok: true, summary: text.split('\n'), telegram: sentWa, email: sentMail };
 }
 
+// Browsers (and Vercel itself) sometimes deliver the same request twice. A job that already ran in the last two minutes is skipped, so you get one message.
+async function firstRun(job) {
+  if (!store.configured()) return true;
+  try { const [r] = await store.pipeline([['SET', 'cronlock:' + job, '1', 'NX', 'EX', 120]]); return !!r; } catch (e) { return true; }
+}
+
 module.exports = handle(async (req, res) => {
   if (!authorised(req)) return send(res, 401, { error: 'Not allowed.' });
   const job = new URL(req.url, 'http://x').searchParams.get('job') || 'check';
+  if ((job === 'check' || job === 'weekly') && !(await firstRun(job))) return send(res, 200, { ok: true, skipped: 'This job already ran in the last 2 minutes.' });
   if (job === 'check') return send(res, 200, await check());
   if (job === 'weekly') return send(res, 200, await weekly());
   send(res, 400, { error: 'Unknown job.' });
