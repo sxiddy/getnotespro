@@ -228,3 +228,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .badge i { animation: none !important; }
 .row { scroll-snap-type: none; }
 .fx { will-change: auto; }
+
+/* mouse glow: small, bright core so it is noticed, floats above the page without blocking clicks */
+.cursor-glow { display: block; left: -60px; top: -60px; width: 120px; height: 120px; z-index: 70; border-radius: 50%; background: radial-gradient(circle, rgba(150, 205, 255, .55) 0%, rgba(160, 150, 255, .22) 35%, rgba(124, 192, 255, 0) 70%); opacity: 0; transition: opacity .25s; will-change: transform; }
+.cursor-glow.on { opacity: 1; }
