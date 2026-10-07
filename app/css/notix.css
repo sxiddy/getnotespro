@@ -233,10 +233,19 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .cursor-glow { display: block; left: -60px; top: -60px; width: 120px; height: 120px; z-index: 70; border-radius: 50%; background: radial-gradient(circle, rgba(150, 205, 255, .55) 0%, rgba(160, 150, 255, .22) 35%, rgba(124, 192, 255, 0) 70%); opacity: 0; transition: opacity .25s; will-change: transform; }
 .cursor-glow.on { opacity: 1; }
 
-/* custom mouse cursor (mouse only): a rounded gradient arrow, and a ring over things you can click */
+/* custom mouse cursor (mouse only): a dot that sticks to the pointer and a ring that glides after it */
+.cur { display: none; }
 @media (hover: hover) and (pointer: fine) {
-  html, body { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%237cc0ff'/><stop offset='1' stop-color='%23c7a4ff'/></linearGradient></defs><path d='M5 3 L5 24 L11 18.5 L15 27 L19 25.2 L15 16.8 L23 16.4 Z' fill='url(%23g)' stroke='%230c0c0f' stroke-width='2' stroke-linejoin='round'/></svg>") 5 3, auto; }
-  a, button, .btn, summary, [role=button], .tile, .pcard, .try, .more-btn, .cb-sum, .mock-opts button, .tog button, label, input[type=range], select { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><circle cx='16' cy='16' r='10' fill='%23f6f6f9' fill-opacity='.18' stroke='%23f6f6f9' stroke-width='2'/><circle cx='16' cy='16' r='4' fill='%23f6f6f9'/></svg>") 16 16, pointer; }
-  input[type=search], input[type=email], textarea { cursor: text; }
-  .cursor-glow { display: none !important; }
+  body.has-cur, body.has-cur * { cursor: none !important; }
+  body.has-cur input[type=search], body.has-cur input[type=email] { cursor: text !important; }
+  .cur { display: block; position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .25s; will-change: transform; }
+  .cur.on { opacity: 1; }
+  .cur-dot { width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgba(12, 12, 15, .55); }
+  .cur-ring { width: 36px; height: 36px; margin: -18px 0 0 -18px; }
+  .cur-ring i { display: block; width: 100%; height: 100%; border-radius: 50%; border: 2px solid rgba(160, 205, 255, .85); background: radial-gradient(circle, rgba(124, 192, 255, .1), transparent 70%); transition: transform .22s var(--ease), border-color .22s, background .22s; }
+  .cur-ring.link i { transform: scale(1.55); border-color: rgba(199, 164, 255, .9); background: radial-gradient(circle, rgba(199, 164, 255, .18), transparent 70%); }
+  .cur-ring.down i { transform: scale(.7); border-color: #fff; }
+  .cur-ring.link.down i { transform: scale(1.2); }
+  .cur-ring.text i { transform: scale(.4, 1.1); border-radius: 8px; }
 }
+@media (prefers-reduced-motion: reduce) { .cur-ring i { transition: none; } }

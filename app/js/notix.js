@@ -297,6 +297,28 @@
     const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
     fx.forEach((el, i) => { el.style.transitionDelay = (i % 4) * 60 + 'ms'; io.observe(el); });
   } else fx.forEach((el) => el.classList.add('in'));
+  // custom cursor: the dot is the pointer, the ring glides after it (osu-style lag), grows over clickable things, shrinks when pressed
+  if (fine && $('#cur-dot')) {
+    const dot = $('#cur-dot'), ring = $('#cur-ring'), CL = 'a,button,summary,label,[data-open],[data-cart],[data-buy],.tile,.pcard,input[type=range],.tabs *';
+    let x = 0, y = 0, rx = 0, ry = 0, run = false, seen = false;
+    const tick = () => {
+      rx += (x - rx) * 0.2; ry += (y - ry) * 0.2;
+      ring.style.transform = 'translate3d(' + rx.toFixed(1) + 'px,' + ry.toFixed(1) + 'px,0)';
+      if (Math.abs(x - rx) + Math.abs(y - ry) > 0.2) requestAnimationFrame(tick); else run = false;
+    };
+    addEventListener('pointermove', (e) => {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      x = e.clientX; y = e.clientY; dot.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+      if (!seen) { seen = true; rx = x; ry = y; document.body.classList.add('has-cur'); dot.classList.add('on'); ring.classList.add('on'); }
+      const el = e.target.closest ? e.target : null;
+      ring.classList.toggle('link', !!(el && el.closest(CL)));
+      ring.classList.toggle('text', !!(el && el.closest('input[type=search],input[type=email]')));
+      if (!run) { run = true; requestAnimationFrame(tick); }
+    }, { passive: true });
+    addEventListener('pointerdown', () => ring.classList.add('down')); addEventListener('pointerup', () => ring.classList.remove('down'));
+    document.addEventListener('pointerleave', () => { dot.classList.remove('on'); ring.classList.remove('on'); });
+    document.addEventListener('pointerenter', () => { if (seen) { dot.classList.add('on'); ring.classList.add('on'); } });
+  }
   // the moving background rests while the page scrolls
   { const au = $('.aurora'); let st = 0, on = false; addEventListener('scroll', () => { if (!on) { on = true; au.classList.add('rest'); } clearTimeout(st); st = setTimeout(() => { on = false; au.classList.remove('rest'); }, 160); }, { passive: true }); }
   // bottom tabs follow the section on screen
