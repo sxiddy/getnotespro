@@ -44,7 +44,7 @@ Set these in Vercel (Project, Settings, Environment Variables). Everything is op
 
 | Variable | What for |
 | --- | --- |
-| `CALLMEBOT_PHONE`, `CALLMEBOT_KEY` | WhatsApp messages to your own number. Get the key by saving +34 644 51 95 23 as a contact and sending it "I allow callmebot to send me messages" on WhatsApp (see callmebot.com). Phone is digits only with country code, e.g. 919876543210 |
+| `CALLMEBOT_PHONE`, `CALLMEBOT_KEY` | WhatsApp messages to your own number. Get the key by saving +34 623 80 11 90 as a contact and sending it "I allow callmebot to send me messages" on WhatsApp (see callmebot.com). Phone is digits only with country code, e.g. 919876543210 |
 | `RESEND_API_KEY`, `OWNER_EMAIL` | The weekly backup email. Free key from resend.com; OWNER_EMAIL must be the email of that Resend account |
 | `CRON_SECRET` | Any long random text. Vercel sends it with the scheduled jobs so only Vercel can start them |
 
