@@ -37,3 +37,16 @@ The cards, search and filters, the "Read free" links, the footer list and the su
 
 ## Renaming the store
 `node tools/rebrand.js --name "Notix" --domain notix.in` is a dry run; add `--write` to apply it (name, address, reviewer username, legal pages). Then do the steps it prints (Vercel domain, Google origins, Razorpay website and brand name and webhook, `STORE_URL` on every subject site).
+
+## Alerts and backups
+
+Set these in Vercel (Project, Settings, Environment Variables). Everything is optional; with nothing set, nothing is sent.
+
+| Variable | What for |
+| --- | --- |
+| `CALLMEBOT_PHONE`, `CALLMEBOT_KEY` | WhatsApp messages to your own number. Get the key by saving +34 644 51 95 23 as a contact and sending it "I allow callmebot to send me messages" on WhatsApp (see callmebot.com). Phone is digits only with country code, e.g. 919876543210 |
+| `RESEND_API_KEY`, `OWNER_EMAIL` | The weekly backup email. Free key from resend.com; OWNER_EMAIL must be the email of that Resend account |
+| `CRON_SECRET` | Any long random text. Vercel sends it with the scheduled jobs so only Vercel can start them |
+
+What you get: an instant WhatsApp message when a store page crashes (once an hour per problem, 8 an hour at most); a daily check of the store, its database, Razorpay and the three sites (a message only if something is wrong); and every Monday a WhatsApp summary of the week plus an email with a JSON backup of all payments, refunds and sign-ins.
+Try a job by hand (replace KEY with your ADMIN_KEY): `/api/cron?job=check&key=KEY` or `/api/cron?job=weekly&key=KEY`.

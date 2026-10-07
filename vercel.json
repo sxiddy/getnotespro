@@ -2,6 +2,10 @@
   "buildCommand": "",
   "installCommand": "",
   "outputDirectory": "app",
+  "crons": [
+    { "path": "/api/cron?job=check", "schedule": "30 3 * * *" },
+    { "path": "/api/cron?job=weekly", "schedule": "30 3 * * 1" }
+  ],
   "rewrites": [
     {
       "source": "/api/verify-payment",
