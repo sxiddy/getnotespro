@@ -297,8 +297,6 @@
     const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
     fx.forEach((el, i) => { el.style.transitionDelay = (i % 4) * 60 + 'ms'; io.observe(el); });
   } else fx.forEach((el) => el.classList.add('in'));
-  // small glow that follows the mouse (desktop only; one transform per frame)
-  if (fine && !reduce) { const g = $('#cglow'); let gx = 0, gy = 0, q = false; addEventListener('pointermove', (e) => { gx = e.clientX; gy = e.clientY; if (!q) { q = true; requestAnimationFrame(() => { g.style.transform = 'translate3d(' + gx + 'px,' + gy + 'px,0)'; g.classList.add('on'); q = false; }); } }, { passive: true }); document.addEventListener('pointerleave', () => g.classList.remove('on')); }
   // the moving background rests while the page scrolls
   { const au = $('.aurora'); let st = 0, on = false; addEventListener('scroll', () => { if (!on) { on = true; au.classList.add('rest'); } clearTimeout(st); st = setTimeout(() => { on = false; au.classList.remove('rest'); }, 160); }, { passive: true }); }
   // bottom tabs follow the section on screen
