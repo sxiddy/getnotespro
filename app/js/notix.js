@@ -294,15 +294,6 @@
     const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
     fx.forEach((el, i) => { el.style.transitionDelay = (i % 4) * 60 + 'ms'; io.observe(el); });
   } else fx.forEach((el) => el.classList.add('in'));
-  if (!reduce) {
-    const aur = $('.aurora'), mock = $('#mock'); let tk = false;
-    addEventListener('scroll', () => { if (tk) return; tk = true; requestAnimationFrame(() => { const y = scrollY; if (aur) aur.style.transform = 'translate3d(0,' + (y * -0.12) + 'px,0)'; if (mock && y < 900) mock.style.setProperty('--py', (y * -0.05) + 'px'); tk = false; }); }, { passive: true });
-    if (fine) {
-      const g = $('#cglow'); addEventListener('pointermove', (e) => { g.style.transform = `translate3d(${e.clientX}px,${e.clientY}px,0)`; g.classList.add('on'); }, { passive: true });
-      document.addEventListener('pointermove', (e) => { const c = e.target.closest && e.target.closest('.card'); if (!c) return; const r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5; c.style.setProperty('--rx', (-y * 3).toFixed(2) + 'deg'); c.style.setProperty('--ry', (x * 4).toFixed(2) + 'deg'); c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px'); }, { passive: true });
-      document.addEventListener('pointerout', (e) => { const c = e.target.closest && e.target.closest('.card'); if (c && !c.contains(e.relatedTarget)) { c.style.setProperty('--rx', '0deg'); c.style.setProperty('--ry', '0deg'); } });
-    }
-  }
   // bottom tabs follow the section on screen
   if ('IntersectionObserver' in window) {
     const so = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) $$('#tabs [data-t]').forEach((a) => a.classList.toggle('on', a.dataset.t === e.target.id)); }), { rootMargin: '-40% 0px -50% 0px' });
