@@ -106,7 +106,7 @@ async function reconcile(days) {
 module.exports = handle(async (req, res) => {
   const key = String(req.headers['x-admin-key'] || '');
   let expected; try { expected = env('ADMIN_KEY'); } catch (e) { return send(res, 500, { error: 'ADMIN_KEY is not set on the server yet.' }); }
-  if (!key || !safeEqual(key, expected)) return send(res, 401, { error: 'Wrong admin key.', dbg: { want: expected.length, got: key.length } });
+  if (!key || !safeEqual(key, expected)) return send(res, 401, { error: 'Wrong admin key.' });
   if (!store.configured()) return send(res, 500, { error: 'The database is not connected.' });
 
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'people') return send(res, 200, await people());
