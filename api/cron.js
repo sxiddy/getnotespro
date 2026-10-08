@@ -46,7 +46,7 @@ async function weekly() {
   const newPeople = Object.values(data.userFirst).filter((v) => Date.parse(v) >= since).length;
   const storeV = days.reduce((n, d) => n + (+data.storeVisits[d] || 0), 0);
   const sites = await Promise.all(codes.map(async (c) => {
-    try { const r = await fetch(PRODUCTS[c].site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY') }, signal: AbortSignal.timeout(9000) }); const j = await r.json(); const v = j.visits || {}; return [c, days.reduce((n, d) => n + (+(v[d] && v[d].total != null ? v[d].total : v[d]) || 0), 0)]; }
+    try { const r = await fetch(PRODUCTS[c].site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY'), authorization: 'Bearer ' + env('STORE_SECRET') }, signal: AbortSignal.timeout(9000) }); const j = await r.json(); const v = j.visits || {}; return [c, days.reduce((n, d) => n + (+(v[d] && v[d].total != null ? v[d].total : v[d]) || 0), 0)]; }
     catch (e) { return [c, null]; }
   }));
   const subjects = Object.entries(per).sort((a, b) => b[1] - a[1]).map(([c, n]) => esc(PRODUCTS[c].name) + ' ' + n).join(' · ') || 'none yet';

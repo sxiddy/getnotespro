@@ -17,7 +17,7 @@ const codes = Object.keys(PRODUCTS);
 async function fetchSite(code) {
   const p = PRODUCTS[code], out = { code, name: p.name, ok: false, json: {} };
   try {
-    const r = await fetch(p.site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY') }, signal: AbortSignal.timeout(8000) });
+    const r = await fetch(p.site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY'), authorization: 'Bearer ' + env('STORE_SECRET') }, signal: AbortSignal.timeout(8000) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { out.error = r.status === 401 ? 'That site has a different ADMIN_KEY.' : (j.error || 'HTTP ' + r.status); return out; }
     out.ok = true; out.json = j;
