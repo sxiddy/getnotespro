@@ -7,13 +7,7 @@ const store = require('./_store');
 module.exports = handle(async (req, res) => {
   const secret = env('STORE_SECRET');
   const got = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  if (!safeEqual(got, secret)) {
-    const out = {};
-    for (const [n, u] of [['eng', 'https://baeng101.vercel.app'], ['eee', 'https://baeee101.vercel.app'], ['chy', 'https://bachy105.vercel.app']]) {
-      try { const r = await fetch(u + '/api/stats', { headers: { 'x-admin-key': process.env.ADMIN_KEY, authorization: 'Bearer ' + process.env.STORE_SECRET } }); out[n] = r.status; } catch (e) { out[n] = String(e.message); }
-    }
-    return send(res, 401, { error: 'Not allowed.', dbg: out });
-  }
+  if (!safeEqual(got, secret)) return send(res, 401, { error: 'Not allowed.' });
   const q = new URL(req.url, 'http://x').searchParams, code = q.get('product'), email = normEmail(q.get('email'));
   if (!isProduct(code) || !email) return send(res, 400, { error: 'Bad request.' });
   if (!store.configured()) return send(res, 200, { paid: false });
