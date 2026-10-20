@@ -11,7 +11,7 @@
 <meta property="og:description" content="Read VIT notes free. Add Pro for interactive models, quizzes, flashcards and mock exams. ₹10 per subject, one time.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&family=JetBrains+Mono:wght@500&family=Caveat:wght@600&display=swap">
 <link rel="stylesheet" href="css/notix.css">
 <noscript><style>.fx{opacity:1!important;transform:none!important}</style></noscript>
 </head>
@@ -34,7 +34,7 @@
 
 <main>
   <section class="hero wrap">
-    <span class="badge fx"><i></i>For VIT students</span>
+    <span class="badge fx" id="fat"><i></i>For VIT students</span>
     <h1 class="fx">Study less,<br><em>remember more</em></h1>
     <p class="lead fx">Everything you need, all in one place. Read them for free and upgrade to Pro when exams season begins.</p>
     <div class="cta fx"><a class="btn primary lg" href="#subjects">Get Pro</a><a class="btn lg ghost" href="#previews">See previews</a></div>
@@ -85,27 +85,9 @@
       </tbody>
     </table></div>
     <p class="muted small note">Exact tools differ a little by subject. Each subject card lists what that subject has.</p>
-  </section>
-
-  <section id="includes" class="wrap sec">
-    <div class="sec-head fx"><h2>What Pro <em>adds</em></h2></div>
-    <ul class="feats fx">
-      <li><svg viewBox="0 0 24 24"><path d="M4 7h10M4 17h6"/><circle cx="17" cy="7" r="2.5"/><circle cx="13" cy="17" r="2.5"/><path d="M20 17h-4.5"/></svg><div><b>Interactive models</b><span>Change a value, watch what happens.</span></div></li>
-      <li><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4.5 2.6c-1 .6-1.5 1.2-1.5 2.4"/><circle cx="12" cy="17.5" r=".6"/></svg><div><b>Question bank</b><span>Scenario questions with full answers.</span></div></li>
-      <li><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></svg><div><b>Quiz and weak-spot quiz</b><span>It goes after what you got wrong.</span></div></li>
-      <li><svg viewBox="0 0 24 24"><rect x="3" y="6" width="14" height="12" rx="2"/><path d="M7 3h14v12"/></svg><div><b>Flashcards</b><span>Flip, sort, and the deck remembers.</span></div></li>
-      <li><svg viewBox="0 0 24 24"><path d="M6 4h12M6 4l6 8-6 8h12"/></svg><div><b>Formula sheet</b><span>Every equation and trap, one page a module.</span></div></li>
-      <li><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg><div><b>Night-before pack</b><span>Key points in about 20 minutes.</span></div></li>
-      <li><svg viewBox="0 0 24 24"><path d="m14 4 6 6-3 1-7 7-3 1 1-3 7-7 1-3Z"/><path d="m4 20 4-4"/></svg><div><b>1v1 quiz battles</b><span>Ten questions, ten seconds each.</span></div></li>
-      <li><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg><div><b>Notes that sync</b><span>Phone and laptop stay together.</span></div></li>
-    </ul>
-  </section>
-
-  <section id="how" class="wrap sec">
-    <div class="sec-head fx"><h2>How it <em>works</em></h2></div>
-    <ol class="steps fx">
+    <ol class="steps" id="how" aria-label="How it works">
       <li><b>Sign in</b><span>With your VIT Google account (…@vitstudent.ac.in).</span></li>
-      <li><b>Pay online</b><span>Through Razorpay. We never see your bank, card or UPI details.</span></li>
+      <li><b>Pay once</b><span>Through Razorpay. We never see your bank, card or UPI details.</span></li>
       <li><b>Open the subject</b><span>Sign in there with the same account. Pro is already on.</span></li>
     </ol>
   </section>
@@ -164,6 +146,20 @@
 
 <div class="toast" id="toast" role="status" hidden></div>
 <div class="burst" id="burst" aria-hidden="true"></div>
+<script>
+/* FAT countdown, Fall Semester 2026-27 (circular VIT/VLR/Acad/2026/004): lab FAT 26-30 Oct, theory FAT 12 Nov - 1 Dec */
+(function () {
+  var el = document.getElementById('fat'); if (!el) return;
+  var day = 864e5, now = new Date(); now.setHours(0, 0, 0, 0);
+  var lab = new Date(2026, 9, 26), labEnd = new Date(2026, 9, 30), th = new Date(2026, 10, 12), thEnd = new Date(2026, 11, 1);
+  var n = function (d) { return Math.round((d - now) / day); }, days = function (k) { return k + (k === 1 ? ' day' : ' days'); }, t;
+  if (now < lab) t = 'Lab FAT in <b>' + days(n(lab)) + '</b> · theory FAT 12 Nov';
+  else if (now <= labEnd) t = 'Lab FAT this week · theory FAT in <b>' + days(n(th)) + '</b>';
+  else if (now < th) t = 'Theory FAT in <b>' + days(n(th)) + '</b>';
+  else if (now <= thEnd) t = '<b>FAT is on</b> · last paper 1 Dec';
+  if (t) el.innerHTML = '<i></i>' + t;
+})();
+</script>
 <script src="js/demos.js"></script>
 <script src="js/notix.js"></script>
 </body>
