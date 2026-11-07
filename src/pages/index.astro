@@ -1,0 +1,124 @@
+---
+// Home (mockup D, approved 07-11-2026). The subject tiles are rendered here at build time, so they show at once,
+// work with no JavaScript, and scale to 50+ subjects; home.js only filters them.
+// Still to come on this page (Phase 2): Free vs Pro table, "Try a Pro tool" (3 live demos), FAQ (7).
+import Base from '../layouts/Base.astro';
+import { subjects, moduleCount } from '../lib/subjects.mjs';
+import { SITE } from '../data/site.mjs';
+
+const SHOW_MODS = 2;
+const pad = (n: number) => String(n).padStart(2, '0');
+const prices = [...new Set(subjects.map((s) => s.price))];
+const price = prices.length === 1 ? prices[0] : Math.min(...prices); // "₹10 a subject" while every price is the same
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+---
+<Base>
+  <section class="hero frame">
+    <div class="hero__title">
+      <p class="eyebrow mono" id="eyebrow">For VIT students · {plural(subjects.length, 'subject')} so far</p>
+      <h1 class="display" aria-label="VIT notes. Free to read." string="split" string-split="word|char">
+        <span class="line">VIT notes.</span> <span class="line"><span class="blue" id="free">Free</span> to read.</span>
+      </h1>
+    </div>
+    <div class="hero__copy">
+      <p class="hero__lede">Every module is written for the CAT and FAT syllabus. Pro adds the tools on top: quizzes, flashcards, worked answers and interactive models, for <strong>₹{price} a subject, paid once</strong>.</p>
+      <div class="hero__actions">
+        <button class="btn btn--blue" type="button" data-focus-search string="magnetic" string-strength="0.2" string-radius="90">Find your subject <kbd>/</kbd></button>
+        <a class="btn btn--ghost" href="#try">Try a Pro tool</a>
+      </div>
+      <ul class="trust mono">
+        <li>{SITE.madeBy}</li>
+        <li>UPI through Razorpay</li>
+        <li>No subscription</li>
+      </ul>
+      <dl class="stats" id="stats">
+        <div><dt class="mono">Subjects</dt><dd data-count={subjects.length}>{subjects.length}</dd></div>
+        <div><dt class="mono">Modules</dt><dd data-count={moduleCount}>{moduleCount}</dd></div>
+        <div><dt class="mono">Pro, once</dt><dd>₹<span data-count={price}>{price}</span></dd></div>
+      </dl>
+    </div>
+
+    <figure class="try" id="try" string="tilt" string-tilt-max="4">
+      <figcaption class="try__head">
+        <span class="mono">BACHY105 · Applied Chemistry</span>
+        <span class="pill-pro mono">Pro tool</span>
+      </figcaption>
+      <p class="try__q">A Daniell cell has E°cell = 1.10 V. What happens to the voltage as [Cu²⁺] falls?</p>
+      <div class="try__opts" role="radiogroup" aria-label="Your answer">
+        <button type="button" role="radio" aria-checked="false" data-a="rise">It rises</button>
+        <button type="button" role="radio" aria-checked="false" data-a="fall">It falls</button>
+        <button type="button" role="radio" aria-checked="false" data-a="same">No change</button>
+      </div>
+      <div class="try__meter">
+        <div class="try__read"><span class="mono try__label">E<sub>cell</sub></span><output class="try__v" id="try-v">1.10</output><span class="try__unit">V</span></div>
+        <div class="try__bar"><span id="try-fill"></span></div>
+      </div>
+      <label class="try__slider">
+        <span class="mono">[Cu²⁺] <output id="try-c">1.00</output> M</span>
+        <input id="try-range" type="range" min="-3" max="0" step="0.01" value="0" aria-label="Copper ion concentration">
+      </label>
+      <p class="try__note" id="try-note" aria-live="polite">Pick an answer, then drag the slider to check it.</p>
+      <div class="try__cta" id="try-cta" hidden>
+        <span>This is one of the interactive models in Applied Chemistry Pro.</span>
+        <button class="try__add" type="button" data-code="BACHY105">Add Pro <span>₹{subjects.find((s) => s.code === 'BACHY105')?.price ?? price}</span></button>
+      </div>
+    </figure>
+  </section>
+
+  <div class="marquee" aria-hidden="true"><div class="marquee__track" id="marquee">{
+    [0, 1].map(() => subjects.map((s) => <span><b>{s.code}</b>{s.name}</span>))
+  }</div></div>
+
+  <section class="index frame" id="subjects" aria-labelledby="subjects-h">
+    <div class="index__head">
+      <h2 class="display display--sm sweep" id="subjects-h" data-text="Subjects" string="progress" string-offset-bottom="-10%" string-offset-top="-35%">Subjects</h2>
+      <div class="index__tools">
+        <label class="filter">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4"/></svg>
+          <input id="filter" type="search" placeholder="Filter by code, name or module" autocomplete="off" aria-label="Filter subjects">
+        </label>
+        <p class="index__count mono" id="count" aria-live="polite">{subjects.length} of {subjects.length} subjects</p>
+      </div>
+    </div>
+    <ol class="steps mono" string="progress" aria-label="How buying works">
+      <li>Read free</li><li>Add Pro <span>₹{price}</span></li><li>Pay once by UPI</li>
+    </ol>
+    <ul class="tiles" id="tiles">
+      {subjects.map((s, i) => (
+        <li class="tile" string="progress" style={`--i:${i}`} data-code={s.code}>
+          <div class="tile__top" data-code={s.code}><span class="tile__code">{s.code}</span><span class="tile__tag">{s.tag}</span></div>
+          <h3 class="tile__name">{s.name}</h3>
+          <p class="tile__blurb">{s.blurb}</p>
+          <ul class="tile__mods" aria-label="Modules">
+            {s.modules.map(([n, t], j) => <li data-n={n} hidden={j >= SHOW_MODS}><span>{pad(n)}</span><span>{t}</span></li>)}
+            {s.modules.length > SHOW_MODS && <li class="tile__more">+ {plural(s.modules.length - SHOW_MODS, 'more module')}</li>}
+          </ul>
+          <div class="tile__foot">
+            <a class="tile__read" href={s.site}>Read free <span aria-hidden="true">↗</span></a>
+            <button class="tile__add" type="button" data-code={s.code} aria-pressed="false" string="magnetic" string-strength="0.18" string-radius="60">Add Pro <span>₹{s.price}</span></button>
+          </div>
+        </li>
+      ))}
+      <li class="tile tile--req" string="progress" style={`--i:${subjects.length}`}>
+        <span class="tile__plus" aria-hidden="true">+</span>
+        <div><h3 class="tile__name">Not here yet?</h3><p>Send the subject code and it goes on the list.</p></div>
+        <a href={SITE.request}>Request a subject →</a>
+      </li>
+      <li class="tiles__empty" id="tiles-empty" hidden>No subject matches “<span id="tiles-q"></span>”. <a href={SITE.request}>Request a subject →</a></li>
+    </ul>
+  </section>
+
+  <section class="last frame" aria-labelledby="last-h">
+    <h2 class="display display--sm sweep" id="last-h" data-text="Didn't find it?" string="progress" string-offset-bottom="-10%" string-offset-top="-35%">Didn't find it?</h2>
+    <button class="last__search" type="button" data-focus-search string="progress" string-repeat>
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4"/></svg>
+      <span><span class="last__type" id="last-type">Search subjects…</span><span class="caret" aria-hidden="true"></span></span><kbd>/</kbd>
+    </button>
+    <a class="last__req" href={SITE.request}>or request a subject →</a>
+    <p class="last__more">Working out what you need in FAT? Try the <a href="https://markscalc.cv">marks calculator ↗</a></p>
+  </section>
+</Base>
+
+<script>
+  import '../scripts/home.js';
+</script>

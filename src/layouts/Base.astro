@@ -1,0 +1,87 @@
+---
+// Every page: the motion gate, fonts, the grid, the command bar, the footer, the cart pill and the status toasts.
+import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource-variable/geist';
+import '@fontsource-variable/geist-mono';
+import '../styles/global.css';
+import '../styles/site.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE, SITE_URL } from '../data/site.mjs';
+import { clientSubjects } from '../lib/subjects.mjs';
+
+interface Props { title?: string; description?: string; path?: string }
+const { title = SITE.title, description = SITE.description, path = Astro.url.pathname } = Astro.props;
+const canonical = SITE_URL + (path === '/' ? '/' : path.replace(/\/+$/, ''));
+const boot = JSON.stringify({ subjects: clientSubjects, request: SITE.request });
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{title}</title>
+<meta name="description" content={description}>
+<meta name="theme-color" content="#08090b">
+<link rel="canonical" href={canonical}>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content={SITE.name}>
+<meta property="og:title" content={title}>
+<meta property="og:description" content={description}>
+<meta property="og:url" content={canonical}>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<script is:inline>
+  // Motion gate, before first paint: no motion classes when the student asked for reduced motion.
+  // "laptop" effects (cursor, grid, magnetic, tilt, smooth scroll) only on a fine pointer with more than 4 cores.
+  (function (d) {
+    var m = function (q) { return matchMedia(q).matches; };
+    if (m('(prefers-reduced-motion: reduce)')) return;
+    d.classList.add('motion');
+    if (m('(hover: hover) and (pointer: fine)') && !m('(pointer: coarse)') && (navigator.hardwareConcurrency || 8) > 4) d.classList.add('laptop');
+    // safety net: if the entrance hasn't run after 2.5 s (slow network, paused tab), show everything as it is
+    setTimeout(function () { if (!d.classList.contains('is-in')) d.classList.remove('motion', 'laptop'); }, 2500);
+  })(document.documentElement);
+</script>
+<script type="application/json" id="notix-data" set:html={boot} />
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<canvas class="grid-fx" aria-hidden="true"></canvas>
+<div class="scrim" aria-hidden="true"></div>
+
+<!-- The admin announcement strip (N2) renders here only when there is an announcement. -->
+
+<Header />
+
+<main id="main">
+  <slot />
+</main>
+
+<Footer />
+
+<!-- sticky cart pill: shows once something is in the cart -->
+<div class="pill" id="pill" aria-live="polite" hidden>
+  <span class="pill__n"><b id="pill-n">0</b> <span id="pill-word">subjects</span></span>
+  <button class="pill__pay" type="button" string="magnetic" string-strength="0.2" string-radius="60">Pay ₹<b id="pill-sum">0</b> by UPI <span aria-hidden="true">→</span></button>
+</div>
+
+<!-- status toasts: offline, back online, something failed -->
+<div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toast-text"></span><button type="button" id="toast-btn" hidden>Reload</button></div>
+
+<!-- sign-in: VIT Google account (and, on a local run with DEV_LOGIN=1, any @vitstudent.ac.in address) -->
+<dialog class="dlg" id="signin-dlg" aria-labelledby="dlg-title">
+  <form method="dialog"><button class="dlg__x" aria-label="Close" value="x">×</button></form>
+  <h2 class="dlg__h" id="dlg-title">Sign in to continue</h2>
+  <p class="dlg__sub">Use your VIT student Google account. We remember you on this device, so you only do this once.</p>
+  <div class="dlg__gsi" id="gsi"></div>
+  <form class="dlg__dev" id="dev-login" hidden><input id="dev-email" type="email" placeholder="you@vitstudent.ac.in" autocomplete="off" aria-label="Dev sign-in email"><button class="btn btn--ghost" type="submit">Dev sign in</button></form>
+  <p class="dlg__msg" id="dlg-msg" role="status"></p>
+  <p class="dlg__fine">Only @vitstudent.ac.in accounts can sign in. We store your email and which subjects you bought, plus the phone number Razorpay shares with your payment. Nothing else.</p>
+</dialog>
+
+<script>
+  import '../scripts/core.js';
+  import '../scripts/motion.js';
+</script>
+</body>
+</html>

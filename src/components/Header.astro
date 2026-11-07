@@ -1,0 +1,39 @@
+---
+// The command bar (Direction reset, MCQ round 4): logo, search with "/", account, cart.
+import Logo from './Logo.astro';
+---
+<header class="bar" id="bar">
+  <div class="bar__inner">
+    <Logo />
+
+    <div class="cmd" id="cmd">
+      <svg class="cmd__icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4"/></svg>
+      <input id="cmd-input" type="search" placeholder="Search subjects…" autocomplete="off"
+             role="combobox" aria-expanded="false" aria-controls="cmd-list" aria-label="Search subjects">
+      <kbd class="cmd__kbd" aria-hidden="true">/</kbd>
+      <div class="cmd__drop" id="cmd-drop" hidden>
+        <p class="cmd__label mono" id="cmd-label">All subjects</p>
+        <ul class="cmd__list" id="cmd-list" role="listbox" aria-labelledby="cmd-label"></ul>
+        <span class="cmd__hl" aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <!-- account: a shimmer until /api/session answers, then "Sign in" or the student's initial -->
+    <div class="acct" id="acct" aria-busy="true">
+      <span class="acct__skel" aria-hidden="true"></span>
+      <button class="signin" id="signin-btn" type="button" aria-label="Sign in" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.2"/><path d="M3.8 17c.9-3.2 3.3-4.8 6.2-4.8s5.3 1.6 6.2 4.8"/></svg><span>Sign in</span></button>
+      <div class="acct__me" id="acct-me" hidden>
+        <button class="acct__btn" id="acct-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="acct-menu"><span id="acct-initial">?</span></button>
+        <div class="acct__menu" id="acct-menu" role="menu" hidden>
+          <p class="acct__who mono" id="acct-who"></p>
+          <button type="button" role="menuitem" id="signout-btn">Sign out</button>
+        </div>
+      </div>
+    </div>
+    <button class="cart" type="button" aria-label="Cart, 0 subjects" string="magnetic" string-strength="0.25" string-radius="70">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h2l1.6 8.2a1 1 0 0 0 1 .8h6.6a1 1 0 0 0 1-.8L16.5 7H6"/><circle cx="8" cy="16.5" r="1"/><circle cx="14" cy="16.5" r="1"/></svg>
+      <span class="cart__n" hidden>0</span>
+    </button>
+  </div>
+</header>
+<noscript><p class="nojs">Search, sign-in and the cart need JavaScript. Every subject is still listed on this page, and the notes open free.</p></noscript>

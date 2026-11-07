@@ -1,4 +1,4 @@
-// node tools/legal.js -> writes app/terms.html, privacy.html, refund.html, contact.html
+// node tools/legal.js -> writes public/terms.html, privacy.html, refund.html, contact.html
 const fs = require('fs'), path = require('path');
 const MAIL = 'notesbugsreportandsupport@gmail.com';
 const SUBJ = 'Applied Chemistry (BACHY105), Basic Engineering (BAEEE101) and Technical English (BAENG101)';
@@ -91,5 +91,5 @@ const out = {
   <h2>Your choices</h2>
   <p>You can sign out at any time. To have your email and payment record deleted, write to ${mail} from your student account. Deleting your record also removes your Pro access.</p>`),
 };
-for (const f in out) fs.writeFileSync(path.join(__dirname, '..', 'app', f), out[f]);
+for (const f in out) fs.writeFileSync(path.join(__dirname, '..', 'public', f), out[f]);
 console.log('wrote', Object.keys(out).join(', '));

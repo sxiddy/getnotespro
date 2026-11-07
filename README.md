@@ -24,16 +24,18 @@ Students sign in here with their VIT Google account, pay by UPI for one subject,
 
 ## Local
 ```
-node tools/fakeredis.js          # in-memory Redis on :5288
-UPSTASH_REDIS_REST_URL=http://localhost:5288 UPSTASH_REDIS_REST_TOKEN=x SESSION_SECRET=x STORE_SECRET=x DEV_LOGIN=1 node tools/serve.js 4180
-node tools/legal.js              # regenerates the terms, privacy, refund and contact pages
+npm install
+npm run dev:local               # http://127.0.0.1:4321 : pages + api/ + in-memory Redis, DEV_LOGIN on
+npm run build && npm run preview # the production build (dist/) plus api/ on :4180
+node tools/legal.js              # regenerates the terms, privacy, refund and contact pages (public/)
 ```
+The site is Astro (static output, `src/` → `dist/`); `api/` stays plain Vercel functions (CommonJS, so package.json has no `"type": "module"`). Old pages that are not ported yet (admin, review, legal) are served as they are from `public/`. `legacy/` holds the old home page for reference while its checkout code is moved over; delete it before launch.
 
 ## Adding a subject
 1. `api/_lib.js` PRODUCTS: add one line (`CODE: { name, tag, site, price }`). The first three subjects show on the page as usual; once there are more, a search box finds the rest by code or name. `tag` is an optional label that search also matches.
-2. `app/js/notix.js` INFO: add the blurb and the list of Pro tools for that subject (optional: a card is generated without it), and BEST to name its best previews.
+2. `src/data/subjects.mjs`: add the blurb, nicknames, modules and Pro list. The build stops with a clear message if this list and PRODUCTS disagree.
 3. Link the subject site: `node tools/link-subject.js <repo> <CODE> "<name>"`, then set `STORE_URL` and `STORE_SECRET` on it.
-The cards, search and filters, the "Read free" links, the footer list and the subject count all follow PRODUCTS. Previews live in `app/js/demos.js` and only show for subjects that exist; the home page is `app/index.html` + `app/css/notix.css`.
+The home tiles, search, marquee and counts all follow these two lists. Site-wide settings (SITE_URL, support email, footer links) are in `src/data/site.mjs`.
 
 ## Renaming the store
 `node tools/rebrand.js --name "Notix" --domain notix.in` is a dry run; add `--write` to apply it (name, address, reviewer username, legal pages). Then do the steps it prints (Vercel domain, Google origins, Razorpay website and brand name and webhook, `STORE_URL` on every subject site).

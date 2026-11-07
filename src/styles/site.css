@@ -1,0 +1,56 @@
+/* Additions to the mockup D styles (global.css) for the real site: account slot, sign-in window,
+   build-time tiles that filter in place, the no-JavaScript note. Same tokens, same rules. */
+
+/* tiles and their module rows are filtered by toggling [hidden]; their display rules would otherwise win */
+.tile[hidden], .tile__mods li[hidden], .tiles__empty[hidden] { display: none; }
+
+/* ---------- account: shimmer until the session answers, then "Sign in" or the student's initial ---------- */
+.acct { flex: none; position: relative; display: flex; align-items: center; }
+.acct__skel { display: block; width: 76px; height: 40px; border-radius: var(--r); background: linear-gradient(90deg, var(--bg-3) 0 40%, #1f232a 50%, var(--bg-3) 60% 100%) 0 0 / 300% 100%; animation: shimmer 1.4s linear infinite; }
+.acct__skel[hidden], .acct__me[hidden], .signin[hidden] { display: none; }
+.acct__btn { width: 40px; height: 40px; display: grid; place-items: center; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r); color: var(--ink); font: 900 16px/1 var(--display); font-stretch: 125%; cursor: pointer; transition: border-color .2s; }
+.acct__btn:hover, .acct__btn[aria-expanded="true"] { border-color: var(--blue-ink); }
+.acct__menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 50; min-width: 220px; padding: 6px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r); box-shadow: 0 18px 40px rgba(0, 0, 0, .55); }
+.acct__menu[hidden] { display: none; }
+.acct__who { margin: 0; padding: 10px 10px 8px; color: var(--ink-3); font-size: 12px; text-transform: none; overflow-wrap: anywhere; border-bottom: 1px solid var(--line); }
+.acct__menu [role=menuitem] { display: block; width: 100%; margin-top: 4px; padding: 10px; background: none; border: 0; border-radius: var(--r-sm); text-align: left; cursor: pointer; font-weight: 500; }
+.acct__menu [role=menuitem]:hover, .acct__menu [role=menuitem]:focus-visible { background: var(--bg-3); }
+.motion .acct__menu:not([hidden]) { animation: drop .25s var(--ease-out); }
+
+/* ---------- sign-in window ---------- */
+.dlg { width: min(440px, calc(100vw - 32px)); padding: 28px; background: var(--bg-2); color: var(--ink); border: 1px solid var(--line-2); border-radius: var(--r); box-shadow: 0 30px 80px rgba(0, 0, 0, .7); }
+.dlg::backdrop { background: rgba(8, 9, 11, .72); }
+.motion .dlg[open] { animation: drop .3s var(--ease-out); }
+.dlg__x { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; background: none; border: 1px solid transparent; border-radius: var(--r-sm); color: var(--ink-2); font-size: 22px; line-height: 1; cursor: pointer; }
+.dlg__x:hover { color: var(--ink); border-color: var(--line-2); }
+.dlg__h { margin: 0 40px 8px 0; font: 900 24px/1.05 var(--display); font-stretch: 125%; text-transform: uppercase; }
+.dlg__sub { margin: 0; color: var(--ink-2); }
+.dlg__gsi { min-height: 44px; margin-top: 22px; }
+.dlg__inapp { margin: 0; padding: 12px 14px; border: 1px solid var(--line-2); border-radius: var(--r-sm); color: var(--ink-2); }
+.dlg__inapp b { color: var(--ink); }
+.dlg__dev { display: flex; gap: 8px; margin-top: 14px; }
+.dlg__dev[hidden] { display: none; }
+.dlg__dev input { flex: 1; min-width: 0; height: 48px; padding: 0 12px; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--r-sm); font-size: 16px; }
+.dlg__dev input:focus { outline: none; border-color: var(--blue-ink); }
+.dlg__msg { min-height: 1.5em; margin: 12px 0 0; color: #ff8a8a; font-size: 15px; }
+.dlg__msg:empty { min-height: 0; margin: 0; }
+.dlg__fine { margin: 18px 0 0; padding-top: 14px; border-top: 1px dashed var(--line-2); color: var(--ink-3); font-size: 14px; }
+
+/* ---------- no JavaScript ---------- */
+.nojs { position: relative; z-index: 2; max-width: var(--max); margin: 12px auto 0; padding: 12px var(--pad); color: var(--ink-2); font-size: 15px; }
+
+/* ---------- phones: sign-in stays reachable (Opus review), as a compact outlined button ---------- */
+@media (max-width: 860px) {
+  .signin { display: inline-flex; align-items: center; height: 44px; padding: 0 10px; border-color: var(--line-2); font-size: 14px; color: var(--ink); }
+  .signin[hidden] { display: none; }
+  .acct__skel { width: 64px; height: 44px; }
+  .acct__btn { width: 44px; height: 44px; }
+}
+.signin svg { display: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+/* small phones: the search box keeps its room; sign-in becomes a 44 px icon button */
+@media (max-width: 520px) {
+  .signin { width: 44px; padding: 0; justify-content: center; }
+  .signin svg { display: block; }
+  .signin span { display: none; }
+  .acct__skel { width: 44px; }
+}

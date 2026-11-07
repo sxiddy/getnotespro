@@ -1,0 +1,21 @@
+{
+  "name": "notix-store",
+  "private": true,
+  "description": "Notix store: Astro static site in src/, Vercel functions in api/ (CommonJS, so no \"type\": \"module\" here).",
+  "scripts": {
+    "dev": "astro dev",
+    "dev:local": "node tools/dev.mjs",
+    "build": "astro build",
+    "preview": "node tools/serve.js 4180"
+  },
+  "dependencies": {
+    "@fiddle-digital/string-tune": "1.2.7",
+    "@fontsource-variable/archivo": "5.3.0",
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "astro": "7.4.7"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

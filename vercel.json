@@ -1,10 +1,17 @@
 {
-  "buildCommand": "",
-  "installCommand": "",
-  "outputDirectory": "app",
+  "framework": "astro",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": "dist",
   "crons": [
-    { "path": "/api/cron?job=check", "schedule": "30 3 * * *" },
-    { "path": "/api/cron?job=weekly", "schedule": "30 3 * * 1" }
+    {
+      "path": "/api/cron?job=check",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron?job=weekly",
+      "schedule": "30 3 * * 1"
+    }
   ],
   "rewrites": [
     {
