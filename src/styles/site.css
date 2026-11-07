@@ -157,3 +157,12 @@
 .lost__actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .lost__req { margin: 8px 0 0; color: var(--ink-2); }
 .lost__req a { color: var(--blue-ink); }
+
+/* ---------- laptop cursor: only the site's square cursor shows (owner, 07-11-2026) ----------
+   motion.js draws it on fine pointers once String Tune runs (html.laptop.st-on). Text fields and sliders keep the
+   normal cursor (the square one hides there), and so does the sign-in window, which sits above the square cursor. */
+html.laptop.st-on, html.laptop.st-on * { cursor: none !important; }
+html.laptop.st-on input:not([type=range]), html.laptop.st-on textarea { cursor: text !important; }
+html.laptop.st-on input[type=range] { cursor: pointer !important; }
+html.laptop.st-on dialog[open], html.laptop.st-on dialog[open] * { cursor: auto !important; }
+html.laptop.st-on dialog[open] button, html.laptop.st-on dialog[open] a { cursor: pointer !important; }
