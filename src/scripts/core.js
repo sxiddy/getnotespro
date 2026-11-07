@@ -81,6 +81,14 @@ function paintAdd(code) {
     b.firstChild.textContent = on ? 'In cart ' : (b.classList.contains('r-pro') ? '+ Pro ' : 'Add Pro ');
   });
 }
+// a subject the student already has: its Add Pro buttons become "You have Pro" (the tile's Read free opens it)
+function paintOwned(code, owned) {
+  $$(`.tile__add[data-code="${code}"], .try__add[data-code="${code}"], .r-pro[data-code="${code}"]`).forEach((b) => {
+    b.disabled = owned; b.classList.toggle('is-owned', owned);
+    if (owned) b.firstChild.textContent = 'You have Pro ';
+    else if (b.firstChild.textContent === 'You have Pro ') paintAdd(code);
+  });
+}
 export function setInCart(code, on, from) {
   if (!byCode(code)) return;
   on ? cart.add(code) : cart.delete(code);
@@ -92,6 +100,11 @@ export function setInCart(code, on, from) {
   }
 }
 export const toggleCart = (code, from) => setInCart(code, !cart.has(code), from);
+// every "Add Pro" on any page (tiles, try-it card, subject pages); search rows are handled in the command bar
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.tile__add, .try__add');
+  if (b && b.dataset.code && !b.disabled) toggleCart(b.dataset.code, b);
+});
 $('.cart').addEventListener('click', () => {
   if (!cart.size) { const s = $('#subjects'); if (s) scrollToEl(s); else location.href = '/#subjects'; say('Your cart is empty. Add a subject first.'); return; }
   $('.pill__pay').focus();
@@ -103,7 +116,7 @@ const acct = $('#acct'), dlg = $('#signin-dlg');
 async function api(url, body) {
   const r = await fetch(url, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || 'Something went wrong. Please try again.');
+  if (!r.ok) throw Object.assign(new Error(j.error || 'Something went wrong. Please try again.'), { status: r.status });
   return j;
 }
 function renderAccount() {
@@ -117,6 +130,7 @@ function renderAccount() {
   if (S) for (const p of S.products) {
     const s = byCode(p.code); if (s) s.price = p.price / 100;
     if (p.owned && cart.has(p.code)) setInCart(p.code, false);
+    paintOwned(p.code, p.owned);
   }
   renderCart();
 }
@@ -153,7 +167,7 @@ export async function openSignIn(code) {
 }
 $('#dev-login').addEventListener('submit', async (e) => {
   e.preventDefault();
-  try { await api('/api/login', { devEmail: $('#dev-email').value }); dlg.close(); await boot(); say('Signed in.'); }
+  try { await api('/api/login', { devEmail: $('#dev-email').value }); dlg.close(); await boot(); say('Signed in.'); if (pendingBuy) startBuy(pendingBuy); }
   catch (err) { $('#dlg-msg').textContent = err.message; }
 });
 $('#signin-btn').addEventListener('click', () => openSignIn(null));
@@ -164,11 +178,70 @@ document.addEventListener('click', (e) => { if (!menu.hidden && !e.target.closes
 menu.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setMenu(false); menuBtn.focus(); } });
 $('#signout-btn').addEventListener('click', async () => { setMenu(false); await api('/api/login', { logout: true }).catch(() => {}); await boot(); say('Signed out.'); });
 
-// Pay: Razorpay checkout for the whole cart is wired in Phase 2 (the existing api/create-order + api/verify).
-$('.pill__pay').addEventListener('click', () => {
-  if (!S || !S.user) { openSignIn([...cart][0] || null); return; }
-  say('Checkout is being moved to the new site. It comes in the next build step.');
+// ---------------------------------------------------------------- checkout: one UPI payment for the whole cart
+// The server (api/create-order) sets the amount; quote() is only what the page shows. A discount line (F10, G8)
+// slots into quote() later: add a line with a negative amount, and the pill and the order follow.
+export function quote(codes) {
+  const lines = codes.map((c) => ({ code: c, label: byCode(c).name, amount: byCode(c).price }));
+  return { lines, total: lines.reduce((t, l) => t + l.amount, 0) };
+}
+let pendingBuy = null;
+const isOwned = (code) => !!(S && S.products.some((p) => p.code === code && p.owned));
+export async function startBuy(codes) {
+  codes = codes.filter((c) => byCode(c) && !isOwned(c));
+  if (!codes.length) return;
+  if (!S || !S.user) { pendingBuy = codes; openSignIn(codes[0]); return; }
+  pendingBuy = null;
+  const pay = $('.pill__pay'); pay.disabled = true; pay.classList.add('is-busy');
+  const done = () => { pay.disabled = false; pay.classList.remove('is-busy'); };
+  try {
+    if (!window.Razorpay) await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+    const o = await api('/api/create-order', { products: codes });
+    try { localStorage.setItem('st_order', o.orderId); } catch { /* ignore */ }
+    const names = codes.map((c) => byCode(c).name).join(', ');
+    const rz = new window.Razorpay({
+      key: o.keyId, order_id: o.orderId, amount: o.amount, currency: o.currency, name: 'Notix', description: 'Pro for ' + names,
+      prefill: { email: o.email }, notes: { product: 'pro-store', item: codes.join(','), email: o.email }, theme: { color: '#2d5bff' },
+      method: { upi: true, card: true, netbanking: true, wallet: false, emi: false, paylater: false },
+      handler: async (r) => {
+        try { await api('/api/verify', r); await unlocked(codes); }
+        catch { await checkOrder(o.orderId); }
+        done();
+      },
+      modal: { ondismiss: () => { done(); setTimeout(() => checkOrder(o.orderId, true), 4000); } },
+    });
+    rz.open();
+  } catch (e) {
+    done();
+    say(e.message, { warn: true });
+    if (e.status === 401) { await boot(); openSignIn(codes[0]); }
+    if (e.status === 409) await boot(); // already owned: the session refresh takes it out of the cart
+  }
+}
+async function unlocked(codes) {
+  codes.forEach((c) => setInCart(c, false));
+  await boot();
+  const names = codes.map((c) => byCode(c)?.name).filter(Boolean).join(', ');
+  say(`Pro unlocked for ${names}. Open the notes and sign in there with the same account.`, { hold: true });
+  emit('notix:unlocked', { codes });
+}
+// "the page lost the callback" (UPI apps often close the tab): ask the server to look the order up at Razorpay
+async function checkOrder(orderId, quiet) {
+  try {
+    const r = await api('/api/verify', { action: 'check', orderId });
+    if (r.ok) { await unlocked(r.items || [r.item]); return true; }
+  } catch (e) { if (!quiet) say(e.message, { warn: true }); }
+  return false;
+}
+// Check my payment (M3): in the account menu
+$('#check-btn').addEventListener('click', async () => {
+  setMenu(false);
+  let id = null; try { id = localStorage.getItem('st_order'); } catch { /* ignore */ }
+  if (!id) { say(`No recent payment on this device. Write to ${data.support} with your payment ID (it starts with pay_).`, { hold: true }); return; }
+  say('Checking your last payment…', { hold: true });
+  if (!(await checkOrder(id, true))) say('No completed payment on your last order yet. If money was taken, give it a few minutes and check again.', { hold: true });
 });
+$('.pill__pay').addEventListener('click', () => startBuy([...cart]));
 
 // ---------------------------------------------------------------- command bar
 const input = $('#cmd-input'), drop = $('#cmd-drop'), listEl = $('#cmd-list'), label = $('#cmd-label'), hl = $('.cmd__hl');
@@ -199,11 +272,11 @@ function openList(q) {
   listEl.innerHTML = results.length
     ? results.map(({ s, m }, i) => {
       const hit = m.mods.length ? s.modules.find(([n]) => n === m.mods[0]) : null;
-      const inCart = cart.has(s.code);
+      const inCart = cart.has(s.code), own = isOwned(s.code);
       return `<li role="option" id="opt-${i}" aria-selected="${i === sel}" style="--i:${i}"><a class="r-main" href="${esc(s.site)}" tabindex="-1">
         <span class="r-code">${s.code}</span><span class="r-name">${esc(s.name)}</span><span class="r-read">Read free ↗</span>
         ${hit ? `<span class="r-hit">Module ${hit[0]}: <mark>${esc(hit[1])}</mark></span>` : ''}</a>
-        <button class="r-pro${inCart ? ' is-in' : ''}" type="button" tabindex="-1" data-code="${s.code}" aria-pressed="${inCart}">${inCart ? 'In cart' : '+ Pro'} <span>₹${s.price}</span></button></li>`;
+        <button class="r-pro${inCart ? ' is-in' : ''}${own ? ' is-owned' : ''}" type="button" tabindex="-1" data-code="${s.code}" aria-pressed="${inCart}"${own ? ' disabled' : ''}>${own ? 'You have Pro' : inCart ? 'In cart' : '+ Pro'} <span>₹${s.price}</span></button></li>`;
     }).join('')
     : `<li class="r-empty">Nothing for “${esc(qq)}” yet. <a href="${REQUEST}">Request a subject →</a></li>`;
   drop.hidden = false; input.setAttribute('aria-expanded', 'true');

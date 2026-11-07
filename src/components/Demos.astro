@@ -1,0 +1,29 @@
+---
+// "Try a Pro tool": three live canvas demos ported from the old store (src/scripts/demos.js).
+// The .tile__add buttons are handled by the site's own script, so there is no click handler here.
+import '../styles/demos.css';
+const cards = [
+  { demo: 'battery', code: 'BACHY105', subject: 'Applied Chemistry', title: 'Phone battery', blurb: 'What happens inside your phone battery. Lithium ions shuttle one way when you charge and the other way when you use it.' },
+  { demo: 'motor', code: 'BAEEE101', subject: 'Basic Engineering', title: 'Ceiling fan motor', blurb: 'Why a fan spins. Three coils make a magnetic field that turns, and the rotor chases it, always a little behind (slip).' },
+  { demo: 'grammar', code: 'BAENG101', subject: 'Technical English', title: 'Fix the sentence', blurb: 'Technical writing is about small fixes. Slide to correct the sentence one mistake at a time.' },
+];
+---
+<section class="demos frame" id="try-pro" aria-labelledby="demos-h">
+  <h2 class="display display--sm sweep" id="demos-h" data-text="Try a Pro tool" string="progress" string-offset-bottom="-10%" string-offset-top="-35%">Try a Pro tool</h2>
+  <p class="demos__intro">Three of the interactive models from Pro. Drag, tap, try.</p>
+  <ul class="demos__list">
+    {cards.map((c) => (
+      <li class="demo-card">
+        <header class="demo-card__head"><span class="demo-card__code">{c.code}</span><span class="demo-card__subj">{c.subject}</span></header>
+        <h3 class="demo-card__title">{c.title}</h3>
+        <p class="demo-card__blurb">{c.blurb}</p>
+        <div data-demo={c.demo}></div>
+        <footer class="demo-card__foot">
+          <a class="tile__read" href={`/${c.code.toLowerCase()}`}>Open the subject</a>
+          <button class="tile__add" type="button" data-code={c.code} aria-pressed="false">Add Pro <span>₹10</span></button>
+        </footer>
+      </li>
+    ))}
+  </ul>
+</section>
+<script>import '../scripts/demos.js';</script>

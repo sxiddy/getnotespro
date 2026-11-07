@@ -15,9 +15,9 @@ export const SITE = {
     { name: 'Pick My Prof', href: 'https://pickmyprof.web.app' },
   ],
   legal: [
-    { name: 'Terms', href: '/terms.html' },
-    { name: 'Privacy', href: '/privacy.html' },
-    { name: 'Refunds', href: '/refund.html' },
-    { name: 'Contact', href: '/contact.html' },
+    { name: 'Terms', href: '/terms' },
+    { name: 'Privacy', href: '/privacy' },
+    { name: 'Refunds', href: '/refund' },
+    { name: 'Contact', href: '/contact' },
   ],
 };

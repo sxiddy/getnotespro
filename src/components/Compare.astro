@@ -1,0 +1,33 @@
+---
+// Free vs Pro (section 4). Rows are the live site's table; the old "What Pro adds" grid (X5) folded into them.
+interface Props { price: number }
+const { price } = Astro.props;
+const ROWS: [string, boolean][] = [
+  ['Read the notes of every module', true],
+  ['Interactive models and the Lab bench', false],
+  ['Flashcards, quizzes, weak-spot quiz', false],
+  ['Answers to every practice question', false],
+  ['Mock CAT and FAT on real papers', false],
+  ['Night-before revision pack, formula sheet', false],
+  ['Progress sync, bookmarks, My notes', false],
+  ['1v1 quiz battles with friends', false],
+];
+---
+<section class="compare frame" id="compare" aria-labelledby="compare-h">
+  <h2 class="display display--sm sweep" id="compare-h" data-text="Free vs Pro" string="progress" string-offset-bottom="-10%" string-offset-top="-35%">Free vs Pro</h2>
+  <p class="compare__lede">The notes are always free. Pro adds the tools, per subject.</p>
+  <div class="compare__wrap">
+    <table class="cmp">
+      <thead><tr><th scope="col"><span class="sr">Feature</span></th><th scope="col">Free</th><th scope="col" class="cmp__pro">Pro <span>₹{price} once, never expires</span></th></tr></thead>
+      <tbody>
+        {ROWS.map(([row, free]) => (
+          <tr>
+            <th scope="row">{row}</th>
+            <td>{free ? <span class="yes" aria-label="Yes">+</span> : <span class="no" aria-label="No">–</span>}</td>
+            <td class="cmp__pro"><span class="yes" aria-label="Yes">+</span></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>

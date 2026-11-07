@@ -1,8 +1,11 @@
 ---
 // Home (mockup D, approved 07-11-2026). The subject tiles are rendered here at build time, so they show at once,
 // work with no JavaScript, and scale to 50+ subjects; home.js only filters them.
-// Still to come on this page (Phase 2): Free vs Pro table, "Try a Pro tool" (3 live demos), FAQ (7).
+// Page order (section 4): hero with try-it → subjects → Free vs Pro → Try a Pro tool (3 demos) → FAQ (7) → search.
 import Base from '../layouts/Base.astro';
+import Compare from '../components/Compare.astro';
+import Faq from '../components/Faq.astro';
+import Demos from '../components/Demos.astro';
 import { subjects, moduleCount } from '../lib/subjects.mjs';
 import { SITE } from '../data/site.mjs';
 
@@ -87,7 +90,7 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
       {subjects.map((s, i) => (
         <li class="tile" string="progress" style={`--i:${i}`} data-code={s.code}>
           <div class="tile__top" data-code={s.code}><span class="tile__code">{s.code}</span><span class="tile__tag">{s.tag}</span></div>
-          <h3 class="tile__name">{s.name}</h3>
+          <h3 class="tile__name"><a href={`/${s.code.toLowerCase()}`}>{s.name}</a></h3>
           <p class="tile__blurb">{s.blurb}</p>
           <ul class="tile__mods" aria-label="Modules">
             {s.modules.map(([n, t], j) => <li data-n={n} hidden={j >= SHOW_MODS}><span>{pad(n)}</span><span>{t}</span></li>)}
@@ -107,6 +110,10 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
       <li class="tiles__empty" id="tiles-empty" hidden>No subject matches “<span id="tiles-q"></span>”. <a href={SITE.request}>Request a subject →</a></li>
     </ul>
   </section>
+
+  <Compare price={price} />
+  <Demos />
+  <Faq price={price} />
 
   <section class="last frame" aria-labelledby="last-h">
     <h2 class="display display--sm sweep" id="last-h" data-text="Didn't find it?" string="progress" string-offset-bottom="-10%" string-offset-top="-35%">Didn't find it?</h2>

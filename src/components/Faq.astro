@@ -1,0 +1,42 @@
+---
+// FAQ: the live site's 12 questions merged into 7 with no fact lost (M1). "Expire" lives in the Free vs Pro price
+// label, "buy several" is shown by the cart, "subject not here" is the request link. The UPI answer is clearer (M2)
+// and "Check my payment" now lives in the account menu (M3).
+import { SITE } from '../data/site.mjs';
+interface Props { price: number }
+const { price } = Astro.props;
+const mail = SITE.support;
+---
+<section class="faq frame" id="faq" aria-labelledby="faq-h">
+  <h2 class="display display--sm sweep" id="faq-h" data-text="Questions" string="progress" string-offset-bottom="-10%" string-offset-top="-35%">Questions</h2>
+  <div class="faq__list">
+    <details name="faq">
+      <summary>Do I have to pay to read the notes?</summary>
+      <p>No. The notes for every module are free to read on the subject sites. Pro only adds the study tools on top.</p>
+    </details>
+    <details name="faq">
+      <summary>What does Pro cost, and does it run out?</summary>
+      <p>₹{price} per subject, paid once. There is no subscription and no renewal, and it never expires. You can add several subjects to the cart and pay for them in one go; each unlocks on its own subject site.</p>
+    </details>
+    <details name="faq">
+      <summary>Which account do I use, and does it work on my phone?</summary>
+      <p>Your VIT student Google account, on both this site and the subject site. Pro is tied to that email. Everything works in a phone browser, and if you sign in with the same account on your phone and laptop, your progress, bookmarks and notes sync between them.</p>
+    </details>
+    <details name="faq">
+      <summary>How do I pay, and is it safe?</summary>
+      <p>You pay by UPI through Razorpay: tap Pay, pick your UPI app, approve. Notix never sees your bank, card or UPI details, only Razorpay's confirmation that the payment went through. The checkout may also show card or netbanking, but Pro unlocks from UPI payments.</p>
+    </details>
+    <details name="faq">
+      <summary>I paid, but the subject site still looks locked.</summary>
+      <p>Reload the subject site once, signed in with the same VIT account. Still locked? Open your account menu here (top right) and press <b>Check my payment</b>. If money was taken, access is added automatically; you can also write to <a href={`mailto:${mail}`}>{mail}</a> with your payment ID (it starts with pay_).</p>
+    </details>
+    <details name="faq">
+      <summary>Can I get a refund?</summary>
+      <p>See the <a href="/refund">refund and cancellation policy</a>.</p>
+    </details>
+    <details name="faq">
+      <summary>Is this run by VIT?</summary>
+      <p>No. The notes are made by a VIT student to help with studying.</p>
+    </details>
+  </div>
+</section>

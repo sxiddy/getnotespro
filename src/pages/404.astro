@@ -1,0 +1,19 @@
+---
+// 404 (N9). Vercel serves dist/404.html for any address that doesn't exist. The search in the bar still works.
+import Base from '../layouts/Base.astro';
+import { subjects } from '../lib/subjects.mjs';
+import { SITE } from '../data/site.mjs';
+---
+<Base title="Page not found · Notix" description="This page doesn't exist. Search for your subject instead.">
+  <section class="lost frame" aria-labelledby="lost-h">
+    <p class="lost__code" aria-hidden="true">404</p>
+    <h1 class="display display--sm" id="lost-h">Nothing here.</h1>
+    <p class="lost__lede">This page doesn't exist, or it moved. Search for your subject, or pick one:</p>
+    <div class="lost__actions">
+      <button class="btn btn--blue" type="button" data-focus-search>Search subjects <kbd>/</kbd></button>
+      <a class="btn btn--ghost" href="/">Home</a>
+    </div>
+    <ul class="subj-more__list">{subjects.map((s) => <li><a href={`/${s.code.toLowerCase()}`}><b>{s.code}</b> {s.name}</a></li>)}</ul>
+    <p class="lost__req">Looking for a subject that isn't here? <a href={SITE.request}>Request a subject →</a></p>
+  </section>
+</Base>

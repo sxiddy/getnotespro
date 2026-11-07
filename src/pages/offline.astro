@@ -1,0 +1,14 @@
+---
+// Offline page (F9). The app install (PWA, Stage 2) will cache this and show it when a page can't load.
+import Base from '../layouts/Base.astro';
+---
+<Base title="You're offline · Notix" description="You're offline. Notix will load again once you're back online.">
+  <section class="lost frame" aria-labelledby="off-h">
+    <h1 class="display display--sm" id="off-h">You're offline.</h1>
+    <p class="lost__lede">This page couldn't load without a connection. Pages you opened before may still work. Once you're back online, try again.</p>
+    <div class="lost__actions">
+      <button class="btn btn--blue" type="button" onclick="location.reload()">Try again</button>
+      <a class="btn btn--ghost" href="/">Home</a>
+    </div>
+  </section>
+</Base>

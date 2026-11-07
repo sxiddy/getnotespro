@@ -1,5 +1,5 @@
 // Home only: filtering the build-time subject tiles, and the Daniell-cell try-it card.
-import { $, $$, SUBJECTS, match, toggleCart, emit, motionOn } from './core.js';
+import { $, $$, SUBJECTS, match, emit, motionOn } from './core.js';
 
 // ---------------------------------------------------------------- subject tiles: filter in place
 const SHOW_MODS = 2;
@@ -26,9 +26,6 @@ function filterTiles(q = '') {
   $('#tiles-q').textContent = q;
   $('#count').textContent = `${shown} of ${SUBJECTS.length} subjects`;
 }
-$('#tiles').addEventListener('click', (e) => {
-  const b = e.target.closest('.tile__add'); if (b) toggleCart(b.dataset.code, b);
-});
 $('#filter').addEventListener('input', (e) => filterTiles(e.target.value));
 
 // ---------------------------------------------------------------- try-it: Nernst for a Daniell cell
@@ -66,6 +63,5 @@ $('.try__opts').addEventListener('click', (e) => {
   verdict();
 });
 range.addEventListener('input', () => { moved = true; draw(); verdict(); });
-$('.try__add').addEventListener('click', (e) => toggleCart(e.currentTarget.dataset.code, e.currentTarget));
 
 draw();

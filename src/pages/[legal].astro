@@ -1,0 +1,23 @@
+---
+// /terms, /privacy, /refund, /contact. The text comes from tools/legal.js (run it after changing the wording);
+// the old /terms.html style addresses redirect here (vercel.json).
+import Base from '../layouts/Base.astro';
+import legal from '../data/legal.json';
+import { SITE } from '../data/site.mjs';
+
+export function getStaticPaths() {
+  return Object.entries(legal).map(([slug, page]) => ({ params: { legal: slug }, props: { slug, page } }));
+}
+const { slug, page } = Astro.props;
+---
+<Base title={`${page.title} · Notix`} description={page.lead}>
+  <article class="legal frame" aria-labelledby="legal-h">
+    <nav class="crumb mono" aria-label="Breadcrumb"><a href="/">Notix</a> <span aria-hidden="true">/</span> <span aria-current="page">{page.title}</span></nav>
+    <h1 class="display display--sm" id="legal-h">{page.title}</h1>
+    <p class="legal__lead">{page.lead}</p>
+    <div class="legal__body" set:html={page.body} />
+    <ul class="legal__links">
+      {SITE.legal.filter((l) => l.href !== `/${slug}`).map((l) => <li><a href={l.href}>{l.name}</a></li>)}
+    </ul>
+  </article>
+</Base>
