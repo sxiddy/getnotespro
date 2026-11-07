@@ -31,10 +31,20 @@ import Logo from './Logo.astro';
         </div>
       </div>
     </div>
-    <button class="cart" type="button" aria-label="Cart, 0 subjects" string="magnetic" string-strength="0.25" string-radius="70">
+    <button class="cart" type="button" aria-label="Cart, 0 subjects" aria-expanded="false" aria-controls="cartbox" string="magnetic" string-strength="0.25" string-radius="70">
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h2l1.6 8.2a1 1 0 0 0 1 .8h6.6a1 1 0 0 0 1-.8L16.5 7H6"/><circle cx="8" cy="16.5" r="1"/><circle cx="14" cy="16.5" r="1"/></svg>
       <span class="cart__n" hidden>0</span>
     </button>
+  </div>
+  <div class="cartbox" id="cartbox" role="dialog" aria-label="Your cart" hidden>
+    <p class="cartbox__h mono">Your cart</p>
+    <ul class="cartbox__list" id="cartbox-list"></ul>
+    <p class="cartbox__empty" id="cartbox-empty">Your cart is empty. Add Pro on any subject to buy it.</p>
+    <div class="cartbox__foot" id="cartbox-foot">
+      <p class="cartbox__total"><span>Total</span> <b id="cartbox-sum">₹0</b></p>
+      <button class="btn btn--blue cartbox__pay" type="button" id="cartbox-pay">Pay by UPI</button>
+      <p class="cartbox__note mono">Paid once · no subscription</p>
+    </div>
   </div>
 </header>
 <noscript><p class="nojs">Search, sign-in and the cart need JavaScript. Every subject is still listed on this page, and the notes open free.</p></noscript>

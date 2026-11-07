@@ -72,6 +72,7 @@ function renderCart() {
   pill.classList.toggle('is-show', n > 0); pill.inert = n === 0; pill.setAttribute('aria-hidden', String(n === 0));
   document.body.classList.toggle('has-cart', n > 0);
   saveCart();
+  const bx = document.getElementById('cartbox'); if (bx && !bx.hidden) renderBox();
 }
 
 // one function keeps every "Add Pro" for a subject in step (tile, search row, try-it card)
@@ -107,10 +108,29 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('.tile__add, .try__add');
   if (b && b.dataset.code && !b.disabled) toggleCart(b.dataset.code, b);
 });
-$('.cart').addEventListener('click', () => {
-  if (!cart.size) { const s = $('#subjects'); if (s) scrollToEl(s); else location.href = '/#subjects'; say('Your cart is empty. Add a subject first.'); return; }
-  $('.pill__pay').focus();
+// the cart button opens a small panel: each subject with Remove, the total, and Pay
+const cartBtn = $('.cart'), box = $('#cartbox');
+function renderBox() {
+  const items = [...cart].map(byCode).filter(Boolean);
+  $('#cartbox-list').innerHTML = items.map((s) => `<li><span class="cartbox__code mono">${esc(s.code)}</span><span class="cartbox__name">${esc(s.name)}</span><span class="cartbox__price mono">₹${s.price}</span><button class="cartbox__rm" type="button" data-rm="${esc(s.code)}" aria-label="Remove ${esc(s.name)}">×</button></li>`).join('');
+  $('#cartbox-empty').hidden = items.length > 0;
+  $('#cartbox-foot').hidden = items.length === 0;
+  $('#cartbox-sum').textContent = '₹' + cartTotal();
+}
+function setBox(open) {
+  if (open) renderBox();
+  box.hidden = !open; cartBtn.setAttribute('aria-expanded', String(open));
+  if (open) ($('.cartbox__rm', box) || $('#cartbox-pay')).focus?.();
+}
+cartBtn.addEventListener('click', (e) => { e.stopPropagation(); setBox(box.hidden); });
+box.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const rm = e.target.closest('[data-rm]');
+  if (rm) { setInCart(rm.dataset.rm, false); renderBox(); if (!cart.size) $('#cartbox-empty').focus?.(); }
 });
+$('#cartbox-pay').addEventListener('click', () => { setBox(false); startBuy([...cart]); });
+document.addEventListener('click', () => { if (!box.hidden) setBox(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !box.hidden) { setBox(false); cartBtn.focus(); } });
 
 // ---------------------------------------------------------------- account: session, sign-in window, sign out
 let S = null; // /api/session: { user, products, keyId, googleClientId, domain, devLogin }

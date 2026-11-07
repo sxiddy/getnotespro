@@ -191,3 +191,22 @@ html.laptop.st-on dialog[open] button, html.laptop.st-on dialog[open] a { cursor
 @media (prefers-reduced-motion: reduce) { .upd-item--skel span { animation: none; } }
 .upds__empty { margin: 24px 0 0; color: var(--ink-2); }
 .upds__empty a { color: var(--blue-ink); }
+
+/* ---------------------------------------------------------------- cart panel (opens from the cart button) */
+.cartbox { position: absolute; top: calc(100% - 4px); right: max(var(--pad), calc((100% - var(--max)) / 2 + var(--pad))); z-index: 40; width: min(360px, calc(100vw - 24px)); padding: 16px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r); box-shadow: 0 18px 40px rgba(0, 0, 0, .45); }
+.cartbox[hidden] { display: none; }
+.cartbox__h { margin: 0 0 10px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.cartbox__list { list-style: none; margin: 0; padding: 0; }
+.cartbox__list li { display: grid; grid-template-columns: auto 1fr auto 44px; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.cartbox__code { font-size: 12px; color: var(--blue-ink); }
+.cartbox__name { color: var(--ink); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.cartbox__price { color: var(--ink-2); }
+.cartbox__rm { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: var(--r-sm); color: var(--ink-2); font-size: 22px; line-height: 1; cursor: pointer; }
+.cartbox__rm:hover, .cartbox__rm:focus-visible { color: var(--ink); background: var(--bg-3); }
+.cartbox__empty { margin: 4px 0; color: var(--ink-2); }
+.cartbox__empty[hidden], .cartbox__foot[hidden] { display: none; }
+.cartbox__total { display: flex; justify-content: space-between; margin: 12px 0; color: var(--ink-2); }
+.cartbox__total b { color: var(--ink); font: 600 18px/1 var(--mono); }
+.cartbox__pay { width: 100%; justify-content: center; min-height: 44px; }
+.cartbox__note { margin: 8px 0 0; text-align: center; font-size: 11.5px; color: var(--ink-3); }
+@media (max-width: 520px) { .cartbox { right: 12px; } }
