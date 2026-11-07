@@ -128,7 +128,7 @@
 .faq summary::-webkit-details-marker { display: none; }
 .faq summary::after { content: '+'; position: absolute; right: 20px; top: 50%; translate: 0 -50%; font: 400 22px/1 var(--mono); color: var(--blue-ink); transition: rotate .3s var(--ease-out); }
 .faq details[open] summary::after { rotate: 45deg; }
-.faq details p { margin: 0; padding: 0 20px 20px; color: var(--ink-2); max-width: 70ch; }
+.faq details p { margin: 0; padding: 0 20px 20px; color: var(--ink-2); max-width: 62ch; }
 .faq details a { color: var(--blue-ink); }
 .faq details b { color: var(--ink); font-weight: 600; }
 .motion .faq details[open] p { animation: drop .3s var(--ease-out); }

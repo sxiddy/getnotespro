@@ -6,7 +6,8 @@
     "dev": "astro dev",
     "dev:local": "node tools/dev.mjs",
     "build": "astro build",
-    "preview": "node tools/serve.js 4180"
+    "preview": "node tools/serve.js 4180",
+    "og": "node tools/og.mjs"
   },
   "dependencies": {
     "@fiddle-digital/string-tune": "1.2.7",
