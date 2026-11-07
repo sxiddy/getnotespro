@@ -18,7 +18,7 @@ const description = `${s.name} (${s.code}) notes for VIT, free to read: ${s.modu
     <nav class="crumb mono" aria-label="Breadcrumb"><a href="/#subjects">Subjects</a> <span aria-hidden="true">/</span> <span aria-current="page">{s.code}</span></nav>
     <div class="subj__head">
       <div>
-        <p class="subj__code" aria-hidden="true">{s.code}</p>
+        <p class="subj__code"><span aria-hidden="true">{s.code}</span><a class="upd" data-upd={s.code} hidden>Updated</a></p>
         <h1 class="display subj__name" id="subj-h" style={`--len:${Math.max(...s.name.split(' ').map((w) => w.length))}`}>{s.name}</h1>
         <p class="subj__blurb">{s.blurb}</p>
       </div>

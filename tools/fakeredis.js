@@ -1,4 +1,4 @@
-// Local testing only: a tiny in-memory stand-in for the Upstash REST pipeline on port 5288.
+// Local testing only: a tiny in-memory stand-in for the Upstash REST pipeline on port 5288 (FAKEREDIS_PORT changes it).
 //   node tools/fakeredis.js   (then start the "notes-admin" preview from .claude/launch.json)
 const http = require('http');
 const db = {};
@@ -36,4 +36,4 @@ const run = ([c, k, ...a]) => {
   }
   return null;
 };
-http.createServer((q, r) => { let b = ''; q.on('data', (c) => (b += c)); q.on('end', () => { try { r.end(JSON.stringify(JSON.parse(b).map((x) => ({ result: run(x) })))); } catch (e) { r.statusCode = 400; r.end('[]'); } }); }).listen(5288, () => console.log('fake store on :5288'));
+http.createServer((q, r) => { let b = ''; q.on('data', (c) => (b += c)); q.on('end', () => { try { r.end(JSON.stringify(JSON.parse(b).map((x) => ({ result: run(x) })))); } catch (e) { r.statusCode = 400; r.end('[]'); } }); }).listen(+process.env.FAKEREDIS_PORT || 5288, () => console.log('fake store on :' + (+process.env.FAKEREDIS_PORT || 5288)));

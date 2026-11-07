@@ -146,6 +146,19 @@
       </div>
     </details></div>
 
+    <div class="card mb-3" id="ann-card">
+      <div class="card-header"><h2 class="card-title">Updates</h2><span class="text-secondary small ms-2">shown on /updates; a subject named here gets an "Updated" badge for 14 days</span></div>
+      <div class="card-body">
+        <form id="ann-form" class="mb-3">
+          <div class="mb-2"><label class="form-label" for="ann-title">Title</label><input class="form-control" id="ann-title" maxlength="90" required placeholder="e.g. Module 5 notes are up"></div>
+          <div class="mb-2"><label class="form-label" for="ann-body">Details <span class="text-secondary">(optional)</span></label><textarea class="form-control" id="ann-body" rows="3" maxlength="600"></textarea></div>
+          <div class="mb-2"><span class="form-label d-block">Subjects <span class="text-secondary">(none ticked = the whole store, no badge)</span></span><div class="d-flex flex-wrap gap-3" id="ann-codes"></div></div>
+          <div class="d-flex gap-2 align-items-center"><button class="btn btn-primary" type="submit">Post update</button><span class="small" id="ann-msg" role="status"></span></div>
+        </form>
+        <div id="ann-list" class="list-group list-group-flush"></div>
+      </div>
+    </div>
+
     <div class="card mb-3" id="ppl-card">
       <div class="card-header flex-wrap gap-2">
         <h2 class="card-title">Everyone who signed in</h2>
@@ -182,5 +195,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/js/tabler.min.js"></script>
 <script src="js/admin.js"></script>
+<script src="js/admin-updates.js"></script>
 </body>
 </html>

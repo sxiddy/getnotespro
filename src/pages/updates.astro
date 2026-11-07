@@ -1,0 +1,24 @@
+---
+// /updates: the owner's announcements (G5), newest first. They live in Redis (api/community.js) so the owner can post
+// from admin without a rebuild; this page reads them in the browser. Subjects named in an update in the last 14 days
+// show an "Updated" badge on their tile and page.
+import Base from '../layouts/Base.astro';
+import { subjects } from '../lib/subjects.mjs';
+const names = Object.fromEntries(subjects.map((s) => [s.code, s.name]));
+---
+<Base title="Updates · Notix" description="What's new on Notix: new modules, fixes and subjects, newest first.">
+  <section class="upds frame" aria-labelledby="upd-h">
+    <nav class="crumb mono" aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <span aria-current="page">Updates</span></nav>
+    <h1 class="display display--sm" id="upd-h">Updates</h1>
+    <p class="upds__lede">New modules, fixes and subjects, newest first.</p>
+    <ol class="upds__list" id="upd-list" aria-busy="true" data-names={JSON.stringify(names)}>
+      <li class="upd-item upd-item--skel" aria-hidden="true"><span></span><span></span><span></span></li>
+      <li class="upd-item upd-item--skel" aria-hidden="true"><span></span><span></span><span></span></li>
+    </ol>
+    <p class="upds__empty" id="upd-empty" hidden>No updates yet. New modules and subjects will show up here.</p>
+    <noscript><p class="upds__empty">Updates need JavaScript to load. The <a href="/#subjects">subject list</a> works without it.</p></noscript>
+  </section>
+</Base>
+<script>
+  import '../scripts/updates-page.js';
+</script>

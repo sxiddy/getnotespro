@@ -1,6 +1,8 @@
 // Every page: subject data, search (command bar), cart + pill, account + sign-in, status toasts.
 // Motion lives in motion.js (String Tune); this file works without it.
 
+import { markUpdated } from './updates.js';
+
 const data = JSON.parse(document.getElementById('notix-data').textContent);
 export const SUBJECTS = data.subjects;
 export const REQUEST = data.request;
@@ -344,6 +346,7 @@ try { const day = new Date().toISOString().slice(0, 10); if (localStorage.getIte
 
 SUBJECTS.forEach((s) => paintAdd(s.code));
 renderCart();
+markUpdated(); // G5 badges, only fetches when the page has subject slots
 boot().then(() => {
   // back from Google with an error, or sent here from a subject site (?subject=CODE): open the sign-in window
   const qs = new URLSearchParams(location.search), err = qs.get('login_error'), want = (qs.get('subject') || '').toUpperCase();
