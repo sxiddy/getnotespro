@@ -41,7 +41,7 @@ function localApi() {
 }
 
 export default defineConfig({
-  site: process.env.SITE_URL || 'https://notix-notes.cv',
+  site: process.env.SITE_URL || 'https://notix-notes.vercel.app',
   output: 'static',
   outDir: './dist',
   trailingSlash: 'ignore',

@@ -1,6 +1,7 @@
-// Site-wide settings. SITE_URL is the only absolute address of the store; every other link is relative, so a later
+// Site-wide settings. Until notix-notes.cv is connected (launch step), the store lives at notix-notes.vercel.app.
+// SITE_URL is the only absolute address of the store; every other link is relative, so a later
 // domain move is this one value (or the SITE_URL environment variable in Vercel) plus the steps in MOVING-DOMAIN.md.
-export const SITE_URL = (process.env.SITE_URL || 'https://notix-notes.cv').replace(/\/+$/, '');
+export const SITE_URL = (process.env.SITE_URL || 'https://notix-notes.vercel.app').replace(/\/+$/, '');
 
 export const SITE = {
   name: 'Notix',

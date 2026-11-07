@@ -1,5 +1,5 @@
 /* Pro tool demos: battery (BACHY105), motor (BAEEE101), grammar (BAENG101).
-   Ported from legacy/demos.js. Each [data-demo] element gets a canvas, its controls and a live readout. */
+   Ported from the old store's demos.js. Each [data-demo] element gets a canvas, its controls and a live readout. */
 const COL = { bg: '#0f1114', panel: '#16191e', line: 'rgba(255,255,255,.13)', text: '#f2f3f5', dim: '#878d97', fill: '#2d5bff', blue: '#7d9cff', good: '#86d4a9', bad: '#ff8a8a' };
 const SANS = '"Geist Variable", system-ui, sans-serif';
 const MONO = '"Geist Mono Variable", monospace';
