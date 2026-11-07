@@ -36,11 +36,11 @@ export function match(subj, q) {
 // ---------------------------------------------------------------- status toasts: offline, back online, a script failing
 const toast = $('#toast'), toastText = $('#toast-text'), toastBtn = $('#toast-btn');
 let toastTimer = 0;
-export function say(text, { warn = false, reload = false, hold = false } = {}) {
+export function say(text, { warn = false, reload = false, hold = false, ms = 4000 } = {}) {
   clearTimeout(toastTimer);
   toastText.textContent = text; toastBtn.hidden = !reload;
   toast.classList.toggle('is-warn', warn); toast.hidden = false;
-  if (!hold) toastTimer = setTimeout(() => { toast.hidden = true; }, 4000);
+  if (!hold) toastTimer = setTimeout(() => { toast.hidden = true; }, ms);
 }
 toastBtn.addEventListener('click', () => location.reload());
 const OFFLINE = "You're offline. Search still works; the notes open once you're back.";
@@ -131,6 +131,26 @@ box.addEventListener('click', (e) => {
 $('#cartbox-pay').addEventListener('click', () => { setBox(false); startBuy([...cart]); });
 document.addEventListener('click', () => { if (!box.hidden) setBox(false); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !box.hidden) { setBox(false); cartBtn.focus(); } });
+
+// links to things that aren't built yet, or that depend on the visitor's own email app, always say what happens,
+// so a tap never seems to do nothing
+const copyMail = () => { try { navigator.clipboard?.writeText(data.support).catch(() => {}); } catch { /* not allowed: the address is in the message anyway */ } };
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href]');
+  if (!a) return;
+  const href = a.getAttribute('href');
+  if (href === '/help' || href === '/requests' || href === '/account') {
+    e.preventDefault();
+    const what = { '/help': 'The Help page', '/requests': 'Subject requests', '/account': 'My subjects' }[href];
+    copyMail();
+    say(`${what} is coming soon. For now, email ${data.support} (copied) and we'll help.`, { ms: 9000 });
+  } else if (href.startsWith('mailto:')) {
+    copyMail();
+    say(/subject%20request/i.test(href)
+      ? `Requests are by email for now (voting on requests is coming soon). If no email app opens, write to ${data.support} (copied).`
+      : `Opening your email app. If nothing opens, write to ${data.support} (copied).`, { ms: 9000 });
+  }
+});
 
 // ---------------------------------------------------------------- account: session, sign-in window, sign out
 let S = null; // /api/session: { user, products, keyId, googleClientId, domain, devLogin }
