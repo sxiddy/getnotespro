@@ -204,7 +204,8 @@ export async function startBuy(codes) {
     const rz = new window.Razorpay({
       key: o.keyId, order_id: o.orderId, amount: o.amount, currency: o.currency, name: 'Notix', description: 'Pro for ' + names,
       prefill: { email: o.email }, notes: { product: 'pro-store', item: codes.join(','), email: o.email }, theme: { color: '#2d5bff' },
-      method: { upi: true, card: true, netbanking: true, wallet: false, emi: false, paylater: false },
+      // UPI only: the server unlocks Pro for UPI payments alone (checkPayment), so other methods would take money and unlock nothing
+      method: { upi: true, card: false, netbanking: false, wallet: false, emi: false, paylater: false },
       handler: async (r) => {
         try { await api('/api/verify', r); await unlocked(codes); }
         catch { await checkOrder(o.orderId); }

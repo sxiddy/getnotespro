@@ -89,7 +89,7 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
     <ul class="tiles" id="tiles">
       {subjects.map((s, i) => (
         <li class="tile" string="progress" style={`--i:${i}`} data-code={s.code}>
-          <div class="tile__top" data-code={s.code}><span class="tile__code">{s.code}</span><a class="upd" data-upd={s.code} hidden>Updated</a><span class="tile__tag">{s.tag}</span></div>
+          <div class="tile__top" data-code={s.code}><span class="tile__code">{s.code}</span><a class="upd" href="/updates" data-upd={s.code} hidden>Updated</a><span class="tile__tag">{s.tag}</span></div>
           <h3 class="tile__name"><a href={`/${s.code.toLowerCase()}`}>{s.name}</a></h3>
           <p class="tile__blurb">{s.blurb}</p>
           <ul class="tile__mods" aria-label="Modules">
