@@ -30,7 +30,7 @@
 @property --trace { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; scroll-padding-top: 96px; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-padding-top: 96px; } /* Android Chrome reads only the unprefixed one: stops it enlarging text on its own ("font boosting") */
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font: 400 16px/1.55 var(--sans); -webkit-font-smoothing: antialiased;
@@ -458,6 +458,8 @@ main, .bar, .foot { position: relative; z-index: 1; }
   .tile--req a { flex-basis: 100%; }
   .hero { grid-template-columns: 1fr; gap: 28px; padding-top: 32px; }
   .hero .display .line { display: inline; white-space: normal; }
+  /* "VIT NOTES." is about 7.4em wide: size it to the screen so it always fits on one line, even on 360 px Android phones */
+  .hero .display { font-size: min(44px, calc((100vw - 2 * var(--pad)) / 7.9)); line-height: .94; }
   .hero__lede { margin-top: 20px; }
   .hero__actions { margin-top: 24px; }
   .trust { margin-top: 28px; }
