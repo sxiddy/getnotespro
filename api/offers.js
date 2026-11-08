@@ -1,14 +1,19 @@
 // Discount codes (F10). The rules and storage are in api/_offers.js.
 //   POST /api/offers { action: 'quote', code, products: [codes] } -> { offer: { code, pct, codes }, lines, total, discount }
 //        Anyone (signed in = also checks "already used"). Wrong guesses are limited per visitor: 20 an hour.
+//   Referrals (G8, rules in api/_referrals.js; they live here because Vercel allows 12 functions):
+//   POST { action: 'ref-me' } -> { token, friends, used, rewards }   signed-in VIT student; the link is <site>/?ref=<token>
 //   Admin (header x-admin-key = ADMIN_KEY):
 //     GET  /api/offers?part=list -> { items: [{ code, pct, max, until, codes, off, at, note, uses }] }
 //     POST { action: 'offer-add', code, pct, max?, days?, codes?, note? }   409 if the code already exists
 //     POST { action: 'offer-pause', code, off: true|false }
 //     POST { action: 'offer-del', code }   also forgets who used it
-const { send, body, env, safeEqual, getUser, itemsOf, priceOf, handle } = require('./_lib');
+//     GET  /api/offers?part=referrals -> { totals: { links, credited, used, left }, top: [{ email, friends, used, rewards }],
+//                                         buyers: [{ buyer, ref, payment, at, revoked }] }
+const { send, body, env, safeEqual, getUser, isStudentEmail, itemsOf, priceOf, handle } = require('./_lib');
 const store = require('./_store');
 const offers = require('./_offers');
+const refs = require('./_referrals');
 
 const MAX_MISSES = 20; // wrong codes per visitor per hour
 
@@ -22,7 +27,9 @@ const hour = () => Math.floor(Date.now() / 3600e3);
 module.exports = handle(async (req, res) => {
   if (req.method === 'GET') {
     if (!isAdmin(req)) return send(res, 401, { error: 'Wrong admin key.' });
-    if (new URL(req.url, 'http://x').searchParams.get('part') !== 'list') return send(res, 400, { error: 'Unknown part.' });
+    const part = new URL(req.url, 'http://x').searchParams.get('part');
+    if (part === 'referrals') return send(res, 200, store.configured() ? await refs.adminList() : { totals: {}, top: [], buyers: [] });
+    if (part !== 'list') return send(res, 400, { error: 'Unknown part.' });
     if (!store.configured()) return send(res, 200, { items: [] });
     return send(res, 200, { items: await offers.list(), now: Date.now() });
   }
@@ -45,6 +52,14 @@ module.exports = handle(async (req, res) => {
     }
     const { code, pct, codes } = r.offer;
     return send(res, 200, Object.assign({ offer: { code, pct, codes } }, r.priced));
+  }
+
+  if (b.action === 'ref-me') {
+    const u = getUser(req);
+    if (!u) return send(res, 401, { error: 'Please sign in with your VIT student account first.' });
+    if (!isStudentEmail(u.e)) return send(res, 403, { error: 'Invite links are for VIT student accounts.' });
+    if (!store.configured()) return send(res, 503, { error: "Invite links aren't available right now. Try again later." });
+    return send(res, 200, Object.assign({ token: await refs.tokenFor(u.e) }, await refs.rewardsOf(u.e)));
   }
 
   if (!isAdmin(req)) return send(res, 401, { error: 'Wrong admin key.' });

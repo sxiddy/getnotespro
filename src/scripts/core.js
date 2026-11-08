@@ -58,6 +58,19 @@ export const cart = new Set((() => { try { return (JSON.parse(localStorage.getIt
 // the applied discount code (F10), kept with the cart: { code, pct, codes }
 const OFFER_KEY = 'notix-code';
 let offer = (() => { try { const o = JSON.parse(localStorage.getItem(OFFER_KEY)); return o && o.code && o.pct ? o : null; } catch { return null; } })();
+// referrals (G8): the friend's link (?ref=) is kept until a purchase and sent with the order (the server decides if it
+// counts). rewardOn = the student chose to spend one 50% reward on this cart (one discount per order: no code with it).
+const REF_KEY = 'notix-ref', REF_RE = /^[A-Za-z0-9_-]{8,16}$/;
+const REWARD = { pct: 50, codes: [] };
+let rewardOn = false;
+{
+  const qs = new URLSearchParams(location.search), ref = (qs.get('ref') || '').trim();
+  if (qs.has('ref')) {
+    if (REF_RE.test(ref)) { try { localStorage.setItem(REF_KEY, ref); } catch { /* storage blocked: the link just won't count */ } }
+    qs.delete('ref'); history.replaceState(null, '', location.pathname + (qs.size ? '?' + qs : '') + location.hash);
+  }
+}
+const refToken = () => { try { const t = localStorage.getItem(REF_KEY); return t && REF_RE.test(t) ? t : ''; } catch { return ''; } };
 const saveCart = () => { try { localStorage.setItem(CART_KEY, JSON.stringify([...cart])); } catch { /* storage blocked: the cart just won't persist */ } };
 const pill = $('#pill');
 function setNum(el, v) {
@@ -120,6 +133,14 @@ function renderBox() {
   $('#cartbox-foot').hidden = items.length === 0;
   const q = quote([...cart]);
   $('#cartbox-sum').textContent = '₹' + q.total;
+  const rewards = (S && S.user && S.rewards) || 0;
+  if (!rewards) rewardOn = false;
+  $('#rw-row').hidden = !rewards;
+  $('#rw-on').checked = rewardOn;
+  $('#rw-left').textContent = `${rewards} ready · whole cart`;
+  $('#rw-amt').textContent = rewardOn && q.discount ? '−₹' + q.discount : '';
+  $('#rw-note').hidden = !rewardOn;
+  if (rewardOn) { $('#code-line').hidden = true; $('#code-form').hidden = true; return; }
   $('#code-line').hidden = !offer;
   if (offer) {
     $('#code-name').textContent = offer.code;
@@ -134,7 +155,7 @@ function codeMsg(text, warn) {
   const m = $('#code-msg'); m.textContent = text || ''; m.hidden = !text; m.classList.toggle('is-warn', !!warn);
 }
 function setBox(open) {
-  if (open) renderBox();
+  if (open) { renderBox(); if (!inv.hidden) setInv(false); }
   box.hidden = !open; cartBtn.setAttribute('aria-expanded', String(open));
   if (open) ($('.cartbox__rm', box) || $('#cartbox-pay')).focus?.();
 }
@@ -160,8 +181,44 @@ $('#code-form').addEventListener('submit', async (e) => {
   btn.disabled = false;
 });
 $('#code-rm').addEventListener('click', () => { setOffer(null); codeMsg(''); $('#code-in').focus(); });
-document.addEventListener('click', () => { if (!box.hidden) setBox(false); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !box.hidden) { setBox(false); cartBtn.focus(); } });
+// one discount per order: turning the reward on takes off any code
+$('#rw-on').addEventListener('change', (e) => {
+  rewardOn = e.target.checked;
+  if (rewardOn && offer) { setOffer(null); }
+  codeMsg(''); renderCart(); renderBox();
+});
+document.addEventListener('click', () => { if (!box.hidden) setBox(false); if (!inv.hidden) setInv(false); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!box.hidden) { setBox(false); cartBtn.focus(); }
+  if (!inv.hidden) { setInv(false); menuBtn.focus(); }
+});
+
+// Invite friends (G8): the student's own link (api/offers ref-me), with Copy and WhatsApp share
+const inv = $('#invbox');
+let invLink = '';
+function invMsg(text, warn) { const m = $('#inv-msg'); m.textContent = text || ''; m.hidden = !text; m.classList.toggle('is-warn', !!warn); }
+async function setInv(open) {
+  inv.hidden = !open;
+  if (!open) return;
+  setBox(false); invMsg('');
+  $('#inv-x').focus();
+  try {
+    const r = await api('/api/offers', { action: 'ref-me' });
+    invLink = location.origin + '/?ref=' + encodeURIComponent(r.token);
+    $('#inv-url').value = invLink; $('#inv-copy').disabled = false;
+    $('#inv-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`Notix has notes and Pro study tools for VIT first-year subjects. Get them here: ${invLink}`);
+    $('#inv-friends').textContent = r.friends; $('#inv-rewards').textContent = r.rewards;
+    if (S && S.rewards !== r.rewards) { S.rewards = r.rewards; renderCart(); }
+    if (refToken() === r.token) { try { localStorage.removeItem(REF_KEY); } catch { /* ignore */ } } // your own link never counts
+  } catch (err) { $('#inv-url').value = ''; invMsg(err.message, true); }
+}
+inv.addEventListener('click', (e) => e.stopPropagation());
+$('#inv-x').addEventListener('click', () => { setInv(false); menuBtn.focus(); });
+$('#inv-copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(invLink); invMsg('Link copied. Send it to a friend.'); }
+  catch { $('#inv-url').select(); invMsg('Copy the selected link.'); }
+});
 
 // links to things that aren't built yet, or that depend on the visitor's own email app, always say what happens,
 // so a tap never seems to do nothing
@@ -194,6 +251,8 @@ async function api(url, body) {
 }
 function renderAccount() {
   const u = S && S.user;
+  if (!u || !S.rewards) rewardOn = false;
+  if (!u && !inv.hidden) setInv(false);
   acct.removeAttribute('aria-busy');
   $('.acct__skel', acct).hidden = true;
   $('#signin-btn').hidden = !!u;
@@ -249,6 +308,7 @@ const setMenu = (open) => { menu.hidden = !open; menuBtn.setAttribute('aria-expa
 menuBtn.addEventListener('click', () => setMenu(menu.hidden));
 document.addEventListener('click', (e) => { if (!menu.hidden && !e.target.closest('.acct__me')) setMenu(false); });
 menu.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setMenu(false); menuBtn.focus(); } });
+$('#invite-btn').addEventListener('click', (e) => { e.stopPropagation(); setMenu(false); setInv(true); });
 $('#signout-btn').addEventListener('click', async () => { setMenu(false); await api('/api/login', { logout: true }).catch(() => {}); await boot(); say('Signed out.'); });
 
 // ---------------------------------------------------------------- checkout: one UPI payment for the whole cart
@@ -259,13 +319,15 @@ function setOffer(o) {
   try { offer ? localStorage.setItem(OFFER_KEY, JSON.stringify(offer)) : localStorage.removeItem(OFFER_KEY); } catch { /* storage blocked: it just won't persist */ }
   renderCart();
 }
+// The 50% referral reward (G8) is the same rule over every subject in the cart (api/_referrals.js priceReward).
 export function quote(codes) {
+  const o = rewardOn ? REWARD : offer;
   const lines = codes.map((c) => {
-    const price = byCode(c).price, on = offer && (!offer.codes.length || offer.codes.includes(c));
-    return { code: c, label: byCode(c).name, price, amount: on ? Math.min(price, Math.max(1, Math.floor((price * (100 - offer.pct)) / 100))) : price };
+    const price = byCode(c).price, on = o && (!o.codes.length || o.codes.includes(c));
+    return { code: c, label: byCode(c).name, price, amount: on ? Math.min(price, Math.max(1, Math.floor((price * (100 - o.pct)) / 100))) : price };
   });
   const total = lines.reduce((t, l) => t + l.amount, 0);
-  return { lines, total, discount: lines.reduce((t, l) => t + l.price, 0) - total, offer };
+  return { lines, total, discount: lines.reduce((t, l) => t + l.price, 0) - total, offer: o };
 }
 let pendingBuy = null;
 const isOwned = (code) => !!(S && S.products.some((p) => p.code === code && p.owned));
@@ -278,7 +340,10 @@ export async function startBuy(codes) {
   const done = () => { pay.disabled = false; pay.classList.remove('is-busy'); };
   try {
     if (!window.Razorpay) await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-    const o = await api('/api/create-order', offer ? { products: codes, code: offer.code } : { products: codes });
+    const req = { products: codes };
+    if (rewardOn) req.reward = true; else if (offer) req.code = offer.code;
+    if (refToken()) req.ref = refToken();
+    const o = await api('/api/create-order', req);
     try { localStorage.setItem('st_order', o.orderId); } catch { /* ignore */ }
     const names = codes.map((c) => byCode(c).name).join(', ');
     const rz = new window.Razorpay({
@@ -301,6 +366,11 @@ export async function startBuy(codes) {
       say(`${e.message} Your total is now ₹${cartTotal()}. Tap Pay again to buy at that price.`, { warn: true, hold: true });
       return;
     }
+    if (e.data && e.data.badReward) { // no reward left (spent on another device): back to the full price
+      rewardOn = false; if (S) S.rewards = 0; renderCart();
+      say(`${e.message} Your total is now ₹${cartTotal()}. Tap Pay again to buy at that price.`, { warn: true, hold: true });
+      return;
+    }
     say(e.message, { warn: true });
     if (e.status === 401) { await boot(); openSignIn(codes[0]); }
     if (e.status === 409) await boot(); // already owned: the session refresh takes it out of the cart
@@ -309,6 +379,8 @@ export async function startBuy(codes) {
 async function unlocked(codes) {
   codes.forEach((c) => setInCart(c, false));
   if (offer) setOffer(null); // each student can use a code once
+  rewardOn = false; // a reward is one purchase (boot() below brings the new count)
+  try { localStorage.removeItem(REF_KEY); } catch { /* ignore */ } // only a first purchase can credit a friend
   await boot();
   const names = codes.map((c) => byCode(c)?.name).filter(Boolean).join(', ');
   say(`Pro unlocked for ${names}. Open the notes and sign in there with the same account.`, { hold: true });

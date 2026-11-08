@@ -225,3 +225,29 @@ html.laptop.st-on dialog[open] button, html.laptop.st-on dialog[open] a { cursor
 .cartbox__off .cartbox__rm { width: 44px; height: 44px; }
 .cartbox__msg { margin: 8px 0 0; font-size: 14px; color: var(--ink-2); }
 .cartbox__msg.is-warn { color: #ff8a8a; }
+
+/* referral reward (G8) in the cart panel: a 44 px row with a switch */
+.cartbox__rw { display: flex; align-items: center; gap: 12px; min-height: 44px; margin-top: 12px; padding: 6px 12px; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--r-sm); cursor: pointer; }
+.cartbox__rw[hidden], .invbox[hidden] { display: none; }
+.cartbox__rw:has(input:checked) { border-color: var(--blue-ink); background: var(--blue-soft); }
+.cartbox__rw input { appearance: none; flex: none; position: relative; width: 40px; height: 24px; margin: 0; border-radius: 12px; background: var(--bg-3); border: 1px solid var(--line-2); cursor: pointer; transition: background .2s; }
+.cartbox__rw input::before { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink-2); transition: transform .2s, background .2s; }
+.cartbox__rw input:checked { background: var(--blue); border-color: var(--blue); }
+.cartbox__rw input:checked::before { transform: translateX(16px); background: #fff; }
+.cartbox__rw input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.cartbox__rwt { flex: 1; min-width: 0; display: grid; color: var(--ink); font-weight: 600; }
+.cartbox__rwl { font-size: 11.5px; font-weight: 400; letter-spacing: .04em; color: var(--ink-3); }
+.cartbox__rw > b { color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .cartbox__rw input, .cartbox__rw input::before { transition: none; } }
+
+/* Invite friends panel (G8): same shell as the cart panel */
+.invbox__top { display: flex; align-items: center; justify-content: space-between; margin: -10px -10px 0 0; }
+.invbox__top .cartbox__h { margin: 0; }
+.invbox__lede { margin: 4px 0 0; color: var(--ink-2); }
+.invbox__lede b { color: var(--ink); }
+.invbox__url { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--ink-2); }
+.invbox__wa { display: flex; align-items: center; margin-top: 10px; text-decoration: none; }
+.invbox__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 0; }
+.invbox__stats div { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.invbox__stats dt { font-size: 12.5px; color: var(--ink-3); }
+.invbox__stats dd { margin: 4px 0 0; font-size: 20px; color: var(--ink); }

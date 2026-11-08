@@ -139,13 +139,15 @@ async function checkPayment(paymentId, orderId) {
   return Object.assign({ ok: true, payment: p }, orderInfo(order));
 }
 // what a store order's notes (written by create-order, server-side) say: who, which subjects, and for a discount
-// code (F10) the code and what each subject cost ("shares", paise, in the same order as the subjects)
+// code (F10) the code and what each subject cost ("shares", paise, in the same order as the subjects). Referrals (G8):
+// "ref" is the link the buyer came through, "reward" marks an order priced with the student's own 50% reward.
 function orderInfo(order) {
   const n = (order && order.notes) || {}, items = itemsOf(n.item);
-  if (!items) return { order, email: normEmail(n.email), item: null, items: null, shares: null, offer: null };
+  if (!items) return { order, email: normEmail(n.email), item: null, items: null, shares: null, offer: null, reward: false, ref: null };
   const sh = String(n.shares || '').split(',').map(Number);
   const shares = n.shares && sh.length === items.length && sh.every((x) => Number.isInteger(x) && x >= 0) && sh.reduce((a, b) => a + b, 0) === order.amount ? sh : null;
-  return { order, email: normEmail(n.email), item: items[0], items, shares, offer: n.offer ? String(n.offer) : null };
+  const R = require('./_referrals');
+  return { order, email: normEmail(n.email), item: items[0], items, shares, offer: n.offer ? String(n.offer) : null, reward: n.reward === R.REWARD && !n.offer, ref: R.normToken(n.ref) || null };
 }
 
 // Pro access is kept in one hash per subject (paid:<CODE>), email -> payment details.
@@ -165,10 +167,15 @@ async function recordPaidAll(email, items, p, shares, extra) {
   }
 }
 // a verified payment (from checkPayment): give Pro, and if a discount code was used, spend the student's one use of it.
+// Referrals (G8): a reward order spends one reward; a first purchase through a friend's link credits that friend.
 // Safe to call again for the same payment (the checkout, the webhook and Check my payment can all report it).
 async function recordPurchase(chk) {
-  await recordPaidAll(chk.email, chk.items, chk.payment, chk.shares, chk.offer ? { offer: chk.offer } : null);
+  const R = require('./_referrals');
+  const firstBuy = chk.ref ? !(await R.boughtBefore(chk.email, chk.payment.id)) : false; // asked before this payment is recorded
+  await recordPaidAll(chk.email, chk.items, chk.payment, chk.shares, chk.offer ? { offer: chk.offer } : chk.reward ? { offer: R.REWARD } : null);
   if (chk.offer) await require('./_offers').spend(chk.offer, chk.email, { payment: chk.payment.id, order: chk.payment.order_id || '', at: new Date().toISOString() });
+  if (chk.reward) await R.spendReward(chk.email, chk.payment);
+  if (firstBuy) await R.credit(chk.ref, chk.email, chk.payment);
 }
 // a manual grant can end by itself: record.until is a time in ms
 const isLive = (raw) => { if (raw == null) return false; try { const x = JSON.parse(raw) || {}; return !(x.until && x.until <= Date.now()); } catch (e) { return true; } };
@@ -194,6 +201,7 @@ async function recordRefund(o) {
     if (rec == null) return log; // already moved (the admin page and the Razorpay webhook can both report the same refund)
     let x = {}; try { x = JSON.parse(rec || '{}') || {}; } catch (e) { /* ignore */ }
     await store.pipeline([['HSET', 'refunded:' + o.code, o.email, JSON.stringify(Object.assign(x, { refundedAt: log.at, refundId: o.refundId }))], ['HDEL', 'paid:' + o.code, o.email]]);
+    await require('./_referrals').onRefund(o.email, o.paymentId); // the friend got all their money back: the referrer's reward goes
   }
   return log;
 }

@@ -26,6 +26,7 @@ import Logo from './Logo.astro';
         <button class="acct__btn" id="acct-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="acct-menu"><span id="acct-initial">?</span></button>
         <div class="acct__menu" id="acct-menu" role="menu" hidden>
           <p class="acct__who mono" id="acct-who"></p>
+          <button type="button" role="menuitem" id="invite-btn" aria-controls="invbox">Invite friends</button>
           <button type="button" role="menuitem" id="check-btn">Check my payment</button>
           <button type="button" role="menuitem" id="signout-btn">Sign out</button>
         </div>
@@ -41,6 +42,13 @@ import Logo from './Logo.astro';
     <ul class="cartbox__list" id="cartbox-list"></ul>
     <p class="cartbox__empty" id="cartbox-empty">Your cart is empty. Add Pro on any subject to buy it.</p>
     <div class="cartbox__foot" id="cartbox-foot">
+      <!-- referral reward (G8): 50% off one purchase, whole cart. One discount per order, so the code field hides while it is on -->
+      <label class="cartbox__rw" id="rw-row" hidden>
+        <input type="checkbox" id="rw-on" />
+        <span class="cartbox__rwt"><span>Use your 50% reward</span><span class="cartbox__rwl mono" id="rw-left"></span></span>
+        <b class="mono" id="rw-amt"></b>
+      </label>
+      <p class="cartbox__msg" id="rw-note" hidden>One discount per order, so codes are off while your reward is on.</p>
       <form class="cartbox__code" id="code-form" novalidate>
         <label class="sr" for="code-in">Discount code</label>
         <input class="cartbox__in mono" id="code-in" name="code" placeholder="Discount code" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" />
@@ -55,6 +63,22 @@ import Logo from './Logo.astro';
       <button class="btn btn--blue cartbox__pay" type="button" id="cartbox-pay">Pay by UPI</button>
       <p class="cartbox__note mono">Paid once · no subscription</p>
     </div>
+  </div>
+  <!-- Invite friends (G8): the student's own link, opened from the account menu -->
+  <div class="cartbox invbox" id="invbox" role="dialog" aria-labelledby="inv-h" hidden>
+    <div class="invbox__top"><p class="cartbox__h mono" id="inv-h">Invite friends</p><button class="cartbox__rm" type="button" id="inv-x" aria-label="Close">×</button></div>
+    <p class="invbox__lede">When a friend buys Pro through your link, you get <b>50% off</b> one purchase, even a whole cart. Your friend pays the normal price.</p>
+    <div class="cartbox__code">
+      <label class="sr" for="inv-url">Your invite link</label>
+      <input class="cartbox__in invbox__url mono" id="inv-url" readonly value="Loading your link…" />
+      <button class="btn btn--ghost cartbox__apply" type="button" id="inv-copy" disabled>Copy</button>
+    </div>
+    <a class="btn btn--blue cartbox__pay invbox__wa" id="inv-wa" href="https://wa.me/" target="_blank" rel="noopener">Share on WhatsApp</a>
+    <dl class="invbox__stats">
+      <div><dt>Friends who bought</dt><dd class="mono" id="inv-friends">–</dd></div>
+      <div><dt>Rewards ready</dt><dd class="mono" id="inv-rewards">–</dd></div>
+    </dl>
+    <p class="cartbox__msg" id="inv-msg" role="status" hidden></p>
   </div>
 </header>
 <noscript><p class="nojs">Search, sign-in and the cart need JavaScript. Every subject is still listed on this page, and the notes open free.</p></noscript>
