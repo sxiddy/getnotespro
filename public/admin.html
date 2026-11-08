@@ -159,6 +159,24 @@
       </div>
     </div>
 
+    <div class="card mb-3" id="off-card">
+      <div class="card-header"><h2 class="card-title">Discount codes</h2><span class="text-secondary small ms-2">one use per student; a use counts only when the payment goes through</span></div>
+      <div class="card-body">
+        <form id="off-form" class="mb-3">
+          <div class="row g-2 mb-2">
+            <div class="col-sm-4"><label class="form-label" for="off-code">Code</label><input class="form-control text-uppercase" id="off-code" maxlength="20" required placeholder="e.g. EXAM20" autocomplete="off"></div>
+            <div class="col-sm-2"><label class="form-label" for="off-pct">% off</label><input class="form-control" id="off-pct" type="number" min="1" max="99" step="1" required placeholder="20"></div>
+            <div class="col-sm-3"><label class="form-label" for="off-max">Students <span class="text-secondary">(0 = no limit)</span></label><input class="form-control" id="off-max" type="number" min="0" step="1" value="0"></div>
+            <div class="col-sm-3"><label class="form-label" for="off-days">Days <span class="text-secondary">(0 = never ends)</span></label><input class="form-control" id="off-days" type="number" min="0" max="366" step="1" value="0"></div>
+          </div>
+          <div class="mb-2"><label class="form-label" for="off-note">Note for yourself <span class="text-secondary">(optional)</span></label><input class="form-control" id="off-note" maxlength="80" placeholder="e.g. FAT week, posted in the WhatsApp group"></div>
+          <div class="mb-2"><span class="form-label d-block">Subjects <span class="text-secondary">(none ticked = every subject)</span></span><div class="d-flex flex-wrap gap-3" id="off-codes"></div></div>
+          <div class="d-flex gap-2 align-items-center"><button class="btn btn-primary" type="submit">Make code</button><span class="small" id="off-msg" role="status"></span></div>
+        </form>
+        <div id="off-list" class="list-group list-group-flush"></div>
+      </div>
+    </div>
+
     <div class="card mb-3" id="ppl-card">
       <div class="card-header flex-wrap gap-2">
         <h2 class="card-title">Everyone who signed in</h2>
@@ -196,5 +214,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/js/tabler.min.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/admin-updates.js"></script>
+<script src="js/admin-offers.js"></script>
 </body>
 </html>

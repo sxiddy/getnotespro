@@ -210,3 +210,18 @@ html.laptop.st-on dialog[open] button, html.laptop.st-on dialog[open] a { cursor
 .cartbox__pay { width: 100%; justify-content: center; min-height: 44px; }
 .cartbox__note { margin: 8px 0 0; text-align: center; font-size: 11.5px; color: var(--ink-3); }
 @media (max-width: 520px) { .cartbox { right: 12px; } }
+
+/* discount code (F10) in the cart panel */
+.cartbox__code { display: flex; gap: 8px; margin-top: 12px; }
+.cartbox__in { flex: 1; min-width: 0; height: 44px; padding: 0 12px; background: var(--bg); color: var(--ink); border: 1px solid var(--line-2); border-radius: var(--r-sm); font-size: 15px; letter-spacing: .04em; text-transform: uppercase; }
+.cartbox__in::placeholder { color: var(--ink-3); text-transform: none; letter-spacing: 0; }
+.cartbox__in:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.cartbox__apply { height: 44px; padding: 0 16px; color: var(--ink); }
+.cartbox__off { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 10px 0 0; color: var(--ink-2); }
+.cartbox__code[hidden], .cartbox__off[hidden], .cartbox__msg[hidden] { display: none; }
+.cartbox__off > span:first-child b { color: var(--blue-ink); }
+.cartbox__offr { display: inline-flex; align-items: center; }
+.cartbox__offr b { color: var(--ink); }
+.cartbox__off .cartbox__rm { width: 44px; height: 44px; }
+.cartbox__msg { margin: 8px 0 0; font-size: 14px; color: var(--ink-2); }
+.cartbox__msg.is-warn { color: #ff8a8a; }

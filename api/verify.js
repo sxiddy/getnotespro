@@ -5,7 +5,7 @@
 //   Razorpay webhook (header x-razorpay-signature, secret RAZORPAY_WEBHOOK_SECRET): payment.authorized,
 //       payment.captured and order.paid unlock the student named in the order even if they closed the page.
 const crypto = require('crypto');
-const { send, body, hmac, safeEqual, env, razorpay, checkPayment, recordPaidAll, recordRefund, normEmail, getUser, itemsOf, handle } = require('./_lib');
+const { send, body, hmac, safeEqual, env, razorpay, checkPayment, recordPurchase, recordRefund, normEmail, getUser, itemsOf, handle } = require('./_lib');
 
 async function rawBody(req) {
   if (typeof req.body === 'string') return req.body;
@@ -23,7 +23,7 @@ async function unlockOrder(orderId, email) {
   if (!pays.length) return { ok: false, pending: true, why: 'No completed payment on this order yet.' };
   const chk = await checkPayment(pays[0].id, orderId);
   if (!chk.ok) return { ok: false, why: chk.why };
-  await recordPaidAll(chk.email, chk.items, chk.payment);
+  await recordPurchase(chk);
   return { ok: true, paymentId: chk.payment.id, item: chk.item, items: chk.items };
 }
 
@@ -79,6 +79,6 @@ module.exports = handle(async (req, res) => {
   const chk = await checkPayment(p, o);
   if (!chk.ok) return send(res, 402, { error: chk.why });
   if (chk.email !== u.e) return send(res, 403, { error: 'This payment was made from a different account.' });
-  await recordPaidAll(u.e, chk.items, chk.payment);
+  await recordPurchase(chk); // chk.email is u.e (checked just above)
   send(res, 200, { ok: true, paymentId: p, item: chk.item, items: chk.items });
 });

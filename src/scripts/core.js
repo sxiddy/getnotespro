@@ -55,13 +55,16 @@ addEventListener('error', (e) => {
 // ---------------------------------------------------------------- cart + sticky pill (saved, so it survives a reload)
 const CART_KEY = 'notix-cart';
 export const cart = new Set((() => { try { return (JSON.parse(localStorage.getItem(CART_KEY)) || []).filter((c) => byCode(c)); } catch { return []; } })());
+// the applied discount code (F10), kept with the cart: { code, pct, codes }
+const OFFER_KEY = 'notix-code';
+let offer = (() => { try { const o = JSON.parse(localStorage.getItem(OFFER_KEY)); return o && o.code && o.pct ? o : null; } catch { return null; } })();
 const saveCart = () => { try { localStorage.setItem(CART_KEY, JSON.stringify([...cart])); } catch { /* storage blocked: the cart just won't persist */ } };
 const pill = $('#pill');
 function setNum(el, v) {
   if (el.textContent === String(v)) return;
   el.textContent = v; el.classList.remove('is-roll'); void el.offsetWidth; el.classList.add('is-roll');
 }
-const cartTotal = () => [...cart].reduce((t, c) => t + byCode(c).price, 0);
+const cartTotal = () => quote([...cart]).total;
 function renderCart() {
   const n = cart.size, badge = $('.cart__n');
   if (badge.textContent !== String(n) && n) { badge.classList.remove('is-pop'); void badge.offsetWidth; badge.classList.add('is-pop'); }
@@ -115,7 +118,20 @@ function renderBox() {
   $('#cartbox-list').innerHTML = items.map((s) => `<li><span class="cartbox__code mono">${esc(s.code)}</span><span class="cartbox__name">${esc(s.name)}</span><span class="cartbox__price mono">₹${s.price}</span><button class="cartbox__rm" type="button" data-rm="${esc(s.code)}" aria-label="Remove ${esc(s.name)}">×</button></li>`).join('');
   $('#cartbox-empty').hidden = items.length > 0;
   $('#cartbox-foot').hidden = items.length === 0;
-  $('#cartbox-sum').textContent = '₹' + cartTotal();
+  const q = quote([...cart]);
+  $('#cartbox-sum').textContent = '₹' + q.total;
+  $('#code-line').hidden = !offer;
+  if (offer) {
+    $('#code-name').textContent = offer.code;
+    $('#code-pct').textContent = `· ${offer.pct}% off`;
+    $('#code-amt').textContent = q.discount ? '−₹' + q.discount : '₹0';
+    if (!q.discount && items.length) codeMsg('That code is only for ' + offer.codes.map((c) => byCode(c)?.name || c).join(', ') + '.', true);
+    else if ($('#code-msg').classList.contains('is-warn')) codeMsg('');
+  }
+  $('#code-form').hidden = !!offer;
+}
+function codeMsg(text, warn) {
+  const m = $('#code-msg'); m.textContent = text || ''; m.hidden = !text; m.classList.toggle('is-warn', !!warn);
 }
 function setBox(open) {
   if (open) renderBox();
@@ -129,6 +145,21 @@ box.addEventListener('click', (e) => {
   if (rm) { setInCart(rm.dataset.rm, false); renderBox(); if (!cart.size) $('#cartbox-empty').focus?.(); }
 });
 $('#cartbox-pay').addEventListener('click', () => { setBox(false); startBuy([...cart]); });
+// discount code (F10): checked by the server (api/offers quote), then priced here the same way the server will price
+// the order. The code is kept with the cart, so it survives a reload; a code that stopped working is dropped at Pay.
+$('#code-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const inp = $('#code-in'), code = inp.value.trim().toUpperCase(), btn = $('.cartbox__apply');
+  if (!code) { codeMsg('Type a code first.', true); inp.focus(); return; }
+  btn.disabled = true; codeMsg('Checking…');
+  try {
+    const r = await api('/api/offers', { action: 'quote', code, products: [...cart] });
+    setOffer(r.offer); inp.value = ''; codeMsg(`Code applied. You save ₹${quote([...cart]).discount}.`);
+    $('#code-rm').focus();
+  } catch (err) { codeMsg(err.message, true); inp.focus(); }
+  btn.disabled = false;
+});
+$('#code-rm').addEventListener('click', () => { setOffer(null); codeMsg(''); $('#code-in').focus(); });
 document.addEventListener('click', () => { if (!box.hidden) setBox(false); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !box.hidden) { setBox(false); cartBtn.focus(); } });
 
@@ -158,7 +189,7 @@ const acct = $('#acct'), dlg = $('#signin-dlg');
 async function api(url, body) {
   const r = await fetch(url, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw Object.assign(new Error(j.error || 'Something went wrong. Please try again.'), { status: r.status });
+  if (!r.ok) throw Object.assign(new Error(j.error || 'Something went wrong. Please try again.'), { status: r.status, data: j });
   return j;
 }
 function renderAccount() {
@@ -221,11 +252,20 @@ menu.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setMenu(fals
 $('#signout-btn').addEventListener('click', async () => { setMenu(false); await api('/api/login', { logout: true }).catch(() => {}); await boot(); say('Signed out.'); });
 
 // ---------------------------------------------------------------- checkout: one UPI payment for the whole cart
-// The server (api/create-order) sets the amount; quote() is only what the page shows. A discount line (F10, G8)
-// slots into quote() later: add a line with a negative amount, and the pill and the order follow.
+// The server (api/create-order) sets the amount; quote() is only what the page shows, using the same rule as
+// api/_offers.js priceCart: each subject the code covers costs pct less, rounded down to whole rupees, never below ₹1.
+function setOffer(o) {
+  offer = o ? { code: o.code, pct: o.pct, codes: o.codes || [] } : null;
+  try { offer ? localStorage.setItem(OFFER_KEY, JSON.stringify(offer)) : localStorage.removeItem(OFFER_KEY); } catch { /* storage blocked: it just won't persist */ }
+  renderCart();
+}
 export function quote(codes) {
-  const lines = codes.map((c) => ({ code: c, label: byCode(c).name, amount: byCode(c).price }));
-  return { lines, total: lines.reduce((t, l) => t + l.amount, 0) };
+  const lines = codes.map((c) => {
+    const price = byCode(c).price, on = offer && (!offer.codes.length || offer.codes.includes(c));
+    return { code: c, label: byCode(c).name, price, amount: on ? Math.min(price, Math.max(1, Math.floor((price * (100 - offer.pct)) / 100))) : price };
+  });
+  const total = lines.reduce((t, l) => t + l.amount, 0);
+  return { lines, total, discount: lines.reduce((t, l) => t + l.price, 0) - total, offer };
 }
 let pendingBuy = null;
 const isOwned = (code) => !!(S && S.products.some((p) => p.code === code && p.owned));
@@ -238,7 +278,7 @@ export async function startBuy(codes) {
   const done = () => { pay.disabled = false; pay.classList.remove('is-busy'); };
   try {
     if (!window.Razorpay) await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-    const o = await api('/api/create-order', { products: codes });
+    const o = await api('/api/create-order', offer ? { products: codes, code: offer.code } : { products: codes });
     try { localStorage.setItem('st_order', o.orderId); } catch { /* ignore */ }
     const names = codes.map((c) => byCode(c).name).join(', ');
     const rz = new window.Razorpay({
@@ -256,6 +296,11 @@ export async function startBuy(codes) {
     rz.open();
   } catch (e) {
     done();
+    if (e.data && e.data.badOffer) { // the code stopped working since it was applied: drop it, show the real price, let them choose
+      setOffer(null);
+      say(`${e.message} Your total is now ₹${cartTotal()}. Tap Pay again to buy at that price.`, { warn: true, hold: true });
+      return;
+    }
     say(e.message, { warn: true });
     if (e.status === 401) { await boot(); openSignIn(codes[0]); }
     if (e.status === 409) await boot(); // already owned: the session refresh takes it out of the cart
@@ -263,6 +308,7 @@ export async function startBuy(codes) {
 }
 async function unlocked(codes) {
   codes.forEach((c) => setInCart(c, false));
+  if (offer) setOffer(null); // each student can use a code once
   await boot();
   const names = codes.map((c) => byCode(c)?.name).filter(Boolean).join(', ');
   say(`Pro unlocked for ${names}. Open the notes and sign in there with the same account.`, { hold: true });
@@ -393,4 +439,12 @@ boot().then(() => {
   const qs = new URLSearchParams(location.search), err = qs.get('login_error'), want = (qs.get('subject') || '').toUpperCase();
   if (err) { openSignIn(want || null).then(() => { $('#dlg-msg').textContent = err; }); history.replaceState(null, '', location.pathname); }
   else if (want && byCode(want) && !(S && S.user)) openSignIn(want);
+  // a shared link with ?code=EXAM20 applies the code (checked against the cart, or every subject if the cart is empty)
+  const link = (qs.get('code') || '').trim().toUpperCase();
+  if (link) {
+    qs.delete('code'); history.replaceState(null, '', location.pathname + (qs.size ? '?' + qs : '') + location.hash);
+    api('/api/offers', { action: 'quote', code: link, products: cart.size ? [...cart] : SUBJECTS.map((x) => x.code).slice(0, 10) })
+      .then((r) => { setOffer(r.offer); say(`Code ${r.offer.code} applied: ${r.offer.pct}% off${cart.size ? '' : '. Add Pro on a subject to use it'}.`); })
+      .catch((err) => say(err.message, { warn: true }));
+  }
 });

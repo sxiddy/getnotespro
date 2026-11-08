@@ -8,7 +8,7 @@
 //     lookup { email }              everything about one student
 //     refund { email, product, amount? (paise; empty = full), reason }   refund through Razorpay; a full refund ends Pro
 //     reconcile { days? }           ask Razorpay for recent payments of this store, record any that are missing and fill in missing phone numbers
-const { isLive, send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, itemsOf, PRODUCTS, priceOf, razorpay, recordPaidAll, recordRefund, DOMAIN, handle } = require('./_lib');
+const { isLive, send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, itemsOf, PRODUCTS, priceOf, razorpay, orderInfo, recordPurchase, recordRefund, DOMAIN, handle } = require('./_lib');
 const store = require('./_store');
 
 const codes = Object.keys(PRODUCTS);
@@ -96,7 +96,11 @@ async function reconcile(days) {
         if (!x.contact && p.contact) { x.contact = p.contact; await store.pipeline([['HSET', 'paid:' + its[0], email, JSON.stringify(x)]]); filled++; }
         continue;
       }
-      await recordPaidAll(email, its, p); added++;
+      // record from the order's own notes (set by the server), not the payment's (the checkout page sets those);
+      // a discounted order carries each subject's share and the code, whose use is spent here too
+      const info = orderInfo(p.order_id ? await razorpay('GET', '/orders/' + p.order_id) : null);
+      if (!info.items || !isStudentEmail(info.email)) { skipped++; continue; }
+      await recordPurchase(Object.assign(info, { payment: p })); added++;
     }
     if (items.length < 100) break;
   }

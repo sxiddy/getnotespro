@@ -24,6 +24,7 @@ const run = ([c, k, ...a]) => {
     case 'HMGET': return a.map((f) => (db[k] || {})[f] ?? null);
     case 'HGETALL': return Object.entries(db[k] || {}).flat();
     case 'HDEL': { let n = 0; a.forEach((f) => { if (db[k] && f in db[k]) { delete db[k][f]; n++; } }); return n; }
+    case 'HLEN': return Object.keys(db[k] || {}).length;
     case 'HEXISTS': return db[k] && a[0] in db[k] ? 1 : 0;
     case 'HINCRBY': { const h = H(k); h[a[0]] = String((+h[a[0]] || 0) + +a[1]); return +h[a[0]]; }
     case 'ZADD': Z(k)[a[1]] = +a[0]; return 1;
@@ -36,4 +37,4 @@ const run = ([c, k, ...a]) => {
   }
   return null;
 };
-http.createServer((q, r) => { let b = ''; q.on('data', (c) => (b += c)); q.on('end', () => { try { r.end(JSON.stringify(JSON.parse(b).map((x) => ({ result: run(x) })))); } catch (e) { r.statusCode = 400; r.end('[]'); } }); }).listen(+process.env.FAKEREDIS_PORT || 5288, () => console.log('fake store on :' + (+process.env.FAKEREDIS_PORT || 5288)));
+module.exports = http.createServer((q, r) => { let b = ''; q.on('data', (c) => (b += c)); q.on('end', () => { try { r.end(JSON.stringify(JSON.parse(b).map((x) => ({ result: run(x) })))); } catch (e) { r.statusCode = 400; r.end('[]'); } }); }).listen(+process.env.FAKEREDIS_PORT || 5288, () => console.log('fake store on :' + (+process.env.FAKEREDIS_PORT || 5288)));

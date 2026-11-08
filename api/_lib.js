@@ -136,20 +136,39 @@ async function checkPayment(paymentId, orderId) {
   if (!order || n.product !== 'pro-store' || !items) return { ok: false, why: 'Payment was not for a Pro unlock.' };
   if (p.status === 'authorized') p = await razorpay('POST', `/payments/${paymentId}/capture`, { amount: p.amount, currency: 'INR' });
   if (p.status !== 'captured') return { ok: false, why: `Payment is ${p.status}, not completed.` };
-  return { ok: true, payment: p, order, email: normEmail(n.email), item: items[0], items };
+  return Object.assign({ ok: true, payment: p }, orderInfo(order));
+}
+// what a store order's notes (written by create-order, server-side) say: who, which subjects, and for a discount
+// code (F10) the code and what each subject cost ("shares", paise, in the same order as the subjects)
+function orderInfo(order) {
+  const n = (order && order.notes) || {}, items = itemsOf(n.item);
+  if (!items) return { order, email: normEmail(n.email), item: null, items: null, shares: null, offer: null };
+  const sh = String(n.shares || '').split(',').map(Number);
+  const shares = n.shares && sh.length === items.length && sh.every((x) => Number.isInteger(x) && x >= 0) && sh.reduce((a, b) => a + b, 0) === order.amount ? sh : null;
+  return { order, email: normEmail(n.email), item: items[0], items, shares, offer: n.offer ? String(n.offer) : null };
 }
 
 // Pro access is kept in one hash per subject (paid:<CODE>), email -> payment details.
-async function recordPaid(email, code, p, share) {
+async function recordPaid(email, code, p, share, extra) {
   const store = require('./_store');
   if (!store.configured()) throw Object.assign(new Error('Storage is not set up, so access cannot be saved.'), { status: 500 });
-  await store.pipeline([['HSET', 'paid:' + code, email, JSON.stringify(Object.assign({ id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: share == null ? p.amount : share, order: p.order_id || '', method: p.method || '', contact: p.contact || '' }, share == null ? {} : { bundle: p.amount }))]]);
+  await store.pipeline([['HSET', 'paid:' + code, email, JSON.stringify(Object.assign({ id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: share == null ? p.amount : share, order: p.order_id || '', method: p.method || '', contact: p.contact || '' }, share == null ? {} : { bundle: p.amount }, extra || {}))]]);
 }
-// records every subject of a (possibly multi-subject) payment; each gets its own price as its share of the total
-async function recordPaidAll(email, items, p) {
-  if (items.length === 1) return recordPaid(email, items[0], p);
+// records every subject of a (possibly multi-subject) payment. Each gets its share of the total: the order's own
+// shares when it has them (discounted orders always do), otherwise its current price.
+async function recordPaidAll(email, items, p, shares, extra) {
+  if (items.length === 1) return recordPaid(email, items[0], p, null, extra);
   let left = p.amount;
-  for (let i = 0; i < items.length; i++) { const share = i === items.length - 1 ? left : Math.min(left, priceOf(items[i])); left -= share; await recordPaid(email, items[i], p, share); }
+  for (let i = 0; i < items.length; i++) {
+    const share = shares ? shares[i] : i === items.length - 1 ? left : Math.min(left, priceOf(items[i]));
+    left -= share; await recordPaid(email, items[i], p, share, extra);
+  }
+}
+// a verified payment (from checkPayment): give Pro, and if a discount code was used, spend the student's one use of it.
+// Safe to call again for the same payment (the checkout, the webhook and Check my payment can all report it).
+async function recordPurchase(chk) {
+  await recordPaidAll(chk.email, chk.items, chk.payment, chk.shares, chk.offer ? { offer: chk.offer } : null);
+  if (chk.offer) await require('./_offers').spend(chk.offer, chk.email, { payment: chk.payment.id, order: chk.payment.order_id || '', at: new Date().toISOString() });
 }
 // a manual grant can end by itself: record.until is a time in ms
 const isLive = (raw) => { if (raw == null) return false; try { const x = JSON.parse(raw) || {}; return !(x.until && x.until <= Date.now()); } catch (e) { return true; } };
@@ -194,5 +213,5 @@ function handle(fn) {
 module.exports = {
   isLive,
   DOMAIN, PRODUCTS, priceOf, isProduct, env, send, body, hmac, safeEqual, normEmail, isStudentEmail, getUser, userCookie, clearUserCookie, REVIEW_EMAIL, reviewOn, reviewerCookie,
-  verifyGoogle, razorpay, checkPayment, recordPaid, recordPaidAll, itemsOf, recordRefund, ownedBy, handle,
+  verifyGoogle, razorpay, checkPayment, orderInfo, recordPaid, recordPaidAll, recordPurchase, itemsOf, recordRefund, ownedBy, handle,
 };

@@ -41,6 +41,16 @@ import Logo from './Logo.astro';
     <ul class="cartbox__list" id="cartbox-list"></ul>
     <p class="cartbox__empty" id="cartbox-empty">Your cart is empty. Add Pro on any subject to buy it.</p>
     <div class="cartbox__foot" id="cartbox-foot">
+      <form class="cartbox__code" id="code-form" novalidate>
+        <label class="sr" for="code-in">Discount code</label>
+        <input class="cartbox__in mono" id="code-in" name="code" placeholder="Discount code" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+        <button class="btn btn--ghost cartbox__apply" type="submit">Apply</button>
+      </form>
+      <p class="cartbox__off" id="code-line" hidden>
+        <span><b class="mono" id="code-name"></b> <span id="code-pct"></span></span>
+        <span class="cartbox__offr"><b class="mono" id="code-amt"></b><button class="cartbox__rm" type="button" id="code-rm" aria-label="Remove the discount code">×</button></span>
+      </p>
+      <p class="cartbox__msg" id="code-msg" role="status" hidden></p>
       <p class="cartbox__total"><span>Total</span> <b id="cartbox-sum">₹0</b></p>
       <button class="btn btn--blue cartbox__pay" type="button" id="cartbox-pay">Pay by UPI</button>
       <p class="cartbox__note mono">Paid once · no subscription</p>
