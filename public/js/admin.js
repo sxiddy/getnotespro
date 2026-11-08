@@ -73,7 +73,7 @@
       const head = `<tr class="grp-row${open ? ' open' : ''}" data-g="${esc(g.email)}"><td>${when(r0.at)}</td><td><span class="chev">▸</span>${esc(g.email)}</td><td class="mono">${contact ? '<a href="tel:' + esc(contact) + '" class="text-reset">' + esc(phoneFmt(contact)) + '</a>' : '<span class="text-secondary">—</span>'}</td><td>${chips}</td><td>${paidSum ? rs(paidSum) : ''}</td><td>${st}</td><td style="white-space:nowrap">${one ? actions(r0) : ''}</td></tr>`;
       if (!open) return head;
       const have = g.rows.filter(active).map((p) => p.product), missing = D.products.filter((p) => !have.includes(p.code));
-      const lines = g.rows.map((p) => `<div class="sub-line"><span class="nm">${esc(name(p.product))}</span>${badge(p)}<span class="meta">${p.manual ? 'given by you' : rs(p.amount) + ' · ' + esc(p.id)} · ${when(p.at)}${p.until ? ' · ' + ends(p) : ''}${p.status === 'refunded' && p.refundedAt ? ' · refunded ' + when(p.refundedAt) : ''}</span><span style="white-space:nowrap">${actions(p)}</span></div>`).join('');
+      const lines = g.rows.map((p) => `<div class="sub-line"><span class="nm">${esc(name(p.product))}</span>${badge(p)}<span class="meta">${p.manual ? 'given by you' : rs(p.amount) + ' · ' + esc(p.id)}${p.giftFrom ? ' · gift from ' + esc(p.giftFrom) : ''} ·${when(p.at)}${p.until ? ' · ' + ends(p) : ''}${p.status === 'refunded' && p.refundedAt ? ' · refunded ' + when(p.refundedAt) : ''}</span><span style="white-space:nowrap">${actions(p)}</span></div>`).join('');
       const give = missing.length ? `<div class="sub-give"><span class="lbl">Give access to</span><select class="form-select form-select-sm w-auto" data-gp>${missing.map((p) => '<option value="' + esc(p.code) + '">' + esc(p.name) + '</option>').join('')}</select><select class="form-select form-select-sm w-auto" data-gd>${DURS}</select><button class="btn btn-sm btn-primary" data-give="${esc(g.email)}">Give access</button></div>` : '';
       return head + `<tr class="sub-row"><td colspan="7"><div class="sub-panel">${lines}${give}</div></td></tr>`;
     }).join('') || '<tr><td colspan="7" class="text-secondary">' + (D.payments.length ? 'No payment matches that. Clear the search or set the filters back to Any.' : 'No payments yet.') + '</td></tr>';
@@ -183,7 +183,10 @@
       const r = await call('POST', { action, email: $('#a-email').value, product: $('#a-prod').value, hours: +$('#a-dur').value || undefined });
       if (action === 'lookup') {
         const s = r.student;
-        out.innerHTML = `${esc(s.email)}${(r.payments.find((p) => p.contact) || {}).contact ? '<br>Phone: ' + esc(phoneFmt(r.payments.find((p) => p.contact).contact)) : ''}<br>First seen: ${when(s.first) || 'never'}<br>Last sign-in: ${when(s.last) || 'never'} (${s.logins} sign-ins)<br>Pro for: ${s.owned.join(', ') || 'none'}<br>Payments: ${r.payments.map((p) => esc(p.product) + ' ' + (p.manual ? 'manual' : rs(p.amount)) + ' ' + esc(p.status) + ' ' + esc(p.id)).join('; ') || 'none'}`;
+        out.innerHTML = `${esc(s.email)}${(r.payments.find((p) => p.contact) || {}).contact ? '<br>Phone: ' + esc(phoneFmt(r.payments.find((p) => p.contact).contact)) : ''}<br>First seen: ${when(s.first) || 'never'}<br>Last sign-in: ${when(s.last) || 'never'} (${s.logins} sign-ins)<br>Pro for: ${s.owned.join(', ') || 'none'}<br>Payments: ${r.payments.map((p) => esc(p.product) + ' ' + (p.manual ? 'manual' : rs(p.amount)) + ' ' + esc(p.status) + ' ' + esc(p.id)).join('; ') || 'none'}` +
+          // Gift Pro (G2): a gift's record is under the friend's email (refund it there, or type the buyer's email)
+          `<br>Gifts given: ${((r.gifts || {}).given || []).map((g) => esc(g.product) + ' to ' + esc(g.to) + ' ' + rs(g.amount) + ' ' + esc(g.status)).join('; ') || 'none'}` +
+          `<br>Gifts received: ${((r.gifts || {}).received || []).map((g) => esc(g.product) + ' from ' + esc(g.from) + ' ' + esc(g.status)).join('; ') || 'none'}`;
       } else { out.innerHTML = action === 'grant' ? 'Pro given' + (r.until ? ' until ' + when(new Date(r.until).toISOString()) : ' with no end date') + '.' : 'Pro removed.'; await load(); }
     } catch (e) { out.textContent = e.message; }
   }

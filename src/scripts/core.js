@@ -34,11 +34,13 @@ export function match(subj, q) {
 }
 
 // ---------------------------------------------------------------- status toasts: offline, back online, a script failing
-const toast = $('#toast'), toastText = $('#toast-text'), toastBtn = $('#toast-btn');
+const toast = $('#toast'), toastText = $('#toast-text'), toastBtn = $('#toast-btn'), toastLink = $('#toast-link');
 let toastTimer = 0;
-export function say(text, { warn = false, reload = false, hold = false, ms = 4000 } = {}) {
+// link: { href, text } adds one link to the toast (Gift Pro's Share on WhatsApp)
+export function say(text, { warn = false, reload = false, hold = false, ms = 4000, link = null } = {}) {
   clearTimeout(toastTimer);
   toastText.textContent = text; toastBtn.hidden = !reload;
+  toastLink.hidden = !link; if (link) { toastLink.href = link.href; toastLink.textContent = link.text; }
   toast.classList.toggle('is-warn', warn); toast.hidden = false;
   if (!hold) toastTimer = setTimeout(() => { toast.hidden = true; }, ms);
 }
@@ -71,6 +73,32 @@ let rewardOn = false;
   }
 }
 const refToken = () => { try { const t = localStorage.getItem(REF_KEY); return t && REF_RE.test(t) ? t : ''; } catch { return ''; } };
+// Gift Pro (G2): the whole cart can be bought for a friend's VIT email (api/create-order { gift }). Kept with the cart,
+// so it survives the sign-in step. In gift mode your own Pro doesn't matter (you can gift a subject you have), the 50%
+// reward is off (it is for your own purchase; the server refuses it too), codes still work (your one use), and the
+// friend's link (ref) is not sent (a gift credits nobody and is not your first purchase).
+const GIFT_KEY = 'notix-gift';
+const gift = (() => { try { const g = JSON.parse(localStorage.getItem(GIFT_KEY)); if (g && g.on) return { on: true, email: String(g.email || '').slice(0, 120) }; } catch { /* ignore */ } return { on: false, email: '' }; })();
+const saveGift = () => { try { gift.on ? localStorage.setItem(GIFT_KEY, JSON.stringify(gift)) : localStorage.removeItem(GIFT_KEY); } catch { /* storage blocked: it just won't persist */ } };
+const giftEmail = () => gift.email.trim().toLowerCase();
+// what is wrong with the friend's email, or '' (the server checks the same and decides)
+function giftProblem() {
+  const e = giftEmail(), dom = (S && S.domain) || 'vitstudent.ac.in';
+  if (!e) return "Enter your friend's VIT email.";
+  if (!new RegExp('^[a-z0-9._%+-]+@' + dom.replace(/\./g, '\\.') + '$').test(e)) return `Enter your friend's VIT student email (it ends in @${dom}).`;
+  if (S && S.user && e === S.user) return "That's your own email. To buy for yourself, turn off This is a gift.";
+  return '';
+}
+function giftMsg(text, warn) {
+  const m = $('#gift-msg'); m.textContent = text || ''; m.hidden = !text; m.classList.toggle('is-warn', !!warn);
+  $('#gift-in').setAttribute('aria-invalid', String(!!warn));
+}
+// subjects you own leave the cart, except in gift mode
+function dropOwned() { if (S && !gift.on) for (const p of S.products) if (p.owned && cart.has(p.code)) setInCart(p.code, false); }
+function setGift(on) {
+  gift.on = on; if (on) rewardOn = false;
+  saveGift(); giftMsg(''); dropOwned(); renderCart();
+}
 const saveCart = () => { try { localStorage.setItem(CART_KEY, JSON.stringify([...cart])); } catch { /* storage blocked: the cart just won't persist */ } };
 const pill = $('#pill');
 function setNum(el, v) {
@@ -96,6 +124,7 @@ const touch = matchMedia('(pointer: coarse)').matches;
 function paintAdd(code) {
   const on = cart.has(code);
   $$(`.tile__add[data-code="${code}"], .try__add[data-code="${code}"], .r-pro[data-code="${code}"]`).forEach((b) => {
+    if (b.classList.contains('is-owned')) return; // "You have Pro" stays, even while the subject is in a gift cart
     b.classList.toggle('is-in', on); b.setAttribute('aria-pressed', String(on));
     b.firstChild.textContent = on ? 'In cart ' : (b.classList.contains('r-pro') ? '+ Pro ' : 'Add Pro ');
   });
@@ -133,9 +162,13 @@ function renderBox() {
   $('#cartbox-foot').hidden = items.length === 0;
   const q = quote([...cart]);
   $('#cartbox-sum').textContent = '₹' + q.total;
+  $('#gift-on').checked = gift.on; $('#gift-box').hidden = !gift.on;
+  const gin = $('#gift-in'); if (document.activeElement !== gin && gin.value !== gift.email) gin.value = gift.email;
+  if (S && S.domain) gin.placeholder = 'friend@' + S.domain;
+  $('#cartbox-pay').textContent = gift.on ? 'Pay for the gift by UPI' : 'Pay by UPI';
   const rewards = (S && S.user && S.rewards) || 0;
-  if (!rewards) rewardOn = false;
-  $('#rw-row').hidden = !rewards;
+  if (!rewards || gift.on) rewardOn = false;
+  $('#rw-row').hidden = !rewards || gift.on;
   $('#rw-on').checked = rewardOn;
   $('#rw-left').textContent = `${rewards} ready · whole cart`;
   $('#rw-amt').textContent = rewardOn && q.discount ? '−₹' + q.discount : '';
@@ -166,6 +199,18 @@ box.addEventListener('click', (e) => {
   if (rm) { setInCart(rm.dataset.rm, false); renderBox(); if (!cart.size) $('#cartbox-empty').focus?.(); }
 });
 $('#cartbox-pay').addEventListener('click', () => { setBox(false); startBuy([...cart]); });
+$('#gift-on').addEventListener('change', (e) => { setGift(e.target.checked); if (gift.on) $('#gift-in').focus(); });
+$('#gift-in').addEventListener('input', (e) => { gift.email = e.target.value.slice(0, 120); saveGift(); if (!$('#gift-msg').hidden) giftMsg(''); });
+// "Gift this subject" (subject pages): the subject goes in the cart, gift mode on, the cart opens at the email field.
+// The rest of the cart stays; the panel says everything in it goes to the friend.
+$$('[data-gift]').forEach((b) => b.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const code = b.dataset.gift; if (!byCode(code)) return;
+  if (!gift.on) setGift(true);
+  setInCart(code, true, b);
+  setBox(true); $('#gift-in').focus();
+  if (!cartBtn.getBoundingClientRect().bottom || cartBtn.getBoundingClientRect().bottom < 0) scrollTop();
+}));
 // discount code (F10): checked by the server (api/offers quote), then priced here the same way the server will price
 // the order. The code is kept with the cart, so it survives a reload; a code that stopped working is dropped at Pay.
 $('#code-form').addEventListener('submit', async (e) => {
@@ -258,13 +303,30 @@ function renderAccount() {
   $('#signin-btn').hidden = !!u;
   $('#acct-me').hidden = !u;
   if (u) { $('#acct-initial').textContent = u[0].toUpperCase(); $('#acct-who').textContent = u; $('#acct-btn').setAttribute('aria-label', `Account: ${u}`); }
-  // the server's prices and ownership are the truth; owned subjects leave the cart
+  // the server's prices and ownership are the truth; owned subjects leave the cart (unless it is a gift)
   if (S) for (const p of S.products) {
     const s = byCode(p.code); if (s) s.price = p.price / 100;
-    if (p.owned && cart.has(p.code)) setInCart(p.code, false);
     paintOwned(p.code, p.owned);
   }
+  dropOwned();
   renderCart();
+  showGifts(u ? S.gifts || [] : []);
+}
+// Gift Pro (G2), the friend's side: the account menu says who gave which subjects, and a toast says it once per gift
+// (remembered on this device; the record itself is the only storage)
+const SEEN_KEY = 'notix-gifts-seen';
+function showGifts(gifts) {
+  const el = $('#acct-gift'), by = {};
+  gifts.forEach((g) => { (by[g.from] = by[g.from] || []).push(byCode(g.code)?.name || g.code); });
+  const froms = Object.keys(by);
+  el.hidden = !froms.length;
+  el.innerHTML = froms.map((f) => `Gifted by <b>${esc(f)}</b>: ${esc(by[f].join(', '))}`).join('<br>');
+  let seen = []; try { seen = JSON.parse(localStorage.getItem(SEEN_KEY)) || []; } catch { /* ignore */ }
+  const fresh = gifts.filter((g) => !seen.includes(g.code + '|' + g.from + '|' + g.at));
+  if (!fresh.length) return;
+  const f = fresh[0].from, names = fresh.filter((g) => g.from === f).map((g) => byCode(g.code)?.name || g.code).join(', ');
+  say(`${f} gifted you Pro for ${names}. Open the notes and sign in there with this account.`, { hold: true });
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify([...seen, ...fresh.map((g) => g.code + '|' + g.from + '|' + g.at)].slice(-50))); } catch { /* ignore */ }
 }
 async function boot() {
   // the account slot shimmers until this answers; after 6 s it gives up quietly and shows "Sign in"
@@ -332,8 +394,10 @@ export function quote(codes) {
 let pendingBuy = null;
 const isOwned = (code) => !!(S && S.products.some((p) => p.code === code && p.owned));
 export async function startBuy(codes) {
-  codes = codes.filter((c) => byCode(c) && !isOwned(c));
+  codes = codes.filter((c) => byCode(c) && (gift.on || !isOwned(c)));
   if (!codes.length) return;
+  const why = gift.on && giftProblem();
+  if (why) { setBox(true); giftMsg(why, true); $('#gift-in').focus(); return; }
   if (!S || !S.user) { pendingBuy = codes; openSignIn(codes[0]); return; }
   pendingBuy = null;
   const pay = $('.pill__pay'); pay.disabled = true; pay.classList.add('is-busy');
@@ -341,18 +405,20 @@ export async function startBuy(codes) {
   try {
     if (!window.Razorpay) await loadScript('https://checkout.razorpay.com/v1/checkout.js');
     const req = { products: codes };
-    if (rewardOn) req.reward = true; else if (offer) req.code = offer.code;
-    if (refToken()) req.ref = refToken();
+    if (gift.on) req.gift = giftEmail();
+    if (rewardOn && !gift.on) req.reward = true; else if (offer) req.code = offer.code;
+    if (refToken() && !gift.on) req.ref = refToken();
     const o = await api('/api/create-order', req);
     try { localStorage.setItem('st_order', o.orderId); } catch { /* ignore */ }
     const names = codes.map((c) => byCode(c).name).join(', ');
     const rz = new window.Razorpay({
-      key: o.keyId, order_id: o.orderId, amount: o.amount, currency: o.currency, name: 'Notix', description: 'Pro for ' + names,
-      prefill: { email: o.email }, notes: { product: 'pro-store', item: codes.join(','), email: o.email }, theme: { color: '#2d5bff' },
+      key: o.keyId, order_id: o.orderId, amount: o.amount, currency: o.currency, name: 'Notix', description: (o.gift ? 'Pro gift for ' : 'Pro for ') + names,
+      // these notes are only labels in Razorpay; the server reads the order's own notes (who gets Pro, and the gift)
+      prefill: { email: o.email }, notes: Object.assign({ product: 'pro-store', item: codes.join(','), email: o.email }, o.gift ? { gift: o.gift } : {}), theme: { color: '#2d5bff' },
       // UPI only: the server unlocks Pro for UPI payments alone (checkPayment), so other methods would take money and unlock nothing
       method: { upi: true, card: false, netbanking: false, wallet: false, emi: false, paylater: false },
       handler: async (r) => {
-        try { await api('/api/verify', r); await unlocked(codes); }
+        try { const v = await api('/api/verify', r); await unlocked(codes, v.gift); }
         catch { await checkOrder(o.orderId); }
         done();
       },
@@ -371,26 +437,35 @@ export async function startBuy(codes) {
       say(`${e.message} Your total is now ₹${cartTotal()}. Tap Pay again to buy at that price.`, { warn: true, hold: true });
       return;
     }
+    if (gift.on && e.data && (e.data.badGift || e.status === 409)) { // the friend's email, or what they already own: say it by the field
+      setBox(true); giftMsg(e.message, true); $('#gift-in').focus();
+      return;
+    }
     say(e.message, { warn: true });
     if (e.status === 401) { await boot(); openSignIn(codes[0]); }
     if (e.status === 409) await boot(); // already owned: the session refresh takes it out of the cart
   }
 }
-async function unlocked(codes) {
+// to: the friend's email when the payment was a gift (from api/verify)
+async function unlocked(codes, to) {
   codes.forEach((c) => setInCart(c, false));
-  if (offer) setOffer(null); // each student can use a code once
+  if (offer) setOffer(null); // each student can use a code once (a gift used the buyer's)
   rewardOn = false; // a reward is one purchase (boot() below brings the new count)
-  try { localStorage.removeItem(REF_KEY); } catch { /* ignore */ } // only a first purchase can credit a friend
+  if (to) { gift.on = false; gift.email = ''; saveGift(); } // a gift is not your first purchase, so a friend's link still counts later
+  else { try { localStorage.removeItem(REF_KEY); } catch { /* ignore */ } } // only a first purchase can credit a friend
   await boot();
   const names = codes.map((c) => byCode(c)?.name).filter(Boolean).join(', ');
-  say(`Pro unlocked for ${names}. Open the notes and sign in there with the same account.`, { hold: true });
-  emit('notix:unlocked', { codes });
+  if (to) {
+    const msg = `I got you Notix Pro for ${names}. Sign in at ${location.origin} with ${to} to use it.`;
+    say(`Pro sent to ${to}. Tell them to sign in with that email.`, { hold: true, link: { href: 'https://wa.me/?text=' + encodeURIComponent(msg), text: 'Tell them on WhatsApp' } });
+  } else say(`Pro unlocked for ${names}. Open the notes and sign in there with the same account.`, { hold: true });
+  emit('notix:unlocked', { codes, gift: to || null });
 }
 // "the page lost the callback" (UPI apps often close the tab): ask the server to look the order up at Razorpay
 async function checkOrder(orderId, quiet) {
   try {
     const r = await api('/api/verify', { action: 'check', orderId });
-    if (r.ok) { await unlocked(r.items || [r.item]); return true; }
+    if (r.ok) { await unlocked(r.items || [r.item], r.gift); return true; }
   } catch (e) { if (!quiet) say(e.message, { warn: true }); }
   return false;
 }

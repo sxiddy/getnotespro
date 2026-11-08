@@ -25,6 +25,8 @@ const description = `${s.name} (${s.code}) notes for VIT, free to read: ${s.modu
       <div class="subj__buy">
         <a class="tile__read subj__read" href={s.site}>Read free <span aria-hidden="true">↗</span></a>
         <button class="tile__add subj__add" type="button" data-code={s.code} aria-pressed="false">Add Pro <span>₹{s.price}</span></button>
+        <!-- Gift Pro (G2): puts this subject in the cart in gift mode and opens the cart at the friend's email field -->
+        <button class="btn btn--ghost subj__gift" type="button" data-gift={s.code} aria-controls="cartbox">Gift this subject</button>
         <p class="subj__once mono">₹{s.price} once · no subscription · UPI</p>
       </div>
     </div>

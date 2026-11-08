@@ -251,3 +251,14 @@ html.laptop.st-on dialog[open] button, html.laptop.st-on dialog[open] a { cursor
 .invbox__stats div { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); }
 .invbox__stats dt { font-size: 12.5px; color: var(--ink-3); }
 .invbox__stats dd { margin: 4px 0 0; font-size: 20px; color: var(--ink); }
+
+/* ---------- Gift Pro (G2): cart gift switch + friend's email, account-menu note, subject-page button ---------- */
+.cartbox__gift { margin-top: 8px; }
+.cartbox__gift[hidden] { display: none; }
+.cartbox__gl { display: block; margin: 0 0 6px; font-size: 13px; color: var(--ink-2); }
+.cartbox__email { display: block; width: 100%; font-family: inherit; font-size: 16px; text-transform: none; letter-spacing: 0; }
+.cartbox__email[aria-invalid=true] { border-color: rgba(255, 107, 107, .7); }
+.acct__gift { margin: 4px 0 0; padding: 8px 10px; border-radius: var(--r-sm); background: var(--blue-soft); color: var(--ink-2); font-size: 13px; overflow-wrap: anywhere; }
+.acct__gift[hidden] { display: none; }
+.acct__gift b { color: var(--ink); font-weight: 600; }
+.subj__gift { grid-column: 1 / -1; justify-content: center; min-height: 44px; height: 44px; font-size: 15px; color: var(--ink); }

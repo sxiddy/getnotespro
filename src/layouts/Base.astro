@@ -68,7 +68,7 @@ const boot = JSON.stringify({ subjects: clientSubjects, request: SITE.request, s
 </div>
 
 <!-- status toasts: offline, back online, something failed -->
-<div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toast-text"></span><button type="button" id="toast-btn" hidden>Reload</button></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toast-text"></span><button type="button" id="toast-btn" hidden>Reload</button><a id="toast-link" href="#" target="_blank" rel="noopener" hidden></a></div>
 
 <!-- sign-in: VIT Google account (and, on a local run with DEV_LOGIN=1, any @vitstudent.ac.in address) -->
 <dialog class="dlg" id="signin-dlg" aria-labelledby="dlg-title">
