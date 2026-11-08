@@ -56,12 +56,12 @@ async function snapshot() {
   codes.forEach((c, i) => {
     for (const email in paid[c]) {
       const x = parse(paid[c][email]);
-      payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: !!x.manual, order: x.order || '', method: x.method || '', contact: x.contact || '', until: x.until || 0, status: x.manual ? (isLive(paid[c][email]) ? 'manual' : 'expired') : 'paid' });
+      payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: !!x.manual, order: x.order || '', method: x.method || '', contact: x.contact || '', until: x.until || 0, status: x.manual ? (isLive(paid[c][email]) ? 'manual' : 'expired') : 'paid', giftFrom: x.giftFrom || '' });
       if (x.manual) { if (isLive(paid[c][email])) per[i].manual++; } else { per[i].count++; per[i].revenue += x.amount || 0; }
     }
   });
   codes.forEach((c) => {
-    for (const email in refd[c]) { const x = parse(refd[c][email]); payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: false, order: x.order || '', method: x.method || '', contact: x.contact || '', status: 'refunded', refundedAt: x.refundedAt || '' }); }
+    for (const email in refd[c]) { const x = parse(refd[c][email]); payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: false, order: x.order || '', method: x.method || '', contact: x.contact || '', status: 'refunded', refundedAt: x.refundedAt || '', giftFrom: x.giftFrom || '' }); }
   });
   payments.sort((a, b) => String(b.at).localeCompare(String(a.at)));
   const emails = new Set([...Object.keys(first), ...Object.keys(last), ...codes.flatMap((c) => Object.keys(paid[c]))]);
@@ -83,23 +83,33 @@ async function reconcile(days) {
       const its = itemsOf(n.item);
       if (n.product !== 'pro-store' || !its) continue;
       if ((p.amount_refunded || 0) > 0) { // refunded in Razorpay: a full refund ends Pro here too
-        for (const code of its) await recordRefund({ email: normEmail(n.email), code, paymentId: p.id, refundId: 'rf_' + p.id + (its.length > 1 ? '_' + code : ''), amount: p.amount_refunded, full: p.amount_refunded >= p.amount, reason: 'refund in Razorpay', by: 'razorpay' });
+        // whose Pro: the order's notes say (a gift's is the friend's); the payment's notes only name the buyer
+        const ri = orderInfo(p.order_id ? await razorpay('GET', '/orders/' + p.order_id) : null);
+        for (const code of its) await recordRefund({ email: ri.items ? ri.to : normEmail(n.email), code, paymentId: p.id, refundId: 'rf_' + p.id + (its.length > 1 ? '_' + code : ''), amount: p.amount_refunded, full: p.amount_refunded >= p.amount, reason: 'refund in Razorpay', by: 'razorpay' });
         continue;
       }
       if (p.status !== 'captured') continue;
       found++;
       const email = normEmail(n.email);
       if (!isStudentEmail(email)) { skipped++; continue; }
-      const [has, rec] = await store.pipeline([['HEXISTS', 'paid:' + its[0], email], ['HGET', 'paid:' + its[0], email]]);
-      if (has === 1 || has === '1') { // already recorded: just add the phone number if it was saved without one
+      // already recorded: just add the phone number if it was saved without one
+      const fill = async (who, code, rec) => {
         const x = parse(rec);
-        if (!x.contact && p.contact) { x.contact = p.contact; await store.pipeline([['HSET', 'paid:' + its[0], email, JSON.stringify(x)]]); filled++; }
-        continue;
-      }
+        if (!x.contact && p.contact) { x.contact = p.contact; await store.pipeline([['HSET', 'paid:' + code, who, JSON.stringify(x)]]); filled++; }
+      };
+      const [rec] = await store.pipeline([['HGET', 'paid:' + its[0], email]]);
+      if (rec != null && parse(rec).id === p.id) { await fill(email, its[0], rec); continue; }
       // record from the order's own notes (set by the server), not the payment's (the checkout page sets those);
       // a discounted order carries each subject's share and the code, whose use is spent here too
       const info = orderInfo(p.order_id ? await razorpay('GET', '/orders/' + p.order_id) : null);
       if (!info.items || !isStudentEmail(info.email)) { skipped++; continue; }
+      if (!info.gift && rec != null) { await fill(email, its[0], rec); continue; } // the buyer has it (as before: never overwritten here)
+      if (info.gift) { // Gift Pro (G2): the record is under the friend's email
+        const [grec] = await store.pipeline([['HGET', 'paid:' + info.items[0], info.to]]);
+        const gx = grec == null ? null : parse(grec);
+        if (gx && gx.id === p.id) { await fill(info.to, info.items[0], grec); continue; }
+        if (gx && !gx.manual) continue; // the friend has it from another payment: recordPurchase would keep theirs anyway
+      }
       await recordPurchase(Object.assign(info, { payment: p })); added++;
     }
     if (items.length < 100) break;
@@ -126,13 +136,28 @@ module.exports = handle(async (req, res) => {
   const email = normEmail(b.email);
   if (!isStudentEmail(email)) return send(res, 400, { error: `Enter a student email (…@${DOMAIN}).` });
   if (a === 'lookup') {
-    const s = (await snapshot()).students.find((x) => x.email === email) || { email, first: null, last: null, logins: 0, owned: [] };
-    const pays = (await snapshot()).payments.filter((p) => p.email === email);
-    return send(res, 200, { ok: true, student: s, payments: pays });
+    const snap = await snapshot();
+    const s = snap.students.find((x) => x.email === email) || { email, first: null, last: null, logins: 0, owned: [] };
+    const pays = snap.payments.filter((p) => p.email === email);
+    // Gift Pro (G2): what this student gave (records under each friend's email) and what they were given
+    const row = (p) => ({ product: p.product, id: p.id, at: p.at, amount: p.amount, status: p.status });
+    const gifts = {
+      given: snap.payments.filter((p) => p.giftFrom === email).map((p) => Object.assign(row(p), { to: p.email })),
+      received: pays.filter((p) => p.giftFrom).map((p) => Object.assign(row(p), { from: p.giftFrom })),
+    };
+    return send(res, 200, { ok: true, student: s, payments: pays, gifts });
   }
   if (!isProduct(b.product)) return send(res, 400, { error: 'Pick a subject.' });
   if (a === 'refund') {
-    const [rec] = await store.pipeline([['HGET', 'paid:' + b.product, email]]);
+    let who = email; // whose Pro this is (for a gift: the friend's)
+    let [rec] = await store.pipeline([['HGET', 'paid:' + b.product, email]]);
+    if (rec == null) { // Gift Pro (G2): the record is under the friend's email; the admin may have typed the buyer's
+      const [flat] = await store.pipeline([['HGETALL', 'paid:' + b.product]]);
+      const hits = [];
+      for (let i = 0; flat && i + 1 < flat.length; i += 2) if (parse(flat[i + 1]).giftFrom === email) hits.push([flat[i], flat[i + 1]]);
+      if (hits.length > 1) return send(res, 409, { error: `${email} gave this subject to ${hits.map((h) => h[0]).join(', ')}. Enter the friend's email to refund one of them.` });
+      if (hits.length === 1) [who, rec] = hits[0];
+    }
     if (rec == null) return send(res, 404, { error: 'No active payment for that student and subject (already refunded, or never paid).' });
     const x = parse(rec);
     if (x.manual || !/^pay_/.test(x.id || '')) return send(res, 400, { error: 'That access was given manually, so there is no payment to refund. Use Remove Pro.' });
@@ -140,8 +165,8 @@ module.exports = handle(async (req, res) => {
     const sharePaise = full ? x.amount : paise; // a subject bought in a cart refunds its own share, never the whole payment
     if (!full && paise < 100) return send(res, 400, { error: 'A partial refund must be at least ₹1.' });
     const reason = String(b.reason || '').slice(0, 200);
-    const rf = await razorpay('POST', '/payments/' + x.id + '/refund', Object.assign({ notes: { reason, by: 'admin', product: 'pro-store', email } }, x.bundle || !full ? { amount: sharePaise } : {}));
-    const log = await recordRefund({ email, code: b.product, paymentId: x.id, refundId: rf.id, amount: rf.amount || (full ? x.amount : paise), full, reason, by: 'admin' });
+    const rf = await razorpay('POST', '/payments/' + x.id + '/refund', Object.assign({ notes: Object.assign({ reason, by: 'admin', product: 'pro-store', email: who }, x.giftFrom ? { giftFrom: x.giftFrom } : {}) }, x.bundle || !full ? { amount: sharePaise } : {}));
+    const log = await recordRefund({ email: who, code: b.product, paymentId: x.id, refundId: rf.id, amount: rf.amount || (full ? x.amount : paise), full, reason, by: 'admin' });
     return send(res, 200, { ok: true, refund: log, status: rf.status });
   }
   if (a === 'grant') {

@@ -4,8 +4,10 @@
 //       order's payments and record a captured or authorized one.
 //   Razorpay webhook (header x-razorpay-signature, secret RAZORPAY_WEBHOOK_SECRET): payment.authorized,
 //       payment.captured and order.paid unlock the student named in the order even if they closed the page.
+// Gift Pro (G2): the buyer is the one who checks the payment (the order's email); Pro is recorded for the friend
+// (_lib.recordPurchase), and the answer carries gift: <friend's email> so the page can say where it went.
 const crypto = require('crypto');
-const { send, body, hmac, safeEqual, env, razorpay, checkPayment, recordPurchase, recordRefund, normEmail, getUser, itemsOf, handle } = require('./_lib');
+const { send, body, hmac, safeEqual, env, razorpay, checkPayment, orderInfo, recordPurchase, recordRefund, getUser, itemsOf, handle } = require('./_lib');
 
 async function rawBody(req) {
   if (typeof req.body === 'string') return req.body;
@@ -24,7 +26,7 @@ async function unlockOrder(orderId, email) {
   const chk = await checkPayment(pays[0].id, orderId);
   if (!chk.ok) return { ok: false, why: chk.why };
   await recordPurchase(chk);
-  return { ok: true, paymentId: chk.payment.id, item: chk.item, items: chk.items };
+  return { ok: true, paymentId: chk.payment.id, item: chk.item, items: chk.items, gift: chk.gift || null };
 }
 
 module.exports = handle(async (req, res) => {
@@ -47,10 +49,10 @@ module.exports = handle(async (req, res) => {
         if (!paymentId) return send(res, 200, { ok: true, ignored: 'no payment id' });
         const pay = await razorpay('GET', '/payments/' + paymentId);
         const order = pay.order_id ? await razorpay('GET', '/orders/' + pay.order_id) : null, n = (order && order.notes) || {};
-        const its = itemsOf(n.item);
+        const info = orderInfo(order), its = info.items; // a gift's Pro is under the friend's email (info.to)
         if (!order || n.product !== 'pro-store' || !its) return send(res, 200, { ok: true, ignored: 'not a store payment' });
         const full = (pay.amount_refunded || 0) >= pay.amount;
-        for (const code of its) await recordRefund({ email: normEmail(n.email), code, paymentId, refundId: (rf.id || ('rf_' + paymentId)) + (its.length > 1 ? '_' + code : ''), amount: rf.amount || pay.amount_refunded || 0, full, reason: 'refund in Razorpay', by: 'razorpay' });
+        for (const code of its) await recordRefund({ email: info.to, code, paymentId, refundId: (rf.id || ('rf_' + paymentId)) + (its.length > 1 ? '_' + code : ''), amount: rf.amount || pay.amount_refunded || 0, full, reason: 'refund in Razorpay', by: 'razorpay' });
         return send(res, 200, { ok: true, refunded: true, full });
       } catch (e) { return send(res, 500, { error: e.message }); }
     }
@@ -68,7 +70,7 @@ module.exports = handle(async (req, res) => {
     const orderId = String(b.orderId || '');
     if (!/^order_[A-Za-z0-9]+$/.test(orderId)) return send(res, 400, { error: 'Bad order id.' });
     const r = await unlockOrder(orderId, u.e);
-    if (r.ok) return send(res, 200, { ok: true, paymentId: r.paymentId, item: r.item });
+    if (r.ok) return send(res, 200, { ok: true, paymentId: r.paymentId, item: r.item, items: r.items, gift: r.gift });
     return send(res, r.pending ? 202 : 402, { ok: false, pending: !!r.pending, error: r.why });
   }
 
@@ -80,5 +82,5 @@ module.exports = handle(async (req, res) => {
   if (!chk.ok) return send(res, 402, { error: chk.why });
   if (chk.email !== u.e) return send(res, 403, { error: 'This payment was made from a different account.' });
   await recordPurchase(chk); // chk.email is u.e (checked just above)
-  send(res, 200, { ok: true, paymentId: p, item: chk.item, items: chk.items });
+  send(res, 200, { ok: true, paymentId: p, item: chk.item, items: chk.items, gift: chk.gift || null });
 });

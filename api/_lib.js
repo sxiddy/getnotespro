@@ -132,22 +132,29 @@ async function checkPayment(paymentId, orderId) {
   if (p.currency !== 'INR' || !(p.amount >= 100)) return { ok: false, why: 'Payment amount does not match.' };
   const order = p.order_id ? await razorpay('GET', '/orders/' + p.order_id) : null;
   const n = (order && order.notes) || {};
-  const items = itemsOf(n.item);
-  if (!order || n.product !== 'pro-store' || !items) return { ok: false, why: 'Payment was not for a Pro unlock.' };
+  const info = orderInfo(order); // null items also covers a gift order whose recipient is not a usable VIT email
+  if (!order || n.product !== 'pro-store' || !info.items) return { ok: false, why: 'Payment was not for a Pro unlock.' };
   if (p.status === 'authorized') p = await razorpay('POST', `/payments/${paymentId}/capture`, { amount: p.amount, currency: 'INR' });
   if (p.status !== 'captured') return { ok: false, why: `Payment is ${p.status}, not completed.` };
-  return Object.assign({ ok: true, payment: p }, orderInfo(order));
+  return Object.assign({ ok: true, payment: p }, info);
 }
 // what a store order's notes (written by create-order, server-side) say: who, which subjects, and for a discount
 // code (F10) the code and what each subject cost ("shares", paise, in the same order as the subjects). Referrals (G8):
 // "ref" is the link the buyer came through, "reward" marks an order priced with the student's own 50% reward.
+// Gift Pro (G2): "gift" is the friend's VIT email; "email" stays the buyer (who paid, and whose code use is spent).
+// "to" is who gets Pro: the friend for a gift, else the buyer. A gift order never carries a reward or a referral (the
+// reward is for the student's own purchase; a gift is not the buyer's first purchase and credits nobody), so both are
+// ignored even if the notes had them. A gift to a non-VIT email or to the buyer (create-order refuses both, so only a
+// tampered order can have one) gives null items: nothing is recorded for anyone.
 function orderInfo(order) {
-  const n = (order && order.notes) || {}, items = itemsOf(n.item);
-  if (!items) return { order, email: normEmail(n.email), item: null, items: null, shares: null, offer: null, reward: false, ref: null };
+  const n = (order && order.notes) || {}, items = itemsOf(n.item), email = normEmail(n.email);
+  const gift = n.gift == null || n.gift === '' ? null : normEmail(n.gift);
+  const none = { order, email, gift: null, to: email, item: null, items: null, shares: null, offer: null, reward: false, ref: null };
+  if (!items || (gift !== null && (!isStudentEmail(gift) || gift === email))) return none;
   const sh = String(n.shares || '').split(',').map(Number);
   const shares = n.shares && sh.length === items.length && sh.every((x) => Number.isInteger(x) && x >= 0) && sh.reduce((a, b) => a + b, 0) === order.amount ? sh : null;
   const R = require('./_referrals');
-  return { order, email: normEmail(n.email), item: items[0], items, shares, offer: n.offer ? String(n.offer) : null, reward: n.reward === R.REWARD && !n.offer, ref: R.normToken(n.ref) || null };
+  return { order, email, gift, to: gift || email, item: items[0], items, shares, offer: n.offer ? String(n.offer) : null, reward: !gift && n.reward === R.REWARD && !n.offer, ref: gift ? null : R.normToken(n.ref) || null };
 }
 
 // Pro access is kept in one hash per subject (paid:<CODE>), email -> payment details.
@@ -157,28 +164,65 @@ async function recordPaid(email, code, p, share, extra) {
   await store.pipeline([['HSET', 'paid:' + code, email, JSON.stringify(Object.assign({ id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: share == null ? p.amount : share, order: p.order_id || '', method: p.method || '', contact: p.contact || '' }, share == null ? {} : { bundle: p.amount }, extra || {}))]]);
 }
 // records every subject of a (possibly multi-subject) payment. Each gets its share of the total: the order's own
-// shares when it has them (discounted orders always do), otherwise its current price.
-async function recordPaidAll(email, items, p, shares, extra) {
-  if (items.length === 1) return recordPaid(email, items[0], p, null, extra);
+// shares when it has them (discounted orders always do), otherwise its current price. Subjects in "skip" are not
+// written (their share is still counted, so the others keep the right amounts).
+async function recordPaidAll(email, items, p, shares, extra, skip) {
+  if (items.length === 1) return skip && skip.has(items[0]) ? undefined : recordPaid(email, items[0], p, null, extra);
   let left = p.amount;
   for (let i = 0; i < items.length; i++) {
     const share = shares ? shares[i] : i === items.length - 1 ? left : Math.min(left, priceOf(items[i]));
-    left -= share; await recordPaid(email, items[i], p, share, extra);
+    left -= share; if (!(skip && skip.has(items[i]))) await recordPaid(email, items[i], p, share, extra);
   }
+}
+// Gift Pro (G2): subjects the friend already holds from ANOTHER real payment (they bought it, or got another gift,
+// between the order and this payment). Their record is kept, so that payment can still be refunded; the owner is told
+// to refund this gift's share in Razorpay. A manual grant, or this same payment reported again, is overwritten as usual.
+async function giftClashes(to, items, paymentId) {
+  const store = require('./_store');
+  const recs = await store.pipeline(items.map((c) => ['HGET', 'paid:' + c, to]));
+  const skip = new Set();
+  items.forEach((c, i) => {
+    if (recs[i] == null || !isLive(recs[i])) return;
+    let x = {}; try { x = JSON.parse(recs[i]) || {}; } catch (e) { /* ignore */ }
+    if (!x.manual && x.id && x.id !== paymentId) skip.add(c);
+  });
+  return skip;
 }
 // a verified payment (from checkPayment): give Pro, and if a discount code was used, spend the student's one use of it.
 // Referrals (G8): a reward order spends one reward; a first purchase through a friend's link credits that friend.
 // Safe to call again for the same payment (the checkout, the webhook and Check my payment can all report it).
+// Gift Pro (G2): Pro goes to chk.gift (the friend) with giftFrom = the buyer, never to the buyer. A discount code's use
+// is the buyer's (they chose it and paid). A gift spends no reward and credits no referrer (orderInfo drops both too).
 async function recordPurchase(chk) {
   const R = require('./_referrals');
-  const firstBuy = chk.ref ? !(await R.boughtBefore(chk.email, chk.payment.id)) : false; // asked before this payment is recorded
-  await recordPaidAll(chk.email, chk.items, chk.payment, chk.shares, chk.offer ? { offer: chk.offer } : chk.reward ? { offer: R.REWARD } : null);
+  const gift = chk.gift || null, to = gift || chk.email;
+  const reward = !gift && chk.reward, ref = gift ? null : chk.ref;
+  const firstBuy = ref ? !(await R.boughtBefore(chk.email, chk.payment.id)) : false; // asked before this payment is recorded
+  const extra = Object.assign({}, chk.offer ? { offer: chk.offer } : reward ? { offer: R.REWARD } : {}, gift ? { giftFrom: chk.email } : {});
+  const skip = gift ? await giftClashes(to, chk.items, chk.payment.id) : null;
+  if (skip && skip.size) await require('./_notify').alert('gift-clash:' + chk.payment.id, `Gift payment ${chk.payment.id} from ${chk.email}: ${to} already had Pro for ${[...skip].join(', ')} from another payment. Refund that share of the gift in Razorpay.`);
+  await recordPaidAll(to, chk.items, chk.payment, chk.shares, Object.keys(extra).length ? extra : null, skip);
   if (chk.offer) await require('./_offers').spend(chk.offer, chk.email, { payment: chk.payment.id, order: chk.payment.order_id || '', at: new Date().toISOString() });
-  if (chk.reward) await R.spendReward(chk.email, chk.payment);
-  if (firstBuy) await R.credit(chk.ref, chk.email, chk.payment);
+  if (reward) await R.spendReward(chk.email, chk.payment);
+  if (firstBuy) await R.credit(ref, chk.email, chk.payment);
 }
 // a manual grant can end by itself: record.until is a time in ms
 const isLive = (raw) => { if (raw == null) return false; try { const x = JSON.parse(raw) || {}; return !(x.until && x.until <= Date.now()); } catch (e) { return true; } };
+
+// Gift Pro (G2): the live subjects someone was given, and who gave them: [{ code, from, at }] (for /api/session)
+async function giftsTo(email) {
+  const store = require('./_store');
+  if (!email || !store.configured()) return [];
+  const codes = Object.keys(PRODUCTS);
+  const res = await store.pipeline(codes.map((c) => ['HGET', 'paid:' + c, email]));
+  const out = [];
+  codes.forEach((c, i) => {
+    if (!isLive(res[i])) return;
+    let x = {}; try { x = JSON.parse(res[i]) || {}; } catch (e) { return; }
+    if (x.giftFrom) out.push({ code: c, from: String(x.giftFrom), at: x.at || '' });
+  });
+  return out;
+}
 
 async function ownedBy(email) {
   const store = require('./_store');
@@ -221,5 +265,5 @@ function handle(fn) {
 module.exports = {
   isLive,
   DOMAIN, PRODUCTS, priceOf, isProduct, env, send, body, hmac, safeEqual, normEmail, isStudentEmail, getUser, userCookie, clearUserCookie, REVIEW_EMAIL, reviewOn, reviewerCookie,
-  verifyGoogle, razorpay, checkPayment, orderInfo, recordPaid, recordPaidAll, recordPurchase, itemsOf, recordRefund, ownedBy, handle,
+  verifyGoogle, razorpay, checkPayment, orderInfo, recordPaid, recordPaidAll, recordPurchase, itemsOf, recordRefund, ownedBy, giftsTo, handle,
 };
