@@ -102,7 +102,7 @@
         <div class="ms-auto d-flex flex-wrap gap-2">
           <input class="form-control form-control-sm" id="q" type="search" placeholder="Search email, phone or payment ID" style="width:260px">
           <select class="form-select form-select-sm w-auto" id="f-sub" aria-label="Subject"></select>
-          <select class="form-select form-select-sm w-auto" id="f-status" aria-label="Status"><option value="all">Any status</option><option value="paid">Paid</option><option value="refunded">Refunded</option><option value="manual">Given manually</option><option value="temp">Temporary access</option><option value="expired">Expired</option></select>
+          <select class="form-select form-select-sm w-auto" id="f-status" aria-label="Status"><option value="all">Any status</option><option value="paid">Paid</option><option value="offline">Paid outside the website</option><option value="refunded">Refunded</option><option value="manual">Given manually</option><option value="temp">Temporary access</option><option value="expired">Expired</option></select>
           <select class="form-select form-select-sm w-auto" id="f-when" aria-label="When"><option value="all">Any time</option><option value="today">Today</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select>
           <select class="form-select form-select-sm w-auto" id="f-sort" aria-label="Sort"><option value="new">Sort: newest</option><option value="old">Sort: oldest</option><option value="amt">Sort: highest amount</option><option value="email">Sort: email A–Z</option></select>
           <button class="btn btn-sm" id="csv" type="button">Download</button>
@@ -134,6 +134,22 @@
           <div class="col-md-4 btn-list"><button class="btn btn-primary" id="a-grant" type="button">Give access</button><button class="btn btn-outline-danger" id="a-revoke" type="button">Remove access</button><button class="btn" id="a-look" type="button">Look up</button></div>
         </div>
         <div class="mt-3 mono" id="a-out" role="status"></div>
+      </div>
+    </details></div>
+
+    <div class="card mb-3"><details>
+      <summary>Add a payment made outside the website</summary>
+      <div class="card-body pt-0">
+        <p class="text-secondary small">For a student who paid you directly (UPI, cash) because the website payment did not work. They get Pro for that subject with no end date, and the amount is added to Money received.</p>
+        <div class="row g-2">
+          <div class="col-md-4"><input class="form-control" id="o-email" type="email" placeholder="student@vitstudent.ac.in"></div>
+          <div class="col-md-3"><select class="form-select" id="o-prod" aria-label="Subject"></select></div>
+          <div class="col-md-2"><input class="form-control" id="o-amt" type="number" min="1" step="any" placeholder="Amount ₹" aria-label="Amount in rupees"></div>
+          <div class="col-md-3"><input class="form-control" id="o-date" type="date" aria-label="Date paid (empty = today)" title="Date paid (empty = today)"></div>
+          <div class="col-md-7"><input class="form-control" id="o-note" type="text" maxlength="120" placeholder="Note (optional): UPI reference, how they paid"></div>
+          <div class="col-md-5"><button class="btn btn-primary" id="o-go" type="button">Add payment and give Pro</button></div>
+        </div>
+        <div class="mt-3 mono" id="o-out" role="status"></div>
       </div>
     </details></div>
 
