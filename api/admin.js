@@ -4,6 +4,7 @@
 //   GET  /api/admin?part=visits -> { sites: [{ code, name, ok, error?, visits: {day: n}, funnel }] }  visitors counted by each notes website itself (store visits are not counted)
 //   GET  /api/admin?part=people -> { people: [{ email, first, last, logins, sites }], sites } everyone who signed in on any notes site or the store (unique emails)
 //     grant { email, product, hours? }  give Pro for one subject without a payment (recorded as manual); hours = it ends by itself after that long, absent = forever
+//     offline { email, product, rupees, date?, note? }  a student paid you outside the website: Pro forever, counted as a payment and in money received
 //     revoke { email, product }     take Pro for one subject away
 //     lookup { email }              everything about one student
 //     refund { email, product, amount? (paise; empty = full), reason }   refund through Razorpay; a full refund ends Pro
@@ -52,12 +53,12 @@ async function snapshot() {
   const refd = {}; codes.forEach((c, i) => { refd[c] = flat(res[codes.length + 3 + i]); });
   const refunds = Object.values(flat(res[codes.length * 2 + 3])).map(parse).sort((x, y) => String(y.at).localeCompare(String(x.at)));
   const payments = [];
-  const per = codes.map((c) => ({ code: c, name: PRODUCTS[c].name, price: priceOf(c), count: 0, manual: 0, revenue: 0 }));
+  const per = codes.map((c) => ({ code: c, name: PRODUCTS[c].name, price: priceOf(c), count: 0, manual: 0, revenue: 0, offline: 0, offlineRevenue: 0 }));
   codes.forEach((c, i) => {
     for (const email in paid[c]) {
       const x = parse(paid[c][email]);
-      payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: !!x.manual, order: x.order || '', method: x.method || '', contact: x.contact || '', until: x.until || 0, status: x.manual ? (isLive(paid[c][email]) ? 'manual' : 'expired') : 'paid', giftFrom: x.giftFrom || '' });
-      if (x.manual) { if (isLive(paid[c][email])) per[i].manual++; } else { per[i].count++; per[i].revenue += x.amount || 0; }
+      payments.push({ email, product: c, id: x.id || '', at: x.at || '', amount: x.amount || 0, manual: !!x.manual, order: x.order || '', method: x.method || '', contact: x.contact || '', until: x.until || 0, status: x.manual ? (isLive(paid[c][email]) ? 'manual' : 'expired') : 'paid', giftFrom: x.giftFrom || '', offline: !!x.offline, note: x.note || '' });
+      if (x.manual) { if (isLive(paid[c][email])) per[i].manual++; } else { per[i].count++; per[i].revenue += x.amount || 0; if (x.offline) { per[i].offline++; per[i].offlineRevenue += x.amount || 0; } }
     }
   });
   codes.forEach((c) => {
@@ -69,7 +70,7 @@ async function snapshot() {
     email, first: first[email] || null, last: last[email] || null, logins: parseInt(logins[email], 10) || 0, owned: codes.filter((c) => email in paid[c] && isLive(paid[c][email])),
   })).sort((a, b) => String(b.last || b.first || '').localeCompare(String(a.last || a.first || ''))).slice(0, 3000);
   const real = per.reduce((n, p) => n + p.revenue, 0);
-  return { products: per, totals: { revenue: real, payments: per.reduce((n, p) => n + p.count, 0), manual: per.reduce((n, p) => n + p.manual, 0), students: emails.size, refunded: refunds.reduce((n, r) => n + (r.amount || 0), 0), refunds: refunds.length }, payments: payments.slice(0, 1500), refunds: refunds.slice(0, 500), students };
+  return { products: per, totals: { revenue: real, payments: per.reduce((n, p) => n + p.count, 0), manual: per.reduce((n, p) => n + p.manual, 0), offline: per.reduce((n, p) => n + p.offline, 0), offlineRevenue: per.reduce((n, p) => n + p.offlineRevenue, 0), students: emails.size, refunded: refunds.reduce((n, r) => n + (r.amount || 0), 0), refunds: refunds.length }, payments: payments.slice(0, 1500), refunds: refunds.slice(0, 500), students };
 }
 
 async function reconcile(days) {
@@ -160,6 +161,7 @@ module.exports = handle(async (req, res) => {
     }
     if (rec == null) return send(res, 404, { error: 'No active payment for that student and subject (already refunded, or never paid).' });
     const x = parse(rec);
+    if (x.offline) return send(res, 400, { error: 'That student paid you outside the website, so Razorpay cannot refund it. Send the money back yourself, then use Remove Pro.' });
     if (x.manual || !/^pay_/.test(x.id || '')) return send(res, 400, { error: 'That access was given manually, so there is no payment to refund. Use Remove Pro.' });
     const paise = parseInt(b.amount, 10), full = !(paise > 0) || paise >= x.amount;
     const sharePaise = full ? x.amount : paise; // a subject bought in a cart refunds its own share, never the whole payment
@@ -177,6 +179,17 @@ module.exports = handle(async (req, res) => {
     const until = hours ? Date.now() + Math.round(hours * 3600e3) : 0;
     await store.pipeline([['HSET', 'paid:' + b.product, email, JSON.stringify(Object.assign({ id: 'manual', at: new Date().toISOString(), amount: 0, manual: true }, until ? { until } : {}))]]);
     return send(res, 200, { ok: true, until });
+  }
+  if (a === 'offline') { // paid you directly (UPI, cash) because the website checkout failed: Pro forever, and the amount counts as money received
+    const paise = Math.round(Number(b.rupees) * 100);
+    if (!(paise >= 100) || paise > 1e7) return send(res, 400, { error: 'Enter the amount they paid in rupees (at least ₹1).' });
+    const at = b.date ? new Date(b.date) : new Date();
+    if (isNaN(at) || at > Date.now() + 864e5) return send(res, 400, { error: 'That date is not valid.' });
+    const [cur] = await store.pipeline([['HGET', 'paid:' + b.product, email]]);
+    if (cur != null && isLive(cur) && !parse(cur).manual) return send(res, 400, { error: 'That student already has a payment recorded for this subject.' });
+    const note = String(b.note || '').trim().slice(0, 120);
+    await store.pipeline([['HSET', 'paid:' + b.product, email, JSON.stringify({ id: 'offline_' + Date.now().toString(36), at: at.toISOString(), amount: paise, offline: true, method: 'outside the website', note })]]);
+    return send(res, 200, { ok: true, amount: paise });
   }
   if (a === 'revoke') { await store.pipeline([['HDEL', 'paid:' + b.product, email]]); return send(res, 200, { ok: true }); }
   send(res, 400, { error: 'Unknown action.' });

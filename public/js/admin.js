@@ -29,14 +29,15 @@
     const T = D.totals;
     $('#stamp').innerHTML = 'Updated ' + when(D.now);
     const kpi = (label, val, sub) => `<div class="col-md-4"><div class="card"><div class="card-body"><div class="text-secondary">${label}</div><div class="big">${val}</div><div class="text-secondary small">${sub || '&nbsp;'}</div></div></div></div>`;
-    $('#kpis').innerHTML = kpi('Money received', rs(T.revenue), 'after refunds') + kpi('Students who paid', T.payments, 'currently have access') + kpi('Refunded', rs(T.refunded || 0), (T.refunds || 0) + ' refund' + (T.refunds === 1 ? '' : 's'));
+    $('#kpis').innerHTML = kpi('Money received', rs(T.revenue), 'after refunds' + (T.offline ? ' · ' + rs(T.offlineRevenue) + ' paid outside the website' : '')) + kpi('Students who paid', T.payments, T.offline ? T.offline + ' paid outside the website' : 'currently have access') + kpi('Refunded', rs(T.refunded || 0), (T.refunds || 0) + ' refund' + (T.refunds === 1 ? '' : 's'));
     $('#by-subject').textContent = D.products.map((p) => p.name + ': ' + p.count + ' paid (' + rs(p.revenue) + ')').join('   ·   ');
     const opts = D.products.map((p) => `<option value="${esc(p.code)}">${esc(p.code)} · ${esc(p.name)}</option>`).join('');
     if (!$('#a-prod').options.length) $('#a-prod').innerHTML = opts;
+    if (!$('#o-prod').options.length) { $('#o-prod').innerHTML = opts; offPrice(); }
     if (!$('#f-sub').options.length) $('#f-sub').innerHTML = '<option value="all">All subjects</option>' + opts;
     filter();
   }
-  const badge = (p) => p.status === 'refunded' ? '<span class="badge bg-red-lt">refunded</span>' : p.status === 'expired' ? '<span class="badge bg-secondary-lt">expired</span>' : p.status === 'manual' ? '<span class="badge bg-yellow-lt">' + (p.until ? 'temporary' : 'manual') + '</span>' : '<span class="badge bg-green-lt">paid</span>';
+  const badge = (p) => p.status === 'refunded' ? '<span class="badge bg-red-lt">refunded</span>' : p.status === 'expired' ? '<span class="badge bg-secondary-lt">expired</span>' : p.status === 'manual' ? '<span class="badge bg-yellow-lt">' + (p.until ? 'temporary' : 'manual') + '</span>' : p.offline ? '<span class="badge bg-teal-lt" title="Paid you outside the website">paid outside</span>' : '<span class="badge bg-green-lt">paid</span>';
   const ends = (p) => p.until ? (p.status === 'expired' ? 'ended ' : 'ends ') + when(new Date(p.until).toISOString()) : '';
   const DURS = '<option value="0">Forever</option><option value="6">6 hours</option><option value="24">1 day</option><option value="72">3 days</option><option value="168">7 days</option><option value="720">30 days</option>';
   // the payments that match the search and filters (all of them; the table shows the first SHOWN)
@@ -47,10 +48,10 @@
     const since = wh === 'today' ? now - sinceMidnight : wh === '7' ? now - 7 * 864e5 : wh === '30' ? now - 30 * 864e5 : 0;
     const list = D.payments.filter((p) => {
       if (sub !== 'all' && p.product !== sub) return false;
-      if (st === 'temp' ? !(p.until && p.status === 'manual') : st !== 'all' && p.status !== st) return false;
+      if (st === 'temp' ? !(p.until && p.status === 'manual') : st === 'offline' ? !p.offline : st !== 'all' && p.status !== st) return false;
       if (since && !(Date.parse(p.at) >= since)) return false;
       if (!q) return true;
-      return String(p.email).toLowerCase().includes(q) || String(p.id).toLowerCase().includes(q) || String(p.order).toLowerCase().includes(q) || (qd.length >= 3 && digits(p.contact).includes(qd));
+      return String(p.email).toLowerCase().includes(q) || String(p.id).toLowerCase().includes(q) || String(p.order).toLowerCase().includes(q) || String(p.note || '').toLowerCase().includes(q) || (qd.length >= 3 && digits(p.contact).includes(qd));
     });
     const by = { new: (a, b) => String(b.at).localeCompare(String(a.at)), old: (a, b) => String(a.at).localeCompare(String(b.at)), amt: (a, b) => (b.amount || 0) - (a.amount || 0), email: (a, b) => String(a.email).localeCompare(String(b.email)) }[so];
     return list.sort(by);
@@ -64,7 +65,7 @@
     list.forEach((p) => { const k = p.email; if (!(k in seen)) { seen[k] = groups.length; groups.push({ email: k, rows: [] }); } groups[seen[k]].rows.push(p); });
     const shown = groups.slice(0, SHOWN);
     const active = (p) => p.status === 'paid' || p.status === 'manual';
-    const actions = (p) => (p.status === 'paid' ? `<button class="btn btn-sm btn-outline-danger" data-refund="${esc(p.email)}|${esc(p.product)}|${p.amount}|${esc(p.id)}">Refund</button> ` : '') + (active(p) ? `<button class="btn btn-sm" data-revoke="${esc(p.email)}|${esc(p.product)}|${p.status}">Revoke</button>` : '');
+    const actions = (p) => (p.status === 'paid' && !p.offline ? `<button class="btn btn-sm btn-outline-danger" data-refund="${esc(p.email)}|${esc(p.product)}|${p.amount}|${esc(p.id)}">Refund</button> ` : '') + (active(p) ? `<button class="btn btn-sm" data-revoke="${esc(p.email)}|${esc(p.product)}|${p.status}">Revoke</button>` : '');
     $('#pay-rows').innerHTML = shown.map((g) => {
       const r0 = g.rows[0], contact = (g.rows.find((p) => p.contact) || {}).contact, open = OPEN.has(g.email), one = g.rows.length === 1;
       const paidSum = g.rows.reduce((a, p) => a + (p.status === 'paid' ? p.amount || 0 : 0), 0);
@@ -73,7 +74,7 @@
       const head = `<tr class="grp-row${open ? ' open' : ''}" data-g="${esc(g.email)}"><td>${when(r0.at)}</td><td><span class="chev">▸</span>${esc(g.email)}</td><td class="mono">${contact ? '<a href="tel:' + esc(contact) + '" class="text-reset">' + esc(phoneFmt(contact)) + '</a>' : '<span class="text-secondary">—</span>'}</td><td>${chips}</td><td>${paidSum ? rs(paidSum) : ''}</td><td>${st}</td><td style="white-space:nowrap">${one ? actions(r0) : ''}</td></tr>`;
       if (!open) return head;
       const have = g.rows.filter(active).map((p) => p.product), missing = D.products.filter((p) => !have.includes(p.code));
-      const lines = g.rows.map((p) => `<div class="sub-line"><span class="nm">${esc(name(p.product))}</span>${badge(p)}<span class="meta">${p.manual ? 'given by you' : rs(p.amount) + ' · ' + esc(p.id)}${p.giftFrom ? ' · gift from ' + esc(p.giftFrom) : ''} ·${when(p.at)}${p.until ? ' · ' + ends(p) : ''}${p.status === 'refunded' && p.refundedAt ? ' · refunded ' + when(p.refundedAt) : ''}</span><span style="white-space:nowrap">${actions(p)}</span></div>`).join('');
+      const lines = g.rows.map((p) => `<div class="sub-line"><span class="nm">${esc(name(p.product))}</span>${badge(p)}<span class="meta">${p.manual ? 'given by you' : p.offline ? rs(p.amount) + ' paid outside the website' + (p.note ? ' · ' + esc(p.note) : '') : rs(p.amount) + ' · ' + esc(p.id)}${p.giftFrom ? ' · gift from ' + esc(p.giftFrom) : ''} ·${when(p.at)}${p.until ? ' · ' + ends(p) : ''}${p.status === 'refunded' && p.refundedAt ? ' · refunded ' + when(p.refundedAt) : ''}</span><span style="white-space:nowrap">${actions(p)}</span></div>`).join('');
       const give = missing.length ? `<div class="sub-give"><span class="lbl">Give access to</span><select class="form-select form-select-sm w-auto" data-gp>${missing.map((p) => '<option value="' + esc(p.code) + '">' + esc(p.name) + '</option>').join('')}</select><select class="form-select form-select-sm w-auto" data-gd>${DURS}</select><button class="btn btn-sm btn-primary" data-give="${esc(g.email)}">Give access</button></div>` : '';
       return head + `<tr class="sub-row"><td colspan="7"><div class="sub-panel">${lines}${give}</div></td></tr>`;
     }).join('') || '<tr><td colspan="7" class="text-secondary">' + (D.payments.length ? 'No payment matches that. Clear the search or set the filters back to Any.' : 'No payments yet.') + '</td></tr>';
@@ -190,6 +191,21 @@
       } else { out.innerHTML = action === 'grant' ? 'Pro given' + (r.until ? ' until ' + when(new Date(r.until).toISOString()) : ' with no end date') + '.' : 'Pro removed.'; await load(); }
     } catch (e) { out.textContent = e.message; }
   }
+  // a payment made outside the website: the amount box starts at the subject's price
+  function offPrice() { const p = D && D.products.find((x) => x.code === $('#o-prod').value); if (p) $('#o-amt').value = p.price / 100; }
+  $('#o-prod').addEventListener('change', offPrice);
+  $('#o-go').addEventListener('click', async () => {
+    const out = $('#o-out'), btn = $('#o-go'), email = $('#o-email').value.trim(), code = $('#o-prod').value, rupees = $('#o-amt').value;
+    if (!confirm('Record ₹' + rupees + ' from ' + email + ' for ' + code + ' and give them Pro?')) return;
+    btn.disabled = true; out.textContent = 'Working…';
+    try {
+      const r = await call('POST', { action: 'offline', email, product: code, rupees, date: $('#o-date').value || undefined, note: $('#o-note').value });
+      out.textContent = 'Added ' + rs(r.amount) + ' from ' + email + ' for ' + code + '. They have Pro now.';
+      $('#o-email').value = ''; $('#o-note').value = ''; $('#o-date').value = '';
+      await load();
+    } catch (e) { out.textContent = e.message; }
+    btn.disabled = false;
+  });
   $('#a-grant').addEventListener('click', () => act('grant'));
   $('#a-revoke').addEventListener('click', () => { if (confirm('Remove Pro for this student and subject?')) act('revoke'); });
   $('#a-look').addEventListener('click', () => act('lookup'));
