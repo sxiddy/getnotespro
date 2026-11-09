@@ -272,9 +272,9 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href]');
   if (!a) return;
   const href = a.getAttribute('href');
-  if (href === '/help' || href === '/requests' || href === '/account') {
+  if (href === '/help' || href === '/account') {
     e.preventDefault();
-    const what = { '/help': 'The Help page', '/requests': 'Subject requests', '/account': 'My subjects' }[href];
+    const what = { '/help': 'The Help page', '/account': 'My subjects' }[href];
     copyMail();
     say(`${what} is coming soon. For now, email ${data.support} (copied) and we'll help.`, { ms: 9000 });
   } else if (href.startsWith('mailto:')) {

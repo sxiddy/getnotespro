@@ -16,6 +16,8 @@ const run = ([c, k, ...a]) => {
     case 'DEL': { let n = 0; [k, ...a].forEach((x) => { if (x in db) { delete db[x]; n++; } }); return n; }
     case 'KEYS': { const re = new RegExp('^' + k.split('*').map((x) => x.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$'); return Object.keys(db).filter((x) => re.test(x)); }
     case 'SADD': S(k).add(a[0]); return 1;
+    case 'SREM': return S(k).delete(a[0]) ? 1 : 0;
+    case 'SMEMBERS': return [...(db[k] instanceof Set ? db[k] : [])];
     case 'SCARD': return S(k).size;
     case 'SISMEMBER': return S(k).has(a[0]) ? 1 : 0;
     case 'HSET': { const h = H(k); for (let i = 0; i + 1 < a.length; i += 2) h[a[i]] = String(a[i + 1]); return a.length / 2; }

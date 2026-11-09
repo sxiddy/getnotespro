@@ -50,6 +50,23 @@ const description = `${s.name} (${s.code}) notes for VIT, free to read: ${s.modu
     </section>
   )}
 
+  <!-- Reviews (G3): approved ones only; the form shows for students who own this subject (src/scripts/reviews.js) -->
+  <section class="subj-rev frame" aria-labelledby="rev-h" id="reviews" data-code={s.code} hidden>
+    <h2 class="subj-more__h mono" id="rev-h">Reviews <span id="rev-avg"></span></h2>
+    <ul class="rev-list" id="rev-list"></ul>
+    <form class="rev-form" id="rev-form" hidden novalidate>
+      <p class="rev-form__h"><b>You have Pro for {s.code}. How was it?</b> <span id="rev-state"></span></p>
+      <fieldset class="rev-stars"><legend class="sr-only">Stars</legend>
+        {[1, 2, 3, 4, 5].map((n) => <label><input type="radio" name="stars" value={n} /><span aria-hidden="true">★</span><span class="sr-only">{n} star{n > 1 ? 's' : ''}</span></label>)}
+      </fieldset>
+      <label class="req-form__lbl" for="rev-text">Your review</label>
+      <textarea class="req-form__in rev-form__text" id="rev-text" maxlength="500" rows="3" placeholder="What helped, what was missing"></textarea>
+      <label class="req-form__lbl" for="rev-name">Name to show (optional)</label>
+      <div class="req-form__row"><input class="req-form__in" id="rev-name" maxlength="30" autocomplete="given-name" placeholder="VIT student" /><button class="btn btn--blue" type="submit">Send</button></div>
+      <p class="req-form__msg" id="rev-msg" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
   {others.length > 0 && (
     <section class="subj-more frame" aria-labelledby="more-h">
       <h2 class="subj-more__h mono" id="more-h">Other subjects</h2>
@@ -57,3 +74,6 @@ const description = `${s.name} (${s.code}) notes for VIT, free to read: ${s.modu
     </section>
   )}
 </Base>
+<script>
+  import '../scripts/reviews.js';
+</script>

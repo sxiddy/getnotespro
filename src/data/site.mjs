@@ -8,8 +8,8 @@ export const SITE = {
   title: 'Notix · VIT notes, free to read',
   description: 'Notes for VIT subjects, free to read. Pro adds the study tools for ₹10 a subject, one time.',
   support: 'notesbugsreportandsupport@gmail.com',
-  // "Request a subject" is an email until the request board (N3) is built
-  request: 'mailto:notesbugsreportandsupport@gmail.com?subject=Subject%20request',
+  // "Request a subject" goes to the request board (N3, /requests)
+  request: '/requests',
   madeBy: 'Made by a VIT student',
   more: [
     { name: 'Marks / CGPA calculator', href: 'https://markscalc.cv' },

@@ -1,0 +1,33 @@
+---
+// /requests: ask for a subject and upvote others' asks (F2/N3); subjects the owner marked "coming soon" sit on top with
+// "Notify me" (F1). Data lives in Redis (api/community.js); this page reads it in the browser. Voting needs sign-in.
+import Base from '../layouts/Base.astro';
+---
+<Base title="Request a subject · Notix" description="Ask for the next VIT subject on Notix and upvote what others asked for.">
+  <section class="upds reqs frame" aria-labelledby="req-h">
+    <nav class="crumb mono" aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <span aria-current="page">Requests</span></nav>
+    <h1 class="display display--sm" id="req-h">Request a subject</h1>
+    <p class="upds__lede">The most upvoted subjects get made first. Sign in with your VIT account to ask or vote.</p>
+
+    <form class="req-form" id="req-form" novalidate>
+      <label class="req-form__lbl" for="req-name">Subject</label>
+      <div class="req-form__row">
+        <input class="req-form__in" id="req-name" name="name" maxlength="60" autocomplete="off" placeholder="e.g. BMAT101 Calculus" required />
+        <button class="btn btn--blue" type="submit">Ask</button>
+      </div>
+      <p class="req-form__msg" id="req-msg" role="status" aria-live="polite"></p>
+    </form>
+
+    <h2 class="reqs__h mono" id="soon-h" hidden>Coming soon</h2>
+    <ol class="reqs__list" id="soon-list" aria-labelledby="soon-h" hidden></ol>
+    <h2 class="reqs__h mono" id="open-h">Asked for</h2>
+    <ol class="reqs__list" id="req-list" aria-labelledby="open-h" aria-busy="true">
+      <li class="upd-item upd-item--skel" aria-hidden="true"><span></span><span></span></li>
+    </ol>
+    <p class="upds__empty" id="req-empty" hidden>No requests yet. Be the first to ask.</p>
+    <noscript><p class="upds__empty">Requests need JavaScript.</p></noscript>
+  </section>
+</Base>
+<script>
+  import '../scripts/requests-page.js';
+</script>
