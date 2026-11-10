@@ -65,18 +65,4 @@ export const SUBJECTS = {
       'Progress sync, My notes, focus timer up to 3 hours, unlimited 1v1 quiz battles',
     ],
   },
-  BACHY101: {
-    group: 'Environment',
-    aka: ['evs', 'env', 'environment', 'environmental science', 'environmental studies', 'ecology'],
-    blurb: 'Ecosystems, biodiversity, pollution, environmental laws, the SDGs and climate change.',
-    // the five weeks of lecture notes in evs-notes (site/data.js)
-    modules: [
-      [1, 'Fundamentals of Environment and Ecosystems'],
-      [2, 'Biodiversity and Environmental Quality'],
-      [3, 'Pollution and Its Management Techniques'],
-      [4, 'Environmental Laws and Sustainable Development Goals'],
-      [5, 'Climate Change and Emerging Environmental Issues'],
-    ],
-    pro: [], // the owner to fill in once the EVS Pro tools exist (an empty list hides the "Pro" section on /bachy101)
-  },
 };

@@ -15,7 +15,6 @@ const PRODUCTS = {
   BACHY105: { name: 'Applied Chemistry', tag: 'Chemistry', site: 'https://bachy105.vercel.app', price: 2000 },
   BAEEE101: { name: 'Basic Engineering', tag: 'Engineering', site: 'https://baeee101.vercel.app', price: 2000 },
   BAENG101: { name: 'Technical English', tag: 'English', site: 'https://baeng101.vercel.app', price: 2000 },
-  BACHY101: { name: 'Environmental Sciences', tag: 'EVS', site: 'https://bachy101.vercel.app', price: 2000 },
 };
 // Launch sale (owner, 10-11-2026): 25% off every subject (₹20 → ₹15) until the end of November (IST); from 1 Dec it is the full
 // price again by itself, no redeploy needed. Whole rupees, rounded down, never below ₹1, like a discount code.

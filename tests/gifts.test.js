@@ -115,7 +115,7 @@ test('the order carries the recipient next to the buyer; the email is normalised
 // ------------------------------------------------------------------ paying for it
 test('Pro lands on the recipient only after a verified UPI payment, never on the buyer', async () => {
   const o = await order(A, ['BAEEE101', 'BACHY105'], { gift: B });
-  assert.deepEqual(await owns(B), { BACHY105: false, BAEEE101: false, BAENG101: false, BACHY101: false }, 'making the order gives nothing');
+  assert.deepEqual(await owns(B), { BACHY105: false, BAEEE101: false, BAENG101: false }, 'making the order gives nothing');
   assert.equal((await verify(A, o.orderId, 'card')).status, 402, 'only UPI unlocks');
   assert.equal(await paidRec('BAEEE101', B), null, 'a refused payment gives nothing');
 
