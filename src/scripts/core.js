@@ -295,7 +295,7 @@ async function api(url, body) {
   return j;
 }
 // The launch sale (api/_lib.js SALE) ends by itself on the server; this brings a page built during the sale in line
-// with it, so the struck price and "25% off" go away once the sale is over, even before the site is rebuilt.
+// with it, so the struck price and "33% off" go away once the sale is over, even before the site is rebuilt.
 function paintPrices() {
   for (const el of $$('.pz')) {
     const pick = el.dataset.pz ? [byCode(el.dataset.pz)].filter(Boolean) : SUBJECTS;

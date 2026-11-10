@@ -12,14 +12,14 @@ const MAX_AGE = 400 * 24 * 3600; // browsers cap cookies at 400 days
 // One entry per subject site (add a line here, a blurb in app/js/store.js INFO, and the subject appears on the store;
 // 'tag' is an optional label that search also matches; the first three subjects show by default, the rest are found by searching. Price is in paise; set PRICE_<CODE> in Vercel to change it (minimum 100 = ₹1).
 const PRODUCTS = {
-  BACHY105: { name: 'Applied Chemistry', tag: 'Chemistry', site: 'https://bachy105.vercel.app', price: 2000 },
-  BAEEE101: { name: 'Basic Engineering', tag: 'Engineering', site: 'https://baeee101.vercel.app', price: 2000 },
-  BAENG101: { name: 'Technical English', tag: 'English', site: 'https://baeng101.vercel.app', price: 2000 },
+  BACHY105: { name: 'Applied Chemistry', tag: 'Chemistry', site: 'https://bachy105.vercel.app', price: 3000 },
+  BAEEE101: { name: 'Basic Engineering', tag: 'Engineering', site: 'https://baeee101.vercel.app', price: 3000 },
+  BAENG101: { name: 'Technical English', tag: 'English', site: 'https://baeng101.vercel.app', price: 3000 },
 };
-// Launch sale (owner, 10-11-2026): 25% off every subject (₹20 → ₹15) until the end of November (IST); from 1 Dec it is the full
+// Launch sale (owner, 10-11-2026): 33% off every subject (MRP ₹30 → ₹20) until the end of November (IST); from 1 Dec it is the full
 // price again by itself, no redeploy needed. Whole rupees, rounded down, never below ₹1, like a discount code.
 const SALE_PCT = parseInt(process.env.SALE_PCT || '', 10); // optional override (tests pin 50 so every subject costs ₹10)
-const SALE = { pct: Number.isInteger(SALE_PCT) && SALE_PCT >= 0 && SALE_PCT < 100 ? SALE_PCT : 25, until: Date.parse('2026-12-01T00:00:00+05:30') };
+const SALE = { pct: Number.isInteger(SALE_PCT) && SALE_PCT >= 0 && SALE_PCT < 100 ? SALE_PCT : 33, until: Date.parse('2026-12-01T00:00:00+05:30') };
 const saleOn = (now = Date.now()) => now < SALE.until;
 function listPriceOf(code) {
   const n = parseInt(process.env['PRICE_' + code] || '', 10);

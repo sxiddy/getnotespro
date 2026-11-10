@@ -11,12 +11,13 @@ const crypto = require('node:crypto');
 process.env.FAKEREDIS_PORT = '5392';
 process.env.UPSTASH_REDIS_REST_URL = 'http://127.0.0.1:5392';
 process.env.UPSTASH_REDIS_REST_TOKEN = 'test';
-process.env.SALE_PCT = '50'; // the money tests price every subject at ₹10 (₹20 list, 50% sale)
+process.env.SALE_PCT = '50'; // the money tests price every subject at ₹10 (with the PRICE_ pins below)
 process.env.SESSION_SECRET = 'test-session-secret';
 process.env.ADMIN_KEY = 'test-admin';
 process.env.RAZORPAY_KEY_ID = 'rzp_test_x';
 process.env.RAZORPAY_KEY_SECRET = 'rzp-secret';
 for (const k of Object.keys(process.env)) if (/^PRICE_|^TELEGRAM_|^REVIEW_CODE$/.test(k)) delete process.env[k];
+for (const c of ['BACHY105', 'BAEEE101', 'BAENG101']) process.env['PRICE_' + c] = '2000'; // tests: ₹20 list, 50% sale = ₹10
 
 const fakeStore = require('../tools/fakeredis.js');
 const lib = require('../api/_lib.js');
@@ -211,7 +212,7 @@ test('a failed payment does not spend the reward; a verified one spends it once'
     assert.equal(a.rewards, 1);
     assert.equal((await paidRec('BAENG101', A)).amount, 100);
     assert.equal((await paidRec('BAEEE101', A)).offer, 'REF50');
-  } finally { delete process.env.PRICE_BAENG101; }
+  } finally { process.env.PRICE_BAENG101 = '2000'; }
 });
 
 test('a full refund of the friend\'s purchase takes the unspent reward back; their purchase still never credits again', async () => {

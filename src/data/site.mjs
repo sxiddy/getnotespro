@@ -6,7 +6,7 @@ export const SITE_URL = (process.env.SITE_URL || 'https://notix-notes.vercel.app
 export const SITE = {
   name: 'Notix',
   title: 'Notix · VIT notes, free to read',
-  description: 'Notes for VIT subjects, free to read. Pro adds the study tools for ₹20 a subject, one time.',
+  description: 'Notes for VIT subjects, free to read. Pro adds the study tools for ₹30 a subject (₹20 till 30 Nov), one time.',
   support: 'notesbugsreportandsupport@gmail.com',
   // "Request a subject" goes to the request board (N3, /requests)
   request: '/requests',
