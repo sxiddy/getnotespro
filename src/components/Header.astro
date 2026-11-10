@@ -18,6 +18,12 @@ import Logo from './Logo.astro';
       </div>
     </div>
 
+    <!-- Invite friends, always on the bar so nobody has to dig through the account menu to find it -->
+    <button class="invite" id="invite-top" type="button" aria-controls="invbox" aria-label="Invite friends">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="8" width="14" height="9" rx="1.5"/><path d="M2.5 8h15M10 8v9M10 8c-1.6-3.4-5.4-3.4-5.4-1.2C4.6 8 10 8 10 8zm0 0c1.6-3.4 5.4-3.4 5.4-1.2C15.4 8 10 8 10 8z"/></svg>
+      <span>Invite friends</span>
+    </button>
+
     <!-- account: a shimmer until /api/session answers, then "Sign in" or the student's initial -->
     <div class="acct" id="acct" aria-busy="true">
       <span class="acct__skel" aria-hidden="true"></span>

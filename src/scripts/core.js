@@ -386,6 +386,8 @@ menuBtn.addEventListener('click', () => setMenu(menu.hidden));
 document.addEventListener('click', (e) => { if (!menu.hidden && !e.target.closest('.acct__me')) setMenu(false); });
 menu.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setMenu(false); menuBtn.focus(); } });
 $('#invite-btn').addEventListener('click', (e) => { e.stopPropagation(); setMenu(false); setInv(true); });
+// the bar's own Invite button: signed in opens the invite box; signed out asks them to sign in first
+$('#invite-top').addEventListener('click', (e) => { e.stopPropagation(); setMenu(false); if (S && S.user) setInv(inv.hidden); else openSignIn(null); });
 $('#signout-btn').addEventListener('click', async () => { setMenu(false); await api('/api/login', { logout: true }).catch(() => {}); await boot(); say('Signed out.'); });
 
 // ---------------------------------------------------------------- checkout: one UPI payment for the whole cart
