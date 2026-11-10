@@ -2,14 +2,17 @@
 //   POST /api/offers { action: 'quote', code, products: [codes] } -> { offer: { code, pct, codes }, lines, total, discount }
 //        Anyone (signed in = also checks "already used"). Wrong guesses are limited per visitor: 20 an hour.
 //   Referrals (G8, rules in api/_referrals.js; they live here because Vercel allows 12 functions):
-//   POST { action: 'ref-me' } -> { token, friends, used, rewards }   signed-in VIT student; the link is <site>/?ref=<token>
+//   POST { action: 'ref-me' } -> { token, friends, used, rewards: 0, per, min, earned, withdrawn, balance, withdrawals }
+//        signed-in VIT student; the link is <site>/?ref=<token>; money in paise (Rs 3 a friend, withdraw at Rs 15)
+//   POST { action: 'ref-withdraw', upi } -> { ok, id, amount, ...ref-me numbers }   whole balance to that UPI ID
 //   Admin (header x-admin-key = ADMIN_KEY):
 //     GET  /api/offers?part=list -> { items: [{ code, pct, max, until, codes, off, at, note, uses }] }
 //     POST { action: 'offer-add', code, pct, max?, days?, codes?, note? }   409 if the code already exists
 //     POST { action: 'offer-pause', code, off: true|false }
 //     POST { action: 'offer-del', code }   also forgets who used it
 //     GET  /api/offers?part=referrals -> { totals: { links, credited, used, left }, top: [{ email, friends, used, rewards }],
-//                                         buyers: [{ buyer, ref, payment, at, revoked }] }
+//                                         buyers: [{ buyer, ref, payment, at, revoked }], pending: [{ id, email, amount, upi, at }] }
+//     POST { action: 'ref-paid', id }   the owner has paid that withdrawal
 const { send, body, env, safeEqual, getUser, isStudentEmail, itemsOf, priceOf, handle } = require('./_lib');
 const store = require('./_store');
 const offers = require('./_offers');
@@ -62,8 +65,22 @@ module.exports = handle(async (req, res) => {
     return send(res, 200, Object.assign({ token: await refs.tokenFor(u.e) }, await refs.rewardsOf(u.e)));
   }
 
+  if (b.action === 'ref-withdraw') {
+    const u = getUser(req);
+    if (!u) return send(res, 401, { error: 'Please sign in with your VIT student account first.' });
+    if (!isStudentEmail(u.e)) return send(res, 403, { error: 'Referral cash is for VIT student accounts.' });
+    if (!store.configured()) return send(res, 503, { error: "Withdrawals aren't available right now. Try again later." });
+    const r = await refs.withdraw(u.e, b.upi);
+    if (r.error) return send(res, r.status || 400, { error: r.error });
+    return send(res, 200, Object.assign(await refs.rewardsOf(u.e), r));
+  }
+
   if (!isAdmin(req)) return send(res, 401, { error: 'Wrong admin key.' });
   if (!store.configured()) return send(res, 500, { error: 'The database is not connected.' });
+  if (b.action === 'ref-paid') {
+    if (!(await refs.markPaid(b.id))) return send(res, 404, { error: 'No such pending withdrawal.' });
+    return send(res, 200, { ok: true });
+  }
   if (b.action === 'offer-add') {
     const r = offers.makeOffer(b);
     if (r.error) return send(res, 400, { error: r.error });

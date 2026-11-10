@@ -118,7 +118,7 @@ test('a reward is earned only after a verified UPI payment by the friend', async
   const o2 = await order(B, ['BAEEE101'], { ref: token });
   assert.equal((await verify(B, o2.orderId)).status, 200);
   const a = await me(A);
-  assert.equal(a.friends, 1); assert.equal(a.rewards, 1);
+  assert.equal(a.friends, 1); assert.equal(a.balance, 300, 'Rs 3 a friend'); assert.equal(a.rewards, 0, 'no 50% reward any more');
   // the same payment reported again (Check my payment / webhook) credits nothing more
   assert.equal((await call('verify', { email: B, body: { action: 'check', orderId: o2.orderId } })).status, 200);
   assert.equal((await me(A)).friends, 1);
@@ -186,33 +186,35 @@ test('the reward prices the whole cart at 50%, never below ₹1 a subject', asyn
   assert.equal(R.priceReward(['BAENG101'], () => 100).discount, 0, 'a ₹1 subject stays ₹1');
 });
 
-test('one discount per order: a reward and a code cannot be combined; no reward = refused', async () => {
-  await call('offers', { admin: 'test-admin', body: { action: 'offer-add', code: 'STACK10', pct: 10 } });
-  const both = await order(A, ['BAEEE101'], { reward: true, code: 'STACK10' });
-  assert.equal(both.status, 400); assert.match(both.error, /not both/);
-  const none = await order(F, ['BACHY105'], { reward: true });
-  assert.equal(none.status, 400); assert.equal(none.badReward, true);
+test('the old 50% reward can no longer be used on an order', async () => {
+  const r = await order(A, ['BAEEE101'], { reward: true });
+  assert.equal(r.status, 400); assert.equal(r.badReward, true); assert.match(r.error, /cash/);
 });
 
-test('a failed payment does not spend the reward; a verified one spends it once', async () => {
-  process.env.PRICE_BAENG101 = '150';
-  try {
-    const o = await order(A, ['BAEEE101', 'BAENG101'], { reward: true });
-    assert.equal(o.status, 200); assert.equal(o.amount, 600); assert.equal(o.reward, true);
-    const n = rz.orders[o.orderId].notes;
-    assert.equal(n.reward, 'REF50'); assert.equal(n.shares, '500,100'); assert.equal(n.offer, undefined);
-    assert.equal((await verify(A, o.orderId, 'card')).status, 402);
-    assert.equal((await me(A)).rewards, 2, 'a failed payment keeps the reward');
-
-    const o2 = await order(A, ['BAEEE101', 'BAENG101'], { reward: true });
-    assert.equal((await verify(A, o2.orderId)).status, 200);
-    assert.equal((await call('verify', { email: A, body: { action: 'check', orderId: o2.orderId } })).status, 200);
-    const a = await me(A);
-    assert.equal(a.used, 1, 'spent once even though the payment was reported twice');
-    assert.equal(a.rewards, 1);
-    assert.equal((await paidRec('BAENG101', A)).amount, 100);
-    assert.equal((await paidRec('BAEEE101', A)).offer, 'REF50');
-  } finally { process.env.PRICE_BAENG101 = '2000'; }
+test('cash: Rs 3 a friend, withdraw at Rs 15 to a UPI ID, admin marks it paid', async () => {
+  const K = st('kim'), tk = (await me(K)).token;
+  const buy = async (name) => { const X = st(name); const o = await order(X, ['BAEEE101'], { ref: tk }); assert.equal((await verify(X, o.orderId)).status, 200); };
+  for (const n of ['q1', 'q2', 'q3', 'q4']) await buy(n);
+  assert.equal((await me(K)).balance, 1200);
+  const early = await call('offers', { email: K, body: { action: 'ref-withdraw', upi: 'kim@okbank' } });
+  assert.equal(early.status, 400); assert.match(early.error, /15/);
+  await buy('q5');
+  const bad = await call('offers', { email: K, body: { action: 'ref-withdraw', upi: 'not a upi' } });
+  assert.equal(bad.status, 400);
+  assert.equal((await call('offers', { body: { action: 'ref-withdraw', upi: 'kim@okbank' } })).status, 401, 'needs sign-in');
+  const w = await call('offers', { email: K, body: { action: 'ref-withdraw', upi: 'kim@okbank' } });
+  assert.equal(w.status, 200); assert.equal(w.amount, 1500); assert.equal(w.balance, 0);
+  const again = await call('offers', { email: K, body: { action: 'ref-withdraw', upi: 'kim@okbank' } });
+  assert.equal(again.status, 400, 'nothing left to take');
+  const list = await call('offers', { method: 'GET', admin: 'test-admin', query: '?part=referrals' });
+  const pend = list.pending.find((x) => x.email === K);
+  assert.ok(pend); assert.equal(pend.amount, 1500); assert.equal(pend.upi, 'kim@okbank');
+  assert.equal((await call('offers', { email: K, body: { action: 'ref-paid', id: pend.id } })).status, 401, 'admin only');
+  assert.equal((await call('offers', { admin: 'test-admin', body: { action: 'ref-paid', id: pend.id } })).status, 200);
+  const after = await me(K);
+  assert.equal(after.withdrawals[0].status, 'paid'); assert.equal(after.balance, 0); assert.equal(after.withdrawn, 1500);
+  const list2 = await call('offers', { method: 'GET', admin: 'test-admin', query: '?part=referrals' });
+  assert.ok(!list2.pending.some((x) => x.id === pend.id));
 });
 
 test('a full refund of the friend\'s purchase takes the unspent reward back; their purchase still never credits again', async () => {
@@ -233,9 +235,8 @@ test('admin: referrals list needs the key and shows referrers, buyers and reward
   const r = await call('offers', { method: 'GET', admin: 'test-admin', query: '?part=referrals' });
   assert.equal(r.status, 200);
   const a = r.top.find((x) => x.email === A);
-  assert.deepEqual([a.friends, a.used, a.rewards], [2, 1, 1]);
-  assert.equal(r.top[0].email, A, 'sorted by friends');
+  assert.deepEqual([a.friends, a.used], [2, 0]);
   assert.ok(r.buyers.some((x) => x.buyer === B && x.ref === A));
   assert.ok(r.buyers.some((x) => x.buyer === st('jo') && x.revoked));
-  assert.equal(r.totals.used, 1);
+  assert.equal(r.totals.used, 0);
 });

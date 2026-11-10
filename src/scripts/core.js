@@ -253,11 +253,30 @@ async function setInv(open) {
     invLink = location.origin + '/?ref=' + encodeURIComponent(r.token);
     $('#inv-url').value = invLink; $('#inv-copy').disabled = false;
     $('#inv-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`Notix has notes and Pro study tools for VIT first-year subjects. Get them here: ${invLink}`);
-    $('#inv-friends').textContent = r.friends; $('#inv-rewards').textContent = r.rewards;
+    paintCash(r);
     if (S && S.rewards !== r.rewards) { S.rewards = r.rewards; renderCart(); }
     if (refToken() === r.token) { try { localStorage.removeItem(REF_KEY); } catch { /* ignore */ } } // your own link never counts
   } catch (err) { $('#inv-url').value = ''; invMsg(err.message, true); }
 }
+// Rs 3 a friend who buys, withdrawn to UPI from Rs 15 (api/_referrals.js); money comes in paise
+const rupees = (p) => '₹' + (p / 100);
+function paintCash(r) {
+  $('#inv-friends').textContent = r.friends; $('#inv-cash').textContent = rupees(r.balance);
+  $('#inv-bar').style.width = Math.min(100, (r.balance / r.min) * 100) + '%';
+  const can = r.balance >= r.min;
+  $('#inv-next').textContent = can ? 'You can withdraw now.' : `${Math.ceil((r.min - r.balance) / r.per)} more friend${r.min - r.balance > r.per ? 's' : ''} to withdraw ${rupees(r.min)}.`;
+  $('#inv-wd').hidden = !can;
+  const last = (r.withdrawals || [])[0];
+  $('#inv-hist').hidden = !last;
+  if (last) $('#inv-hist').textContent = `Last withdrawal: ${rupees(last.amount)} to ${last.upi}, ${last.status === 'paid' ? 'paid' : 'on its way (usually within 2 days)'}.`;
+}
+$('#inv-wd').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('button', e.currentTarget); btn.disabled = true; invMsg('');
+  try { const r = await api('/api/offers', { action: 'ref-withdraw', upi: $('#inv-upi').value }); paintCash(r); invMsg(`${rupees(r.amount)} is on its way to your UPI ID.`); }
+  catch (err) { invMsg(err.message, true); }
+  finally { btn.disabled = false; }
+});
 inv.addEventListener('click', (e) => e.stopPropagation());
 $('#inv-x').addEventListener('click', () => { setInv(false); menuBtn.focus(); });
 $('#inv-copy').addEventListener('click', async () => {

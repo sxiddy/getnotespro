@@ -3,8 +3,9 @@
 //
 // Every signed-in VIT student has a link <site>/?ref=<token>. The token is random (it never shows the email):
 //   ref:id   hash token -> email          ref:of   hash email -> token
-// When a friend buys through the link, the student earns ONE reward: 50% off one purchase, which can be a whole cart.
-// The friend pays the normal price (owner, 09-11-2026). A friend counts only if:
+// When a friend buys through the link, the student earns Rs 3 cash (owner, 10-11-2026; this replaced the old 50% off
+// reward). Cash can be withdrawn once it reaches Rs 15 (5 friends): the student gives a UPI ID, the request shows on
+// the admin page, the owner pays by hand and marks it paid. The friend pays the normal price. A friend counts only if:
 //   - it is not the student's own email, and both are VIT student emails;
 //   - it is the friend's first purchase (no paid:* or refunded:* record from any other payment);
 //   - the payment is a verified UPI payment (_lib.checkPayment, or admin reconcile for method 'upi');
@@ -12,7 +13,10 @@
 //   ref:by             hash buyer -> JSON { ref, payment, order, at, revoked? }   the one referrer this buyer credited
 //   ref:friends:<ref>  hash buyer -> JSON { payment, at }   friends who bought = rewards earned (HLEN)
 //   ref:used:<email>   hash payment id -> JSON { order, at }   rewards spent (HLEN), one per verified payment
-// Rewards left = earned - spent. Like a discount code, a reward is checked when the order is made and spent only by a
+//   ref:wd:<email>     hash id -> JSON { amount, upi, at, status: 'pending'|'paid', paidAt? }   withdrawals (paise)
+//   ref:wdq            hash id -> JSON { email, amount, upi, at }   pending withdrawals for the admin page
+// Cash = (friends - old 50% rewards already spent) x Rs 3 - everything withdrawn (pending or paid).
+// (Old 50% reward, kept for orders made before the switch:) Rewards left = earned - spent. Like a discount code, a reward is checked when the order is made and spent only by a
 // verified payment, so failed or abandoned payments cost nothing. Two reward orders paid at the same moment both get
 // their discount (money taken = Pro given); the extra one is taken from the next reward earned.
 // A full refund of the friend's crediting purchase takes that reward back (the friend still never credits again).
@@ -24,6 +28,10 @@ const { priceCart } = require('./_offers');
 
 const REWARD = 'REF50'; // the order-notes marker; also kept as "offer" on the paid record
 const PCT = 50;
+const CASH = 300;     // paise earned per friend who buys
+const MIN_OUT = 1500; // paise needed before a withdrawal (5 friends)
+const UPI_RE = /^[A-Za-z0-9._-]{2,64}@[A-Za-z0-9.-]{2,64}$/;
+const wdKey = (e) => 'ref:wd:' + e;
 const TOKEN_RE = /^[A-Za-z0-9_-]{8,16}$/;
 const friendsKey = (e) => 'ref:friends:' + e;
 const usedKey = (e) => 'ref:used:' + e;
@@ -96,14 +104,57 @@ async function onRefund(buyer, paymentId) {
   await store.pipeline([['HSET', 'ref:by', buyer, JSON.stringify(Object.assign(x, { revoked: new Date().toISOString() }))], ['HDEL', friendsKey(x.ref), buyer]]);
   return true;
 }
+// the student's referral numbers, money in paise. rewards is always 0 now: the 50% reward was replaced by cash, so
+// the cart never offers it.
 async function rewardsOf(email) {
-  if (!email || !store.configured()) return { friends: 0, used: 0, rewards: 0 };
-  const [f, u] = await store.pipeline([['HLEN', friendsKey(email)], ['HLEN', usedKey(email)]]);
-  return { friends: +f || 0, used: +u || 0, rewards: Math.max(0, (+f || 0) - (+u || 0)) };
+  const zero = { friends: 0, used: 0, rewards: 0, per: CASH, min: MIN_OUT, earned: 0, withdrawn: 0, balance: 0, withdrawals: [] };
+  if (!email || !store.configured()) return zero;
+  const [f, u, wd] = await store.pipeline([['HLEN', friendsKey(email)], ['HLEN', usedKey(email)], ['HGETALL', wdKey(email)]]);
+  const withdrawals = [];
+  for (let i = 0; wd && i + 1 < wd.length; i += 2) { const x = parse(wd[i + 1]); if (x) withdrawals.push(Object.assign({ id: wd[i] }, x)); }
+  withdrawals.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  const friends = +f || 0, used = +u || 0;
+  const earned = Math.max(0, friends - used) * CASH;
+  const withdrawn = withdrawals.reduce((n, x) => n + (+x.amount || 0), 0);
+  return Object.assign(zero, { friends, used, earned, withdrawn, balance: Math.max(0, earned - withdrawn), withdrawals: withdrawals.slice(0, 20) });
+}
+// the student asks for their whole balance to go to a UPI ID. A short lock per student, so two taps can't take the
+// same money twice.
+async function withdraw(email, upi) {
+  upi = String(upi == null ? '' : upi).trim();
+  if (!UPI_RE.test(upi)) return { error: 'Type a UPI ID like name@okbank.' };
+  const lock = 'ref:wdlock:' + email;
+  const [got] = await store.pipeline([['SET', lock, '1', 'NX', 'EX', 15]]);
+  if (got !== 'OK') return { error: 'A withdrawal is already being made. Try again in a few seconds.', status: 429 };
+  try {
+    const r = await rewardsOf(email);
+    if (r.balance < MIN_OUT) return { error: `You can withdraw once you have ₹${MIN_OUT / 100}. You have ₹${r.balance / 100}.` };
+    const id = 'wd_' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
+    const at = new Date().toISOString();
+    await store.pipeline([
+      ['HSET', wdKey(email), id, JSON.stringify({ amount: r.balance, upi, at, status: 'pending' })],
+      ['HSET', 'ref:wdq', id, JSON.stringify({ email, amount: r.balance, upi, at })]
+    ]);
+    return { ok: true, id, amount: r.balance };
+  } finally { await store.pipeline([['DEL', lock]]); }
+}
+// admin: the owner has sent the money
+async function markPaid(id) {
+  id = String(id == null ? '' : id);
+  const [q] = await store.pipeline([['HGET', 'ref:wdq', id]]);
+  const x = parse(q);
+  if (!x) return false;
+  const [cur] = await store.pipeline([['HGET', wdKey(x.email), id]]);
+  const w = Object.assign(parse(cur) || { amount: x.amount, upi: x.upi, at: x.at }, { status: 'paid', paidAt: new Date().toISOString() });
+  await store.pipeline([['HSET', wdKey(x.email), id, JSON.stringify(w)], ['HDEL', 'ref:wdq', id]]);
+  return true;
 }
 // admin: every credited buyer, and each referrer's friends / spent / left
 async function adminList() {
-  const [flat, links] = await store.pipeline([['HGETALL', 'ref:by'], ['HLEN', 'ref:of']]);
+  const [flat, links, q] = await store.pipeline([['HGETALL', 'ref:by'], ['HLEN', 'ref:of'], ['HGETALL', 'ref:wdq']]);
+  const pending = [];
+  for (let i = 0; q && i + 1 < q.length; i += 2) { const x = parse(q[i + 1]); if (x) pending.push(Object.assign({ id: q[i] }, x)); }
+  pending.sort((a, b) => String(a.at).localeCompare(String(b.at)));
   const buyers = [];
   for (let i = 0; flat && i + 1 < flat.length; i += 2) { const x = parse(flat[i + 1]); if (x && x.ref) buyers.push({ buyer: flat[i], ref: x.ref, payment: x.payment, at: x.at, revoked: x.revoked || null }); }
   buyers.sort((a, b) => String(b.at).localeCompare(String(a.at)));
@@ -114,7 +165,7 @@ async function adminList() {
     return { email, friends, used, rewards: Math.max(0, friends - used) };
   }).sort((a, b) => b.friends - a.friends || b.used - a.used || a.email.localeCompare(b.email));
   const sum = (k) => top.reduce((n, x) => n + x[k], 0);
-  return { totals: { links: +links || 0, credited: sum('friends'), used: sum('used'), left: sum('rewards') }, top: top.slice(0, 100), buyers: buyers.slice(0, 300) };
+  return { totals: { links: +links || 0, credited: sum('friends'), used: sum('used'), left: sum('rewards'), pendingCash: pending.reduce((n, x) => n + (+x.amount || 0), 0) }, top: top.slice(0, 100), buyers: buyers.slice(0, 300), pending };
 }
 
-module.exports = { REWARD, PCT, normToken, priceReward, tokenFor, emailOf, boughtBefore, eligible, credit, spendReward, onRefund, rewardsOf, adminList };
+module.exports = { REWARD, PCT, CASH, MIN_OUT, withdraw, markPaid, normToken, priceReward, tokenFor, emailOf, boughtBefore, eligible, credit, spendReward, onRefund, rewardsOf, adminList };

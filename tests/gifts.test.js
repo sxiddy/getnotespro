@@ -203,20 +203,20 @@ test('a discount code works on a gift and spends the BUYER\'s one use, not the f
   assert.equal((await order(L, ['BACHY105'], { code: 'GIFT20' })).status, 200, 'the friend can still use it for themselves');
 });
 
-test('the 50% referral reward cannot be spent on a gift, and a refused gift spends nothing', async () => {
+test('an old 50% reward flag on a gift is refused and spends no referral cash', async () => {
   const M = st('mo'), N = st('ned'), P = st('pia');
   const { token } = await me(M);
   const o = await order(N, ['BAEEE101'], { ref: token });
   assert.equal((await verify(N, o.orderId)).status, 200);
-  assert.equal((await me(M)).rewards, 1);
+  assert.equal((await me(M)).balance, 300);
   const r = await order(M, ['BACHY105'], { gift: P, reward: true });
   assert.equal(r.status, 400); assert.match(r.error, /reward/); assert.notEqual(r.badReward, true, 'the page must not think the reward is gone');
-  assert.equal((await me(M)).rewards, 1, 'still there for their own purchase');
+  assert.equal((await me(M)).balance, 300, 'still there for their own purchase');
   // even an order that somehow carried both is recorded at its paid price without spending a reward
   const g = await order(M, ['BACHY105'], { gift: P });
   rz.orders[g.orderId].notes.reward = 'REF50';
   assert.equal((await verify(M, g.orderId)).status, 200);
-  assert.equal((await me(M)).rewards, 1);
+  assert.equal((await me(M)).balance, 300);
   assert.equal((await paidRec('BACHY105', P)).offer, undefined);
 });
 

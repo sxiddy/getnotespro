@@ -247,6 +247,10 @@ html.laptop.st-on dialog[open] button, html.laptop.st-on dialog[open] a { cursor
 .invbox__lede b { color: var(--ink); }
 .invbox__url { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--ink-2); }
 .invbox__wa { display: flex; align-items: center; margin-top: 10px; text-decoration: none; }
+.invbox__bar { height: 6px; margin: 12px 0 0; background: var(--line); border-radius: 3px; overflow: hidden; }
+.invbox__bar span { display: block; height: 100%; width: 0; background: var(--blue); transition: width .4s; }
+#inv-wd { margin-top: 10px; }
+#inv-wd[hidden], #inv-hist[hidden] { display: none; }
 .invbox__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 0; }
 .invbox__stats div { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); }
 .invbox__stats dt { font-size: 12.5px; color: var(--ink-3); }

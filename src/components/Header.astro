@@ -21,7 +21,7 @@ import Logo from './Logo.astro';
     <!-- Invite friends, always on the bar so nobody has to dig through the account menu to find it -->
     <button class="invite" id="invite-top" type="button" aria-controls="invbox" aria-label="Invite friends">
       <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="8" width="14" height="9" rx="1.5"/><path d="M2.5 8h15M10 8v9M10 8c-1.6-3.4-5.4-3.4-5.4-1.2C4.6 8 10 8 10 8zm0 0c1.6-3.4 5.4-3.4 5.4-1.2C15.4 8 10 8 10 8z"/></svg>
-      <span>Invite friends</span>
+      <span>Invite &amp; earn ₹3</span>
     </button>
 
     <!-- account: a shimmer until /api/session answers, then "Sign in" or the student's initial -->
@@ -85,7 +85,7 @@ import Logo from './Logo.astro';
   <!-- Invite friends (G8): the student's own link, opened from the account menu -->
   <div class="cartbox invbox" id="invbox" role="dialog" aria-labelledby="inv-h" hidden>
     <div class="invbox__top"><p class="cartbox__h mono" id="inv-h">Invite friends</p><button class="cartbox__rm" type="button" id="inv-x" aria-label="Close">×</button></div>
-    <p class="invbox__lede">When a friend buys Pro through your link, you get <b>50% off</b> one purchase, even a whole cart. Your friend pays the normal price.</p>
+    <p class="invbox__lede">Earn <b>₹3</b> for every friend who buys Pro through your link. Withdraw to UPI once you reach <b>₹15</b> (5 friends). Your friend pays the normal price.</p>
     <div class="cartbox__code">
       <label class="sr" for="inv-url">Your invite link</label>
       <input class="cartbox__in invbox__url mono" id="inv-url" readonly value="Loading your link…" />
@@ -94,8 +94,16 @@ import Logo from './Logo.astro';
     <a class="btn btn--blue cartbox__pay invbox__wa" id="inv-wa" href="https://wa.me/" target="_blank" rel="noopener">Share on WhatsApp</a>
     <dl class="invbox__stats">
       <div><dt>Friends who bought</dt><dd class="mono" id="inv-friends">–</dd></div>
-      <div><dt>Rewards ready</dt><dd class="mono" id="inv-rewards">–</dd></div>
+      <div><dt>Your cash</dt><dd class="mono" id="inv-cash">–</dd></div>
     </dl>
+    <div class="invbox__bar" aria-hidden="true"><span id="inv-bar"></span></div>
+    <p class="invbox__lede mono" id="inv-next"></p>
+    <form class="cartbox__code" id="inv-wd" hidden novalidate>
+      <label class="sr" for="inv-upi">Your UPI ID</label>
+      <input class="cartbox__in invbox__url mono" id="inv-upi" placeholder="yourname@okbank" maxlength="130" autocomplete="off" autocapitalize="off" spellcheck="false" />
+      <button class="btn btn--blue cartbox__apply" type="submit">Withdraw</button>
+    </form>
+    <p class="invbox__lede" id="inv-hist" hidden></p>
     <p class="cartbox__msg" id="inv-msg" role="status" hidden></p>
   </div>
 </header>

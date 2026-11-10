@@ -44,6 +44,8 @@ module.exports = handle(async (req, res) => {
   if (gift) notes.gift = gift;
   let amount = items.reduce((n, c) => n + priceOf(c), 0), offer = null, reward = false;
   const useReward = b.reward === true;
+  // the 50% reward was replaced by Rs 3 cash a friend (owner, 10-11-2026): no new reward orders
+  if (useReward) return send(res, 400, { error: 'The 50% reward is now ₹3 cash for every friend. See Invite friends.', badReward: true });
   if (useReward && offers.normCode(b.code)) return send(res, 400, { error: 'One discount per order: use your 50% reward or a code, not both.' });
   if (useReward) {
     if (!(await refs.rewardsOf(u.e)).rewards) return send(res, 400, { error: "You don't have a 50% reward to use.", badReward: true });
