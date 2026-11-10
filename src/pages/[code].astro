@@ -14,6 +14,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const others = subjects.filter((x) => x.code !== s.code).slice(0, 6);
 const title = `${s.code} ${s.name} notes · Notix`;
 const description = `${s.name} (${s.code}) notes for VIT, free to read: ${s.modules.map(([, t]) => t).join(', ')}. Pro adds the study tools for ₹${s.price}, paid once.`;
+const unit = s.code === 'BACHY101' ? 'Weeks' : 'Modules'; // EVS is taught and examined by week
 ---
 <Base title={title} description={description} image={`/og/${s.code.toLowerCase()}.png`}>
   <section class="subj frame" aria-labelledby="subj-h">
@@ -35,7 +36,7 @@ const description = `${s.name} (${s.code}) notes for VIT, free to read: ${s.modu
   </section>
 
   <section class="subj-mods frame" aria-labelledby="mods-h">
-    <h2 class="display display--sm sweep" id="mods-h" data-text="Modules" string="progress" string-offset-bottom="-10%" string-offset-top="-35%">Modules</h2>
+    <h2 class="display display--sm sweep" id="mods-h" data-text={unit} string="progress" string-offset-bottom="-10%" string-offset-top="-35%">{unit}</h2>
     <ol class="mods">
       {s.modules.map(([n, t]) => (
         <li><span class="mods__n">{pad(n)}</span><span class="mods__t">{t}</span><a class="mods__go" href={s.site}>Read <span aria-hidden="true">↗</span></a></li>
