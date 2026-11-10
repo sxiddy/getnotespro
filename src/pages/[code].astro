@@ -3,6 +3,8 @@
 // (MCQ round 5), then what Pro adds for this subject. Adding a subject adds its page; nothing to write here.
 import Base from '../layouts/Base.astro';
 import { subjects } from '../lib/subjects.mjs';
+import Price from '../components/Price.astro';
+import SaleNote from '../components/SaleNote.astro';
 
 export function getStaticPaths() {
   return subjects.map((s) => ({ params: { code: s.code.toLowerCase() }, props: { s } }));
@@ -24,10 +26,10 @@ const description = `${s.name} (${s.code}) notes for VIT, free to read: ${s.modu
       </div>
       <div class="subj__buy">
         <a class="tile__read subj__read" href={s.site}>Read free <span aria-hidden="true">↗</span></a>
-        <button class="tile__add subj__add" type="button" data-code={s.code} aria-pressed="false">Add Pro <span>₹{s.price}</span></button>
+        <button class="tile__add subj__add" type="button" data-code={s.code} aria-pressed="false">Add Pro <span><Price code={s.code} /></span></button>
         <!-- Gift Pro (G2): puts this subject in the cart in gift mode and opens the cart at the friend's email field -->
         <button class="btn btn--ghost subj__gift" type="button" data-gift={s.code} aria-controls="cartbox">Gift this subject</button>
-        <p class="subj__once mono">₹{s.price} once · no subscription · UPI</p>
+        <p class="subj__once mono"><Price code={s.code} /> once · no subscription · UPI <SaleNote /></p>
       </div>
     </div>
   </section>
@@ -46,7 +48,7 @@ const description = `${s.name} (${s.code}) notes for VIT, free to read: ${s.modu
       <h2 class="display display--sm sweep" id="pro-h" data-text={`Pro · ₹${s.price}`} string="progress" string-offset-bottom="-10%" string-offset-top="-35%">Pro · ₹{s.price}</h2>
       <p class="subj-pro__lede">The notes stay free. Pro adds this for {s.name}, paid once:</p>
       <ul class="pro-list">{s.pro.map((p) => <li>{p}</li>)}</ul>
-      <button class="tile__add subj__add" type="button" data-code={s.code} aria-pressed="false">Add Pro <span>₹{s.price}</span></button>
+      <button class="tile__add subj__add" type="button" data-code={s.code} aria-pressed="false">Add Pro <span><Price code={s.code} /></span></button>
     </section>
   )}
 

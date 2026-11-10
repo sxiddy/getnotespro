@@ -2,6 +2,7 @@
 // "Try a Pro tool": three live canvas demos ported from the old store (src/scripts/demos.js).
 // The .tile__add buttons are handled by the site's own script, so there is no click handler here.
 import '../styles/demos.css';
+import Price from './Price.astro';
 const cards = [
   { demo: 'battery', code: 'BACHY105', subject: 'Applied Chemistry', title: 'Phone battery', blurb: 'What happens inside your phone battery. Lithium ions shuttle one way when you charge and the other way when you use it.' },
   { demo: 'motor', code: 'BAEEE101', subject: 'Basic Engineering', title: 'Ceiling fan motor', blurb: 'Why a fan spins. Three coils make a magnetic field that turns, and the rotor chases it, always a little behind (slip).' },
@@ -20,7 +21,7 @@ const cards = [
         <div data-demo={c.demo}></div>
         <footer class="demo-card__foot">
           <a class="tile__read" href={`/${c.code.toLowerCase()}`}>Open the subject</a>
-          <button class="tile__add" type="button" data-code={c.code} aria-pressed="false">Add Pro <span>₹10</span></button>
+          <button class="tile__add" type="button" data-code={c.code} aria-pressed="false">Add Pro <span><Price code={c.code} /></span></button>
         </footer>
       </li>
     ))}

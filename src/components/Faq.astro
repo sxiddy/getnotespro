@@ -3,8 +3,8 @@
 // label, "buy several" is shown by the cart, "subject not here" is the request link. The UPI answer is clearer (M2)
 // and "Check my payment" now lives in the account menu (M3).
 import { SITE } from '../data/site.mjs';
-interface Props { price: number }
-const { price } = Astro.props;
+import Price from './Price.astro';
+import SaleNote from './SaleNote.astro';
 const mail = SITE.support;
 ---
 <section class="faq frame" id="faq" aria-labelledby="faq-h">
@@ -16,7 +16,7 @@ const mail = SITE.support;
     </details>
     <details name="faq">
       <summary>What does Pro cost, and does it run out?</summary>
-      <p>₹{price} per subject, paid once. There is no subscription and no renewal, and it never expires. You can add several subjects to the cart and pay for them in one go; each unlocks on its own subject site.</p>
+      <p><Price /> per subject, paid once <SaleNote />. There is no subscription and no renewal, and it never expires. You can add several subjects to the cart and pay for them in one go; each unlocks on its own subject site.</p>
     </details>
     <details name="faq">
       <summary>Which account do I use, and does it work on my phone?</summary>

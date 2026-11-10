@@ -295,3 +295,8 @@ html.laptop.st-on dialog[open] button, html.laptop.st-on dialog[open] a { cursor
 .rev-stars input { position: absolute; opacity: 0; width: 44px; height: 44px; margin: 0; cursor: pointer; }
 .rev-stars span[aria-hidden] { display: grid; place-items: center; width: 44px; height: 44px; font-size: 26px; color: var(--line-2); }
 .rev-stars:has(input:checked) label:has(~ label input:checked) span[aria-hidden], .rev-stars label:has(input:checked) span[aria-hidden] { color: #ffc94d; }
+
+/* launch sale (api/_lib.js SALE): the full price struck through before the sale price, and a small "50% off" tag */
+.pz__was { text-decoration: line-through; text-decoration-thickness: 1.5px; opacity: .55; font-weight: inherit; margin-right: .3em; }
+.pz__was[hidden], .sale-note[hidden] { display: none; }
+.sale-note { display: inline-block; padding: .1em .55em; border-radius: 999px; font-size: .78em; line-height: 1.5; white-space: nowrap; vertical-align: .08em; background: var(--blue, #2d5bff); color: #fff; }

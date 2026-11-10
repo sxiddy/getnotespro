@@ -294,6 +294,20 @@ async function api(url, body) {
   if (!r.ok) throw Object.assign(new Error(j.error || 'Something went wrong. Please try again.'), { status: r.status, data: j });
   return j;
 }
+// The launch sale (api/_lib.js SALE) ends by itself on the server; this brings a page built during the sale in line
+// with it, so the struck price and "25% off" go away once the sale is over, even before the site is rebuilt.
+function paintPrices() {
+  for (const el of $$('.pz')) {
+    const pick = el.dataset.pz ? [byCode(el.dataset.pz)].filter(Boolean) : SUBJECTS;
+    if (!pick.length) continue;
+    const s = pick.reduce((a, b) => (b.price < a.price ? b : a));
+    $('.pz__now', el).textContent = '₹' + s.price;
+    const was = $('.pz__was', el);
+    if (was) { was.textContent = '₹' + s.list; was.hidden = !(s.list > s.price); }
+  }
+  const onSale = SUBJECTS.some((s) => s.list > s.price);
+  for (const el of $$('[data-sale-note]')) el.hidden = !onSale;
+}
 function renderAccount() {
   const u = S && S.user;
   if (!u || !S.rewards) rewardOn = false;
@@ -305,9 +319,10 @@ function renderAccount() {
   if (u) { $('#acct-initial').textContent = u[0].toUpperCase(); $('#acct-who').textContent = u; $('#acct-btn').setAttribute('aria-label', `Account: ${u}`); }
   // the server's prices and ownership are the truth; owned subjects leave the cart (unless it is a gift)
   if (S) for (const p of S.products) {
-    const s = byCode(p.code); if (s) s.price = p.price / 100;
+    const s = byCode(p.code); if (s) { s.price = p.price / 100; if (p.list) s.list = p.list / 100; }
     paintOwned(p.code, p.owned);
   }
+  if (S) paintPrices();
   dropOwned();
   renderCart();
   showGifts(u ? S.gifts || [] : []);

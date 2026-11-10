@@ -6,13 +6,13 @@ import Base from '../layouts/Base.astro';
 import Compare from '../components/Compare.astro';
 import Faq from '../components/Faq.astro';
 import Demos from '../components/Demos.astro';
+import Price from '../components/Price.astro';
+import SaleNote from '../components/SaleNote.astro';
 import { subjects, moduleCount } from '../lib/subjects.mjs';
 import { SITE } from '../data/site.mjs';
 
 const SHOW_MODS = 2;
 const pad = (n: number) => String(n).padStart(2, '0');
-const prices = [...new Set(subjects.map((s) => s.price))];
-const price = prices.length === 1 ? prices[0] : Math.min(...prices); // "₹10 a subject" while every price is the same
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 ---
 <Base>
@@ -24,7 +24,7 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
       </h1>
     </div>
     <div class="hero__copy">
-      <p class="hero__lede">Every module is written for the CAT and FAT syllabus. Pro adds the tools on top: quizzes, flashcards, worked answers and interactive models, for <strong>₹{price} a subject, paid once</strong>.</p>
+      <p class="hero__lede">Every module is written for the CAT and FAT syllabus. Pro adds the tools on top: quizzes, flashcards, worked answers and interactive models, for <strong><Price /> a subject, paid once</strong>. <SaleNote /></p>
       <div class="hero__actions">
         <button class="btn btn--blue" type="button" data-focus-search string="magnetic" string-strength="0.2" string-radius="90">Find your subject <kbd>/</kbd></button>
         <a class="btn btn--ghost" href="#try">Try a Pro tool</a>
@@ -37,7 +37,7 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
       <dl class="stats" id="stats">
         <div><dt class="mono">Subjects</dt><dd data-count={subjects.length}>{subjects.length}</dd></div>
         <div><dt class="mono">Modules</dt><dd data-count={moduleCount}>{moduleCount}</dd></div>
-        <div><dt class="mono">Pro, once</dt><dd>₹<span data-count={price}>{price}</span></dd></div>
+        <div><dt class="mono">Pro, once</dt><dd><Price /></dd></div>
       </dl>
     </div>
 
@@ -63,7 +63,7 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
       <p class="try__note" id="try-note" aria-live="polite">Pick an answer, then drag the slider to check it.</p>
       <div class="try__cta" id="try-cta" hidden>
         <span>This is one of the interactive models in Applied Chemistry Pro.</span>
-        <button class="try__add" type="button" data-code="BACHY105">Add Pro <span>₹{subjects.find((s) => s.code === 'BACHY105')?.price ?? price}</span></button>
+        <button class="try__add" type="button" data-code="BACHY105">Add Pro <span><Price code="BACHY105" /></span></button>
       </div>
     </figure>
   </section>
@@ -84,7 +84,7 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
       </div>
     </div>
     <ol class="steps mono" string="progress" aria-label="How buying works">
-      <li>Read free</li><li>Add Pro <span>₹{price}</span></li><li>Pay once by UPI</li>
+      <li>Read free</li><li>Add Pro <span><Price /></span></li><li>Pay once by UPI</li>
     </ol>
     <ul class="tiles" id="tiles">
       {subjects.map((s, i) => (
@@ -98,7 +98,7 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
           </ul>
           <div class="tile__foot">
             <a class="tile__read" href={s.site}>Read free <span aria-hidden="true">↗</span></a>
-            <button class="tile__add" type="button" data-code={s.code} aria-pressed="false" string="magnetic" string-strength="0.18" string-radius="60">Add Pro <span>₹{s.price}</span></button>
+            <button class="tile__add" type="button" data-code={s.code} aria-pressed="false" string="magnetic" string-strength="0.18" string-radius="60">Add Pro <span><Price code={s.code} /></span></button>
           </div>
         </li>
       ))}
@@ -111,9 +111,9 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
     </ul>
   </section>
 
-  <Compare price={price} />
+  <Compare />
   <Demos />
-  <Faq price={price} />
+  <Faq />
 
   <section class="last frame" aria-labelledby="last-h">
     <h2 class="display display--sm sweep" id="last-h" data-text="Didn't find it?" string="progress" string-offset-bottom="-10%" string-offset-top="-35%">Didn't find it?</h2>

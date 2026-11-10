@@ -12,6 +12,7 @@ const crypto = require('node:crypto');
 process.env.FAKEREDIS_PORT = '5393';
 process.env.UPSTASH_REDIS_REST_URL = 'http://127.0.0.1:5393';
 process.env.UPSTASH_REDIS_REST_TOKEN = 'test';
+process.env.SALE_PCT = '50'; // the money tests price every subject at ₹10 (₹20 list, 50% sale)
 process.env.SESSION_SECRET = 'test-session-secret';
 process.env.ADMIN_KEY = 'test-admin';
 process.env.RAZORPAY_KEY_ID = 'rzp_test_x';
@@ -114,7 +115,7 @@ test('the order carries the recipient next to the buyer; the email is normalised
 // ------------------------------------------------------------------ paying for it
 test('Pro lands on the recipient only after a verified UPI payment, never on the buyer', async () => {
   const o = await order(A, ['BAEEE101', 'BACHY105'], { gift: B });
-  assert.deepEqual(await owns(B), { BACHY105: false, BAEEE101: false, BAENG101: false }, 'making the order gives nothing');
+  assert.deepEqual(await owns(B), { BACHY105: false, BAEEE101: false, BAENG101: false, BACHY101: false }, 'making the order gives nothing');
   assert.equal((await verify(A, o.orderId, 'card')).status, 402, 'only UPI unlocks');
   assert.equal(await paidRec('BAEEE101', B), null, 'a refused payment gives nothing');
 

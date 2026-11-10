@@ -1,7 +1,6 @@
 ---
 // Free vs Pro (section 4). Rows are the live site's table; the old "What Pro adds" grid (X5) folded into them.
-interface Props { price: number }
-const { price } = Astro.props;
+import Price from './Price.astro';
 const ROWS: [string, boolean][] = [
   ['Read the notes of every module', true],
   ['Interactive models and the Lab bench', false],
@@ -18,7 +17,7 @@ const ROWS: [string, boolean][] = [
   <p class="compare__lede">The notes are always free. Pro adds the tools, per subject.</p>
   <div class="compare__wrap">
     <table class="cmp">
-      <thead><tr><th scope="col"><span class="sr">Feature</span></th><th scope="col">Free</th><th scope="col" class="cmp__pro">Pro <span>₹{price} once, never expires</span></th></tr></thead>
+      <thead><tr><th scope="col"><span class="sr">Feature</span></th><th scope="col">Free</th><th scope="col" class="cmp__pro">Pro <span><Price /> once, never expires</span></th></tr></thead>
       <tbody>
         {ROWS.map(([row, free]) => (
           <tr>

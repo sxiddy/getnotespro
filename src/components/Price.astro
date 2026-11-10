@@ -1,0 +1,10 @@
+---
+// A price as the student pays it now. During the launch sale (api/_lib.js SALE) the full price shows struck through
+// before it. core.js paintPrices() re-paints every .pz from /api/session, so the sale ends on time on an old build.
+import { subjects } from '../lib/subjects.mjs';
+interface Props { code?: string }
+const { code = '' } = Astro.props;
+const pick = code ? subjects.filter((x) => x.code === code) : subjects;
+const s = pick.reduce((a, b) => (b.price < a.price ? b : a));
+---
+<span class="pz" data-pz={code}>{s.list > s.price && <s class="pz__was">₹{s.list}</s>}<span class="pz__now">₹{s.price}</span></span>

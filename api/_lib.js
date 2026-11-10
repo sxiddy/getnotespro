@@ -12,13 +12,23 @@ const MAX_AGE = 400 * 24 * 3600; // browsers cap cookies at 400 days
 // One entry per subject site (add a line here, a blurb in app/js/store.js INFO, and the subject appears on the store;
 // 'tag' is an optional label that search also matches; the first three subjects show by default, the rest are found by searching. Price is in paise; set PRICE_<CODE> in Vercel to change it (minimum 100 = ₹1).
 const PRODUCTS = {
-  BACHY105: { name: 'Applied Chemistry', tag: 'Chemistry', site: 'https://bachy105.vercel.app', price: 1000 },
-  BAEEE101: { name: 'Basic Engineering', tag: 'Engineering', site: 'https://baeee101.vercel.app', price: 1000 },
-  BAENG101: { name: 'Technical English', tag: 'English', site: 'https://baeng101.vercel.app', price: 1000 },
+  BACHY105: { name: 'Applied Chemistry', tag: 'Chemistry', site: 'https://bachy105.vercel.app', price: 2000 },
+  BAEEE101: { name: 'Basic Engineering', tag: 'Engineering', site: 'https://baeee101.vercel.app', price: 2000 },
+  BAENG101: { name: 'Technical English', tag: 'English', site: 'https://baeng101.vercel.app', price: 2000 },
+  BACHY101: { name: 'Environmental Sciences', tag: 'EVS', site: 'https://bachy101.vercel.app', price: 2000 },
 };
-function priceOf(code) {
+// Launch sale (owner, 10-11-2026): 25% off every subject (₹20 → ₹15) until the end of November (IST); from 1 Dec it is the full
+// price again by itself, no redeploy needed. Whole rupees, rounded down, never below ₹1, like a discount code.
+const SALE_PCT = parseInt(process.env.SALE_PCT || '', 10); // optional override (tests pin 50 so every subject costs ₹10)
+const SALE = { pct: Number.isInteger(SALE_PCT) && SALE_PCT >= 0 && SALE_PCT < 100 ? SALE_PCT : 25, until: Date.parse('2026-12-01T00:00:00+05:30') };
+const saleOn = (now = Date.now()) => now < SALE.until;
+function listPriceOf(code) {
   const n = parseInt(process.env['PRICE_' + code] || '', 10);
   return Number.isInteger(n) && n >= 100 ? n : PRODUCTS[code].price;
+}
+function priceOf(code, now = Date.now()) {
+  const list = listPriceOf(code);
+  return saleOn(now) ? Math.max(100, Math.floor((list * (100 - SALE.pct)) / 100 / 100) * 100) : list;
 }
 const isProduct = (c) => Object.prototype.hasOwnProperty.call(PRODUCTS, String(c));
 // an order's notes.item holds one subject code, or several joined by commas (a cart)
@@ -264,6 +274,6 @@ function handle(fn) {
 
 module.exports = {
   isLive,
-  DOMAIN, PRODUCTS, priceOf, isProduct, env, send, body, hmac, safeEqual, normEmail, isStudentEmail, getUser, userCookie, clearUserCookie, REVIEW_EMAIL, reviewOn, reviewerCookie,
+  DOMAIN, PRODUCTS, priceOf, listPriceOf, SALE, saleOn, isProduct, env, send, body, hmac, safeEqual, normEmail, isStudentEmail, getUser, userCookie, clearUserCookie, REVIEW_EMAIL, reviewOn, reviewerCookie,
   verifyGoogle, razorpay, checkPayment, orderInfo, recordPaid, recordPaidAll, recordPurchase, itemsOf, recordRefund, ownedBy, giftsTo, handle,
 };

@@ -5,7 +5,9 @@ import { SUBJECTS } from '../data/subjects.mjs';
 
 // resolved from the project root, not this file: the build moves this code into a bundle elsewhere
 const require = createRequire(process.cwd() + '/');
-const { PRODUCTS, priceOf } = require('./api/_lib.js');
+const { PRODUCTS, priceOf, listPriceOf, saleOn, SALE } = require('./api/_lib.js');
+// the launch sale as it stands at build time; the browser re-checks it against /api/session (core.js paintPrices)
+export const sale = { on: saleOn(), pct: SALE.pct, until: SALE.until };
 
 const codes = Object.keys(PRODUCTS);
 const missing = codes.filter((c) => !SUBJECTS[c]);
@@ -18,7 +20,7 @@ if (missing.length || extra.length) {
   );
 }
 
-/** @type {{code:string,name:string,tag:string,site:string,price:number,group:string,aka:string[],blurb:string,modules:[number,string][],pro:string[]}[]} */
+/** @type {{code:string,name:string,tag:string,site:string,price:number,list:number,group:string,aka:string[],blurb:string,modules:[number,string][],pro:string[]}[]} */
 export const subjects = codes.map((code) => {
   const p = PRODUCTS[code], s = SUBJECTS[code];
   return {
@@ -26,7 +28,8 @@ export const subjects = codes.map((code) => {
     name: p.name,
     tag: p.tag || '',
     site: p.site,
-    price: priceOf(code) / 100, // rupees; PRICE_<CODE> in Vercel overrides, the same as the payment code
+    price: priceOf(code) / 100, // rupees, what the student pays now (sale included); PRICE_<CODE> in Vercel overrides
+    list: listPriceOf(code) / 100, // rupees, the full price
     group: s.group || '',
     aka: s.aka || [],
     blurb: s.blurb,
@@ -37,4 +40,4 @@ export const subjects = codes.map((code) => {
 
 export const moduleCount = subjects.reduce((n, s) => n + s.modules.length, 0);
 // what the browser needs for search and the cart (no Pro lists, to keep the page small)
-export const clientSubjects = subjects.map(({ code, name, tag, site, price, aka, modules }) => ({ code, name, tag, site, price, aka, modules }));
+export const clientSubjects = subjects.map(({ code, name, tag, site, price, list, aka, modules }) => ({ code, name, tag, site, price, list, aka, modules }));

@@ -11,6 +11,7 @@ const crypto = require('node:crypto');
 process.env.FAKEREDIS_PORT = '5392';
 process.env.UPSTASH_REDIS_REST_URL = 'http://127.0.0.1:5392';
 process.env.UPSTASH_REDIS_REST_TOKEN = 'test';
+process.env.SALE_PCT = '50'; // the money tests price every subject at ₹10 (₹20 list, 50% sale)
 process.env.SESSION_SECRET = 'test-session-secret';
 process.env.ADMIN_KEY = 'test-admin';
 process.env.RAZORPAY_KEY_ID = 'rzp_test_x';
