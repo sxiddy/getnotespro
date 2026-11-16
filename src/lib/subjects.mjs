@@ -41,3 +41,6 @@ export const subjects = codes.map((code) => {
 export const moduleCount = subjects.reduce((n, s) => n + s.modules.length, 0);
 // what the browser needs for search and the cart (no Pro lists, to keep the page small)
 export const clientSubjects = subjects.map(({ code, name, tag, site, price, list, aka, modules }) => ({ code, name, tag, site, price, list, aka, modules }));
+
+// next-semester subjects: status + link only, never buyable (api/_upcoming.js)
+export const upcoming = require('./api/_upcoming.js');

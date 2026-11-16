@@ -508,7 +508,14 @@ main, .bar, .foot { position: relative; z-index: 1; }
 .toast a { display: inline-flex; align-items: center; min-height: 44px; margin-left: 8px; padding: 0 14px; background: var(--blue); color: #fff; border-radius: var(--r-sm); font-weight: 600; text-decoration: none; white-space: nowrap; }
 .toast a[hidden] { display: none; }
 
-/* Upcoming subjects (owner, 16-11-2026): status cards, nothing to buy */
-.tile--soon { opacity: .82; }
-.tile--soon .tile__status { color: var(--ink); border-color: var(--ink-2); }
-.tile__soon { font-size: 14px; color: var(--ink-2); }
+/* Coming next semester (owner, 16-11-2026): one compact list with links, nothing to buy */
+.soon { margin-top: 28px; border-top: 1px solid var(--line-2); padding-top: 18px; }
+.soon__h { font: 500 13px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); margin: 0 0 10px; }
+.soon__h span { text-transform: none; letter-spacing: 0; opacity: .7; margin-left: 8px; }
+.soon__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px 18px; }
+.soon__list a { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; color: var(--ink); text-decoration: none; border-bottom: 1px dashed var(--line-2); }
+.soon__list a:hover .soon__name { text-decoration: underline; }
+.soon__code { font: 500 12px var(--mono); color: var(--ink-2); flex: none; }
+.soon__name { flex: 1; min-width: 0; }
+.soon__st { font-size: 12px; color: var(--ink-2); flex: none; }
+.soon__st--on { color: var(--ink); font-weight: 600; }

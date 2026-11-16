@@ -8,8 +8,7 @@ import Faq from '../components/Faq.astro';
 import Demos from '../components/Demos.astro';
 import Price from '../components/Price.astro';
 import SaleNote from '../components/SaleNote.astro';
-import { subjects, moduleCount } from '../lib/subjects.mjs';
-import { UPCOMING } from '../data/subjects.mjs';
+import { subjects, moduleCount, upcoming } from '../lib/subjects.mjs';
 import { SITE } from '../data/site.mjs';
 
 const SHOW_MODS = 2;
@@ -103,14 +102,6 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
           </div>
         </li>
       ))}
-      {UPCOMING.map((u, i) => (
-        <li class="tile tile--soon" string="progress" style={`--i:${subjects.length + i}`} data-code={u.code}>
-          <div class="tile__top"><span class="tile__code">{u.code}</span><span class="tile__tag tile__status">{u.status}</span></div>
-          <h3 class="tile__name">{u.name}</h3>
-          <p class="tile__blurb">{u.blurb}</p>
-          <div class="tile__foot"><span class="tile__soon">{u.status === 'In progress' ? 'Being written now. Not available yet.' : 'Not available yet.'}</span></div>
-        </li>
-      ))}
       <li class="tile tile--req" string="progress" style={`--i:${subjects.length}`}>
         <span class="tile__plus" aria-hidden="true">+</span>
         <div><h3 class="tile__name">Not here yet?</h3><p>Send the subject code and it goes on the list.</p></div>
@@ -118,6 +109,14 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
       </li>
       <li class="tiles__empty" id="tiles-empty" hidden>No subject matches “<span id="tiles-q"></span>”. <a href={SITE.request}>Request a subject →</a></li>
     </ul>
+    <div class="soon" aria-labelledby="soon-h">
+      <h3 class="soon__h" id="soon-h">Coming next semester <span>not available yet</span></h3>
+      <ul class="soon__list">
+        {upcoming.map((u) => (
+          <li><a href={u.site} target="_blank" rel="noopener"><span class="soon__code">{u.code}</span><span class="soon__name">{u.name}</span><span class={u.status === 'In progress' ? 'soon__st soon__st--on' : 'soon__st'}>{u.status}</span><span aria-hidden="true">↗</span></a></li>
+        ))}
+      </ul>
+    </div>
   </section>
 
   <Compare />
