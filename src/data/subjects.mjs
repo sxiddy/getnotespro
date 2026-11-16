@@ -80,3 +80,16 @@ export const SUBJECTS = {
     pro: [], // the owner to fill in once the EVS Pro tools exist (an empty list hides the "Pro" section on /bachy101)
   },
 };
+
+// Next-semester subjects shown on the home page as status cards only: NOT in PRODUCTS, so there is no price, no
+// Add Pro button and nothing to buy (owner, 16-11-2026). Move an entry to PRODUCTS + SUBJECTS at launch.
+export const UPCOMING = [
+  { code: 'BAPHY105', name: 'Engineering Physics', status: 'In progress', site: 'https://baphy105.vercel.app',
+    blurb: 'Wave-particle duality, the maths and postulates of quantum mechanics, potential wells, tunnelling and quantum computing.' },
+  { code: 'BACSE105', name: 'Data Structures and Algorithms', status: 'Coming soon', site: 'https://bacse105.vercel.app', blurb: 'Notes, diagrams, past papers and practice questions.' },
+  { code: 'BACSE103', name: 'Computation Structures', status: 'Coming soon', site: 'https://bacse103.vercel.app', blurb: 'Notes, diagrams, past papers and practice questions.' },
+  { code: 'BACSE104', name: 'Structured and Object-Oriented Programming', status: 'Coming soon', site: 'https://bacse104.vercel.app', blurb: 'Notes, diagrams, past papers and practice questions.' },
+  { code: 'BACSE106', name: 'Operating Systems', status: 'Coming soon', site: 'https://bacse106.vercel.app', blurb: 'Notes, diagrams, past papers and practice questions.' },
+  { code: 'BAMAT205', name: 'Discrete Mathematics and Linear Algebra', status: 'Coming soon', site: 'https://bamat205.vercel.app', blurb: 'Notes, diagrams, past papers and practice questions.' },
+  { code: 'BAESP101', name: 'Spanish Level I', status: 'Coming soon', site: 'https://baesp101.vercel.app', blurb: 'Notes, diagrams, past papers and practice questions.' },
+];

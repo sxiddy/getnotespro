@@ -507,3 +507,8 @@ main, .bar, .foot { position: relative; z-index: 1; }
 .toast:has(#toast-link:not([hidden])) { flex-wrap: wrap; row-gap: 8px; width: min(440px, calc(100vw - 32px)); }
 .toast a { display: inline-flex; align-items: center; min-height: 44px; margin-left: 8px; padding: 0 14px; background: var(--blue); color: #fff; border-radius: var(--r-sm); font-weight: 600; text-decoration: none; white-space: nowrap; }
 .toast a[hidden] { display: none; }
+
+/* Upcoming subjects (owner, 16-11-2026): status cards, nothing to buy */
+.tile--soon { opacity: .82; }
+.tile--soon .tile__status { color: var(--ink); border-color: var(--ink-2); }
+.tile__soon { font-size: 14px; color: var(--ink-2); }

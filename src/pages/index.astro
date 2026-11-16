@@ -9,6 +9,7 @@ import Demos from '../components/Demos.astro';
 import Price from '../components/Price.astro';
 import SaleNote from '../components/SaleNote.astro';
 import { subjects, moduleCount } from '../lib/subjects.mjs';
+import { UPCOMING } from '../data/subjects.mjs';
 import { SITE } from '../data/site.mjs';
 
 const SHOW_MODS = 2;
@@ -100,6 +101,14 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
             <a class="tile__read" href={s.site}>Read free <span aria-hidden="true">↗</span></a>
             <button class="tile__add" type="button" data-code={s.code} aria-pressed="false" string="magnetic" string-strength="0.18" string-radius="60">Add Pro <span><Price code={s.code} /></span></button>
           </div>
+        </li>
+      ))}
+      {UPCOMING.map((u, i) => (
+        <li class="tile tile--soon" string="progress" style={`--i:${subjects.length + i}`} data-code={u.code}>
+          <div class="tile__top"><span class="tile__code">{u.code}</span><span class="tile__tag tile__status">{u.status}</span></div>
+          <h3 class="tile__name">{u.name}</h3>
+          <p class="tile__blurb">{u.blurb}</p>
+          <div class="tile__foot"><span class="tile__soon">{u.status === 'In progress' ? 'Being written now. Not available yet.' : 'Not available yet.'}</span></div>
         </li>
       ))}
       <li class="tile tile--req" string="progress" style={`--i:${subjects.length}`}>
