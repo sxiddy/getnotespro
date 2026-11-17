@@ -28,6 +28,24 @@ export const SUBJECTS = {
       'Progress sync, bookmarks, My notes, focus timer up to 3 hours, unlimited 1v1 quiz battles',
     ],
   },
+  BAPHY105: {
+    group: 'Physics',
+    aka: ['physics', 'phy', 'engineering physics', 'quantum', 'quantum mechanics', 'quantum computing'],
+    blurb: 'Wave-particle duality, the maths and postulates of quantum mechanics, its applications and quantum computing.',
+    modules: [
+      [1, 'Wave-Particle Duality'],
+      [2, 'Mathematical Foundations of Quantum Mechanics'],
+      [3, 'Postulates of Quantum Mechanics'],
+      [4, 'Applications of Quantum Mechanics'],
+      [5, 'Elements of Quantum Computing'],
+    ],
+    pro: [
+      'Modules 2 to 5 in full, with every worked problem',
+      'Interactive models: Bloch sphere, particle in a box, tunnelling and sequential Stern-Gerlach',
+      'Every flashcard and quiz, with explanations',
+      'Answers to the CAT and FAT papers, each linked to the notes that explain it',
+    ],
+  },
   BAEEE101: {
     group: 'Electrical',
     aka: ['beee', 'bee', 'basic electrical', 'electrical', 'electronics'],
