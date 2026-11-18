@@ -39,14 +39,14 @@
     const rows = D.sites.map((s) => {
       if (!s.ok) return `<tr><td><b>${esc(s.code)}</b></td><td colspan="6" class="text-danger">site did not answer (${esc(s.error || '')})</td></tr>`;
       const p = by[s.code] || {};
-      const banner = s.banner && s.banner.on && s.banner.text ? esc(s.banner.text) : '<span class="text-secondary">none</span>';
+      const banner = s.banner && s.banner.on && s.banner.text ? esc(s.banner.text) : s.banner && s.banner.text ? '<span class="text-secondary">off (was: ' + esc(s.banner.text) + ')</span>' : '<span class="text-secondary">none</span>';
       return `<tr>
         <td><b>${esc(s.code)}</b><div class="text-secondary small">${esc(s.name)}</div></td>
         ${cell(`<div class="d-flex gap-1 align-items-center"><span>₹</span><input class="form-control form-control-sm" style="width:72px" type="number" min="1" step="1" value="${p.list ? p.list / 100 : ''}" data-price="${esc(s.code)}"><button class="btn btn-sm" type="button" data-saveprice="${esc(s.code)}">Save</button></div><div class="text-secondary small">${p.now != null && p.now !== p.list ? 'pays ' + rs(p.now) + ' now' : 'no sale'}</div>`, fPrice(s) !== cPr)}
         ${cell(tog(s.code, 'set-paused', s.paused && s.paused.on, s.paused && s.paused.on ? 'Paused' : 'Selling'), fPaused(s) !== cP)}
         ${cell(tog(s.code, 'set-signin', s.signin !== false, s.signin !== false ? 'On' : 'Off'), fSign(s) !== cS)}
         ${cell(tog(s.code, 'set-mode', !!s.freeNow, s.freeNow ? 'Free for all' : 'Pro locked'), fFree(s) !== cF)}
-        ${cell(`<div style="max-width:260px;overflow-wrap:anywhere">${banner}</div><button class="btn btn-sm mt-1" type="button" data-editban="${esc(s.code)}">Edit</button>${s.banner && s.banner.on ? ` <button class="btn btn-sm mt-1" type="button" data-offban="${esc(s.code)}">Remove</button>` : ''}`, fBan(s) !== cB)}
+        ${cell(`<div style="max-width:260px;overflow-wrap:anywhere">${banner}</div><button class="btn btn-sm mt-1" type="button" data-editban="${esc(s.code)}">Edit</button>${s.banner && s.banner.on ? ` <button class="btn btn-sm mt-1" type="button" data-offban="${esc(s.code)}">Remove</button>` : s.banner && s.banner.text ? ` <button class="btn btn-sm mt-1" type="button" data-onban="${esc(s.code)}">Show again</button>` : ''}`, fBan(s) !== cB)}
       </tr>`;
     }).join('');
     return `<div class="card-body border-bottom">
@@ -137,7 +137,8 @@
       }
       if (t.id === 'ss-go') { t.disabled = true; await post({ action: 'set-store-sale', pct: $('#ss-pct').value, until: $('#ss-until').value }); return done('ss-msg', 'Sale saved for every subject.'); }
       if (t.id === 'ss-end') { if (!confirm('End the sale now? Every subject goes back to its full price.')) return; t.disabled = true; await post({ action: 'end-store-sale' }); return done('ss-msg', 'Sale ended.'); }
-      if (t.dataset.editban) { $('#ban-box').hidden = false; $('#ban-code').value = t.dataset.editban; const s = D.sites.find((x) => x.code === t.dataset.editban); $('#ban-text').value = s && s.banner && s.banner.on ? s.banner.text : ''; $('#ban-text').focus(); return; }
+      if (t.dataset.editban) { $('#ban-box').hidden = false; $('#ban-code').value = t.dataset.editban; const s = D.sites.find((x) => x.code === t.dataset.editban); $('#ban-text').value = s && s.banner ? s.banner.text || '' : ''; $('#ban-text').focus(); return; }
+      if (t.dataset.onban) { const s = D.sites.find((x) => x.code === t.dataset.onban); t.disabled = true; await site(t.dataset.onban, 'set-banner', { on: true, text: s.banner.text }); return done('ss-msg', 'Banner is back on ' + t.dataset.onban + '.'); }
       if (t.dataset.offban) { t.disabled = true; await site(t.dataset.offban, 'set-banner', { on: false, text: '' }); return done('ss-msg', 'Banner removed from ' + t.dataset.offban + '.'); }
       if (t.id === 'ban-go') { const text = $('#ban-text').value.trim(); if (!text) return msg('ban-msg', 'Type the banner first.', true); t.disabled = true; await onEach(chosen('ban-code'), (c) => site(c, 'set-banner', { on: true, text })); return done('ban-msg', 'Banner is up.'); }
       if (t.id === 'mo-pause') { const cs = chosen('mo-code'); if (!confirm('Pause payments on ' + cs.join(', ') + '?')) return; t.disabled = true; await onEach(cs, (c) => site(c, 'set-paused', { on: true, text: $('#mo-ptext').value })); return done('mo-msg', 'Paused.'); }
