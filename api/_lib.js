@@ -22,8 +22,31 @@ const PRODUCTS = {
 // price again by itself, no redeploy needed. Whole rupees, rounded down, never below ₹1, like a discount code.
 const SALE_PCT = parseInt(process.env.SALE_PCT || '', 10); // optional override (tests pin 50 so every subject costs ₹10)
 const SALE = { pct: Number.isInteger(SALE_PCT) && SALE_PCT >= 0 && SALE_PCT < 100 ? SALE_PCT : 33, until: Date.parse('2026-12-01T00:00:00+05:30') };
-const saleOn = (now = Date.now()) => now < SALE.until;
+// Prices and the sale set on /admin (hash "pricing" in the database) win over the code and env defaults. They are read
+// once per request by handle() (cached 20 s), so priceOf() stays a plain function. SALE is changed in place, so every
+// module that imported it sees the current sale.
+const SALE_DEFAULT = { pct: SALE.pct, until: SALE.until };
+const PRICING = { list: {}, at: 0 };
+async function loadPricing(force) {
+  if (!force && Date.now() - PRICING.at < 20e3) return;
+  try {
+    const store = require('./_store');
+    if (!store.configured()) return;
+    const [raw] = await store.pipeline([['HGETALL', 'pricing']]);
+    const h = store.pairs ? store.pairs(raw) : {};
+    const list = {}; for (const k in h) if (k.startsWith('list:') && isProduct(k.slice(5))) { const n = parseInt(h[k], 10); if (n >= 100) list[k.slice(5)] = n; }
+    PRICING.list = list;
+    let sale = null; try { sale = h.sale ? JSON.parse(h.sale) : null; } catch (e) { sale = null; }
+    if (Number.isInteger(SALE_PCT)) sale = null; // tests pin the sale with SALE_PCT
+    if (sale && sale.off) { SALE.pct = 0; SALE.until = 0; }
+    else if (sale && sale.pct > 0 && sale.pct < 100 && sale.until > 0) { SALE.pct = sale.pct; SALE.until = sale.until; }
+    else { SALE.pct = SALE_DEFAULT.pct; SALE.until = SALE_DEFAULT.until; }
+    PRICING.at = Date.now();
+  } catch (e) { /* database unreachable: keep the last known prices */ }
+}
+const saleOn = (now = Date.now()) => SALE.pct > 0 && now < SALE.until;
 function listPriceOf(code) {
+  if (PRICING.list[code]) return PRICING.list[code];
   const n = parseInt(process.env['PRICE_' + code] || '', 10);
   return Number.isInteger(n) && n >= 100 ? n : PRODUCTS[code].price;
 }
@@ -263,7 +286,7 @@ async function recordRefund(o) {
 
 function handle(fn) {
   return async (req, res) => {
-    try { await fn(req, res); }
+    try { await loadPricing(); await fn(req, res); }
     catch (e) {
       const status = e.status || 500;
       // a crash in the store (not a student's mistake) is reported to the owner's Telegram, at most once an hour per problem
@@ -273,7 +296,7 @@ function handle(fn) {
   };
 }
 
-module.exports = {
+module.exports = { loadPricing, PRICING,
   isLive,
   DOMAIN, PRODUCTS, priceOf, listPriceOf, SALE, saleOn, isProduct, env, send, body, hmac, safeEqual, normEmail, isStudentEmail, getUser, userCookie, clearUserCookie, REVIEW_EMAIL, reviewOn, reviewerCookie,
   verifyGoogle, razorpay, checkPayment, orderInfo, recordPaid, recordPaidAll, recordPurchase, itemsOf, recordRefund, ownedBy, giftsTo, handle,

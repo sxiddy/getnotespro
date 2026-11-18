@@ -12,7 +12,7 @@
 //     lookup { email }              everything about one student
 //     refund { email, product, amount? (paise; empty = full), reason }   refund through Razorpay; a full refund ends Pro
 //     reconcile { days? }           ask Razorpay for recent payments of this store, record any that are missing and fill in missing phone numbers
-const { isLive, send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, itemsOf, PRODUCTS, priceOf, razorpay, orderInfo, recordPurchase, recordRefund, DOMAIN, handle } = require('./_lib');
+const { loadPricing, listPriceOf, SALE, saleOn, isLive, send, body, env, safeEqual, normEmail, isStudentEmail, isProduct, itemsOf, PRODUCTS, priceOf, razorpay, orderInfo, recordPurchase, recordRefund, DOMAIN, handle } = require('./_lib');
 const store = require('./_store');
 
 const codes = Object.keys(PRODUCTS);
@@ -137,7 +137,8 @@ module.exports = handle(async (req, res) => {
       ...snap.refunds.map((x) => ({ at: x.at, code: x.product, type: 'refund', who: x.email, amount: x.amount, text: x.reason || '' })),
       ...sites.flatMap((s) => (s.json.feedback || []).map((f) => ({ at: f.at, code: s.code, type: f.kind === 'idea' ? 'idea' : 'message', who: f.email || f.contact || '', text: String(f.text || '').slice(0, 140), status: f.status }))),
     ].filter((x) => x.at).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 80);
-    return send(res, 200, { sites: sites.map((s) => ({ code: s.code, name: s.name, ok: s.ok, error: s.error, feedback: s.json.feedback || [] })), health: h ? parse(h) : null, settings, activity });
+    const pricing = { sale: saleOn() ? { pct: SALE.pct, until: SALE.until } : null, subjects: codes.map((c) => ({ code: c, list: listPriceOf(c), now: priceOf(c) })) };
+    return send(res, 200, { sites: sites.map((s) => ({ code: s.code, name: s.name, ok: s.ok, error: s.error, feedback: s.json.feedback || [], resetRequests: s.json.resetRequests || [], free: s.json.free || [], business: s.json.business || '', paused: s.json.paused || null, banner: s.json.banner || null, sale: s.json.sale || null, signin: s.json.signin, freeNow: !!(s.json.freeSite || s.json.freeAll || s.json.freeNow) })), health: h ? parse(h) : null, settings, activity, pricing });
   }
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'people') return send(res, 200, await people());
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'visits') {
@@ -152,13 +153,32 @@ module.exports = handle(async (req, res) => {
   const b = await body(req), a = b.action;
   if (a === 'site') { // act on a subject site's Help?/idea message from here (same ADMIN_KEY on every site)
     if (!isProduct(b.code)) return send(res, 400, { error: 'Unknown subject.' });
-    if (!['feedback-status', 'reply'].includes(b.op)) return send(res, 400, { error: 'Unknown action.' });
+    // everything the subject's own /admin page can do (see that site's api/stats.js)
+    const OPS = ['feedback-status', 'reply', 'lookup', 'grant', 'revoke', 'set-limits', 'clear-limits', 'reset-devices', 'approve-reset', 'decline-reset', 'bulk-grant', 'bulk-limits', 'set-sale', 'end-sale', 'set-banner', 'set-paused', 'set-signin', 'set-mode', 'set-business'];
+    if (!OPS.includes(b.op)) return send(res, 400, { error: 'Unknown action.' });
+    const args = Object.assign({}, b.args || {}, b.id != null ? { id: String(b.id) } : {}, b.status != null ? { status: b.status } : {}, b.text != null ? { text: b.text } : {}, { action: b.op });
     try {
-      const r = await fetch(PRODUCTS[b.code].site + '/api/stats', { method: 'POST', headers: { 'x-admin-key': env('ADMIN_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ action: b.op, id: String(b.id || ''), status: b.status, text: b.text }), signal: AbortSignal.timeout(9000) });
+      const r = await fetch(PRODUCTS[b.code].site + '/api/stats', { method: 'POST', headers: { 'x-admin-key': env('ADMIN_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify(args), signal: AbortSignal.timeout(20000) });
       const j = await r.json().catch(() => ({}));
-      return send(res, r.ok ? 200 : r.status, r.ok ? { ok: true } : { error: j.error || 'The subject site said no (' + r.status + ').' });
+      return send(res, r.ok ? 200 : r.status, r.ok ? Object.assign({ ok: true }, j) : { error: j.error || 'The subject site said no (' + r.status + ').' });
     } catch (e) { return send(res, 502, { error: 'Could not reach the ' + b.code + ' site.' }); }
   }
+  // store prices (what students pay on Notix; each subject site shows the same within 5 minutes)
+  if (a === 'set-list-price') {
+    if (!isProduct(b.code)) return send(res, 400, { error: 'Unknown subject.' });
+    const rs = Math.round(Number(b.rupees));
+    if (!(rs >= 1 && rs <= 5000)) return send(res, 400, { error: 'Enter a price from ₹1 to ₹5000.' });
+    await store.pipeline([['HSET', 'pricing', 'list:' + b.code, String(rs * 100)]]); await loadPricing(true);
+    return send(res, 200, { ok: true });
+  }
+  if (a === 'set-store-sale') {
+    const pct = Math.round(Number(b.pct)), until = Date.parse(String(b.until || '') + 'T23:59:59+05:30');
+    if (!(pct >= 1 && pct <= 99)) return send(res, 400, { error: 'Enter a discount from 1% to 99%.' });
+    if (!(until > Date.now())) return send(res, 400, { error: 'Pick an end date in the future.' });
+    await store.pipeline([['HSET', 'pricing', 'sale', JSON.stringify({ pct, until })]]); await loadPricing(true);
+    return send(res, 200, { ok: true });
+  }
+  if (a === 'end-store-sale') { await store.pipeline([['HSET', 'pricing', 'sale', JSON.stringify({ off: true })]]); await loadPricing(true); return send(res, 200, { ok: true }); }
   if (a === 'reconcile') return send(res, 200, Object.assign({ ok: true }, await reconcile(parseInt(b.days, 10))));
   const email = normEmail(b.email);
   if (!isStudentEmail(email)) return send(res, 400, { error: `Enter a student email (…@${DOMAIN}).` });
