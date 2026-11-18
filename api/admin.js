@@ -143,9 +143,9 @@ module.exports = handle(async (req, res) => {
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'people') return send(res, 200, await people());
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'visits') {
     const UP = require('./_upcoming');
-    const [vs, ...sv] = await store.pipeline([['HGETALL', 'storeVisits'], ...UP.map((u) => ['HGETALL', 'soonVisits:' + u.code])]);
+    const [vs, ls, ...sv] = await store.pipeline([['HGETALL', 'storeVisits'], ['HGETALL', 'storeLoads'], ...UP.map((u) => ['HGETALL', 'soonVisits:' + u.code])]);
     const soon = UP.map((u, i) => ({ code: u.code, name: u.name, status: u.status, site: u.site, visits: store.pairs(sv[i]) }));
-    return send(res, 200, { sites: await siteVisits(), store: { visits: store.pairs(vs) }, soon, now: new Date().toISOString() });
+    return send(res, 200, { sites: await siteVisits(), store: { visits: store.pairs(vs), loads: store.pairs(ls) }, soon, now: new Date().toISOString() });
   }
   if (req.method === 'GET') return send(res, 200, Object.assign(await snapshot(), { now: new Date().toISOString(), domain: DOMAIN }));
   if (req.method !== 'POST') return send(res, 405, { error: 'GET or POST only' });

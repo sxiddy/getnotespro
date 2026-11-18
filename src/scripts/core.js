@@ -612,7 +612,8 @@ const sentinel = document.createElement('div'); sentinel.style.cssText = 'positi
 document.body.prepend(sentinel); io.observe(sentinel);
 
 // count this browser once a day (anonymous: just a number per day), as the old home page did
-try { const day = new Date().toISOString().slice(0, 10); if (localStorage.getItem('st_visit') !== day) { localStorage.setItem('st_visit', day); fetch('/api/track', { method: 'POST', body: '{"visit":true}', keepalive: true }).catch(() => {}); } } catch { /* ignore */ }
+// every page load is a visit ("load"); the first one of the day in this browser is also a visitor ("visit")
+try { const day = new Date().toISOString().slice(0, 10), first = localStorage.getItem('st_visit') !== day; if (first) localStorage.setItem('st_visit', day); fetch('/api/track', { method: 'POST', body: first ? '{"visit":true,"load":true}' : '{"load":true}', keepalive: true }).catch(() => {}); } catch { /* ignore */ }
 
 SUBJECTS.forEach((s) => paintAdd(s.code));
 renderCart();
