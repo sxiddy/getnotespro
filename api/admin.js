@@ -2,6 +2,9 @@
 //   GET  /api/admin -> { products, totals, payments, students, now }
 //   POST /api/admin { action, ... }:
 //   GET  /api/admin?part=visits -> { sites: [{ code, name, ok, error?, visits: {day: n}, funnel }] }  visitors counted by each notes website itself (store visits are not counted)
+//   GET  /api/admin?part=inbox  -> { sites: [{ code, name, ok, error?, feedback: [...] }], health: { at, problems } }  every subject site's
+//        Help?/idea messages in one place, plus the last daily check (api/cron.js)
+//   POST /api/admin { action: 'site', code, op: 'feedback-status'|'reply', id, status?, text? }  passed on to that subject site's /api/stats
 //   GET  /api/admin?part=people -> { people: [{ email, first, last, logins, sites }], sites } everyone who signed in on any notes site or the store (unique emails)
 //     grant { email, product, hours? }  give Pro for one subject without a payment (recorded as manual); hours = it ends by itself after that long, absent = forever
 //     offline { email, product, rupees, date?, note? }  a student paid you outside the website: Pro forever, counted as a payment and in money received
@@ -124,6 +127,10 @@ module.exports = handle(async (req, res) => {
   if (!key || !safeEqual(key, expected)) return send(res, 401, { error: 'Wrong admin key.' });
   if (!store.configured()) return send(res, 500, { error: 'The database is not connected.' });
 
+  if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'inbox') {
+    const [sites, [h]] = await Promise.all([Promise.all(codes.map(fetchSite)), store.pipeline([['GET', 'health']])]);
+    return send(res, 200, { sites: sites.map((s) => ({ code: s.code, name: s.name, ok: s.ok, error: s.error, feedback: s.json.feedback || [] })), health: h ? parse(h) : null });
+  }
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'people') return send(res, 200, await people());
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'visits') {
     const UP = require('./_upcoming');
@@ -135,6 +142,15 @@ module.exports = handle(async (req, res) => {
   if (req.method !== 'POST') return send(res, 405, { error: 'GET or POST only' });
 
   const b = await body(req), a = b.action;
+  if (a === 'site') { // act on a subject site's Help?/idea message from here (same ADMIN_KEY on every site)
+    if (!isProduct(b.code)) return send(res, 400, { error: 'Unknown subject.' });
+    if (!['feedback-status', 'reply'].includes(b.op)) return send(res, 400, { error: 'Unknown action.' });
+    try {
+      const r = await fetch(PRODUCTS[b.code].site + '/api/stats', { method: 'POST', headers: { 'x-admin-key': env('ADMIN_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ action: b.op, id: String(b.id || ''), status: b.status, text: b.text }), signal: AbortSignal.timeout(9000) });
+      const j = await r.json().catch(() => ({}));
+      return send(res, r.ok ? 200 : r.status, r.ok ? { ok: true } : { error: j.error || 'The subject site said no (' + r.status + ').' });
+    } catch (e) { return send(res, 502, { error: 'Could not reach the ' + b.code + ' site.' }); }
+  }
   if (a === 'reconcile') return send(res, 200, Object.assign({ ok: true }, await reconcile(parseInt(b.days, 10))));
   const email = normEmail(b.email);
   if (!isStudentEmail(email)) return send(res, 400, { error: `Enter a student email (…@${DOMAIN}).` });

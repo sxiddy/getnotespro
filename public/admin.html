@@ -61,6 +61,14 @@
   .sub-line .meta { color: var(--text-dim); font-size: 13px; flex: 1; min-width: 160px; }
   .sub-give { display: flex; gap: 8px; align-items: center; padding: 10px 14px; flex-wrap: wrap; background: rgba(255,255,255,.02); }
   .sub-give .lbl { color: var(--text-dim); font-size: 13px; }
+  .adm-nav { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; overflow-x: auto; padding: 8px 0; margin: 0 0 16px; background: var(--bg); border-bottom: 1px solid var(--line); scrollbar-width: none; }
+  .adm-nav button { flex: none; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--text); font-weight: 500; font-size: 14px; cursor: pointer; }
+  .adm-nav button.on { background: var(--white); color: var(--bg); border-color: var(--white); }
+  .adm-nav .n { margin-left: 6px; font-size: 12px; padding: 0 6px; border-radius: 999px; background: #c2410c; color: #fff; }
+  .alert-danger { background: rgba(240,140,140,.1); border-color: rgba(240,140,140,.35); color: #f3b0b0; }
+  .alert-success { background: rgba(134,212,169,.08); border-color: rgba(134,212,169,.3); color: #a9dcbf; }
+  .alert-warning { background: rgba(240,190,110,.09); border-color: rgba(240,190,110,.3); color: #ecc98f; }
+  .alert-warning a { color: inherit; }
 </style>
 </head>
 <body>
@@ -86,6 +94,9 @@
       <button class="btn btn-sm" id="refresh" type="button">Refresh</button>
       <button class="btn btn-sm btn-outline-secondary" id="logout" type="button">Lock</button>
     </div>
+
+    <div id="alerts"></div>
+    <nav class="adm-nav" id="anav" hidden></nav>
 
     <div class="row g-3 mb-2" id="kpis"></div>
     <p class="text-secondary mb-4" id="by-subject"></p>
@@ -161,6 +172,11 @@
         <div class="mt-3 mono" id="r-out" role="status"></div>
       </div>
     </details></div>
+
+    <div class="card mb-3" id="ib-card">
+      <div class="card-header"><h2 class="card-title">Inbox</h2><span class="text-secondary small ms-2">Help? messages and ideas sent on every subject site; replies reach the student under Messages on that site</span></div>
+      <div class="card-body" id="ib-body"><span class="text-secondary">Loading…</span></div>
+    </div>
 
     <div class="card mb-3" id="ann-card">
       <div class="card-header"><h2 class="card-title">Updates</h2><span class="text-secondary small ms-2">shown on /updates; a subject named here gets an "Updated" badge for 14 days</span></div>
@@ -250,5 +266,7 @@
 <script src="js/admin-community.js"></script>
 <script src="js/admin-offers.js"></script>
 <script src="js/admin-referrals.js"></script>
+<script src="js/admin-inbox.js"></script>
+<script src="js/admin-nav.js"></script>
 </body>
 </html>

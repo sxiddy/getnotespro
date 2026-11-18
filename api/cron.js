@@ -35,6 +35,7 @@ async function check() {
       else if (p.notixError) bad.push(c + ' cannot read its store sales (' + p.notixError + '): check STORE_SECRET on its Vercel project. Buyers will not get Pro');
     } catch (e) { bad.push(c + ' admin stats did not answer'); }
   }));
+  try { if (store.configured()) await store.pipeline([['SET', 'health', JSON.stringify({ at: new Date().toISOString(), problems: bad })]]); } catch (e) { /* the admin page just shows the older result */ }
   if (bad.length) await telegram('🚨 <b>Notix check failed</b>\n\n' + bad.map((b) => '• ' + esc(b)).join('\n'));
   return { ok: !bad.length, problems: bad };
 }
