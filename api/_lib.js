@@ -16,7 +16,7 @@ const PRODUCTS = {
   BAEEE101: { name: 'Basic Engineering', tag: 'Engineering', site: 'https://baeee101.vercel.app', price: 3000 },
   BAENG101: { name: 'Technical English', tag: 'English', site: 'https://baeng101.vercel.app', price: 3000 },
   BACHY101: { name: 'Environmental Sciences', tag: 'EVS', site: 'https://bachy101.vercel.app', price: 3000 },
-  BAPHY105: { name: 'Engineering Physics', tag: 'Physics', site: 'https://baphy105.vercel.app', price: 2000 },
+  BAPHY105: { name: 'Engineering Physics', tag: 'Physics', site: 'https://baphy105.vercel.app', price: 3000 },
 };
 // Launch sale (owner, 10-11-2026): 33% off every subject (MRP ₹30 → ₹20) until the end of November (IST); from 1 Dec it is the full
 // price again by itself, no redeploy needed. Whole rupees, rounded down, never below ₹1, like a discount code.
