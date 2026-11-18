@@ -1,7 +1,7 @@
 // Owner-only admin API for the store. Send the ADMIN_KEY (Vercel env var) in the "x-admin-key" header.
 //   GET  /api/admin -> { products, totals, payments, students, now }
 //   POST /api/admin { action, ... }:
-//   GET  /api/admin?part=visits -> { sites: [{ code, name, ok, error?, visits: {day: n}, funnel }] }  visitors counted by each notes website itself (store visits are not counted)
+//   GET  /api/admin?part=visits -> { sites: [{ code, name, ok, error?, visits: {day: n}, loads: {day: n}, funnel }] }  visitors (once per browser per day) and visits (every page load, since 19-11-2026) counted by each notes website itself (store visits are not counted)
 //   GET  /api/admin?part=inbox  -> { sites: [{ code, name, ok, error?, feedback: [...] }], health: { at, problems } }  every subject site's
 //        Help?/idea messages in one place, plus the last daily check (api/cron.js)
 //   POST /api/admin { action: 'site', code, op: 'feedback-status'|'reply', id, status?, text? }  passed on to that subject site's /api/stats
@@ -29,7 +29,7 @@ async function fetchSite(code) {
   return out;
 }
 async function siteVisits() {
-  return (await Promise.all(codes.map(fetchSite))).map((s) => ({ code: s.code, name: s.name, ok: s.ok, error: s.error, visits: s.json.visits || {}, funnel: s.json.funnel || null }));
+  return (await Promise.all(codes.map(fetchSite))).map((s) => ({ code: s.code, name: s.name, ok: s.ok, error: s.error, visits: s.json.visits || {}, loads: s.json.loads || {}, funnel: s.json.funnel || null }));
 }
 // everyone who has signed in on any notes website or on this store, one entry per email
 async function people() {
