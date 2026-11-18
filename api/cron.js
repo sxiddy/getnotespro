@@ -29,7 +29,9 @@ async function check() {
     // Nov 2026) keeps every buyer locked out and its admin page empty, with no error anywhere else.
     try {
       const r = await fetch(PRODUCTS[c].site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY') }, signal: AbortSignal.timeout(15000) });
-      const p = r.ok ? ((await r.json()).payments || {}) : null;
+      const j = r.ok ? await r.json() : null, p = j ? (j.payments || {}) : null;
+      // live version not built from GitHub (deployed from the CLI, or the project lost its git link): pushes will not go live
+      if (j && j.deploy && !j.deploy.git) bad.push(c + ' live site was not deployed from GitHub, so pushes do not reach it: run "vercel git connect" in its folder, then push');
       if (!p) bad.push(c + ' admin stats answered ' + r.status + ' (is its ADMIN_KEY the same as the store\'s?)');
       else if (p.source !== 'notix') bad.push(c + ' is not linked to the store (set STORE_URL and STORE_SECRET on its Vercel project): buyers will not get Pro');
       else if (p.notixError) bad.push(c + ' cannot read its store sales (' + p.notixError + '): check STORE_SECRET on its Vercel project. Buyers will not get Pro');
