@@ -7,7 +7,7 @@
   const key = () => { try { return sessionStorage.getItem('st_admin') || ''; } catch (e) { return ''; } };
   const day = (s) => s ? new Date(s).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
   const KIND = { mistake: 'Mistake in the notes', suggestion: 'Suggestion', bug: "Something isn't working", other: 'Other', idea: 'Idea' };
-  let DATA = null, filter = 'open', sub = 'all';
+  let DATA = null, filter = 'open', sub = 'all', box = 'help'; // box: 'help' = reports (Help? messages), 'idea' = ideas
 
   async function call(method, qs, data) {
     const r = await fetch(qs, { method, headers: { 'x-admin-key': key(), 'Content-Type': 'application/json' }, body: data ? JSON.stringify(data) : undefined, cache: 'no-store' });
@@ -35,7 +35,12 @@
   const openCount = () => all().filter((f) => f.status === 'open').length;
 
   function render() {
-    const list = all().filter((f) => (sub === 'all' || f.code === sub)).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    const inSub = all().filter((f) => (sub === 'all' || f.code === sub));
+    const isIdea = (f) => f.kind === 'idea';
+    const openIn = (b) => inSub.filter((f) => (b === 'idea') === isIdea(f) && f.status === 'open').length;
+    const totalIn = (b) => inSub.filter((f) => (b === 'idea') === isIdea(f)).length;
+    const boxes = [['help', 'Reports'], ['idea', 'Ideas']].map(([k, l]) => `<button class="btn${box === k ? ' btn-primary' : ''}" type="button" data-box="${k}">${l} <span class="ms-1 small">${openIn(k)} open · ${totalIn(k)} total</span></button>`).join('');
+    const list = inSub.filter((f) => (box === 'idea') === isIdea(f)).sort((a, b) => String(b.at).localeCompare(String(a.at)));
     const n = (st) => list.filter((f) => f.status === st).length;
     const tabs = [['open', 'Open'], ['fixed', 'Fixed / done'], ['ignored', 'Ignored']].map(([k, l]) => `<button class="btn btn-sm${filter === k ? ' btn-primary' : ''}" type="button" data-f="${k}">${l} ${n(k)}</button>`).join('');
     const subs = '<select class="form-select form-select-sm w-auto" id="ib-sub"><option value="all">All subjects</option>' + DATA.sites.map((s) => `<option value="${esc(s.code)}"${sub === s.code ? ' selected' : ''}>${esc(s.code)} · ${esc(s.name)}</option>`).join('') + '</select>';
@@ -47,8 +52,8 @@
       <div class="d-flex gap-2 flex-wrap">${['fixed', 'ignored', 'open'].filter((s) => s !== f.status).map((s) => `<button class="btn btn-sm" type="button" data-st="${s}" data-code="${esc(f.code)}" data-id="${esc(f.id)}">${{ fixed: 'Mark fixed', ignored: 'Ignore', open: 'Reopen' }[s]}</button>`).join('')}</div>
       ${f.email ? `<details class="mt-2"><summary class="p-0 small">${f.reply ? 'Reply again' : 'Reply on the site'}</summary><textarea class="form-control mt-2" rows="2" maxlength="1500" data-rt="${esc(f.id)}" placeholder="The student sees this under Messages on ${esc(f.code)}"></textarea><div class="d-flex gap-2 align-items-center mt-2"><button class="btn btn-sm btn-primary" type="button" data-reply="${esc(f.id)}" data-code="${esc(f.code)}">Send reply</button><span class="small" data-rm="${esc(f.id)}"></span></div></details>` : '<div class="text-secondary small mt-1">Sent without an email, so it cannot be answered.</div>'}
     </div>`;
-    $('#ib-body').innerHTML = `<div class="d-flex gap-2 flex-wrap align-items-center mb-3">${tabs}<span class="ms-auto">${subs}</span></div>`
-      + (shown.length ? '<div class="list-group list-group-flush">' + shown.map(item).join('') + '</div>' : '<p class="text-secondary mb-0">Nothing here.' + (filter === 'open' ? ' All caught up.' : '') + '</p>');
+    $('#ib-body').innerHTML = `<div class="d-flex gap-2 flex-wrap mb-3">${boxes}</div><div class="d-flex gap-2 flex-wrap align-items-center mb-3">${tabs}<span class="ms-auto">${subs}</span></div>`
+      + (shown.length ? '<div class="list-group list-group-flush">' + shown.map(item).join('') + '</div>' : '<p class="text-secondary mb-0">' + (box === 'idea' ? 'No ideas' : 'No reports') + (filter === 'open' ? ' open. All caught up.' : ' here.') + (filter === 'open' && list.length ? ' Older ones are under Fixed / done and Ignored.' : '') + '</p>');
   }
 
   const rs = (paise) => paise == null ? '–' : '₹' + (paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 });
@@ -84,6 +89,7 @@
 
   $('#ib-card').addEventListener('change', (e) => { if (e.target.id === 'ib-sub') { sub = e.target.value; render(); } });
   $('#ib-card').addEventListener('click', async (e) => {
+    const bx = e.target.closest('[data-box]'); if (bx) { box = bx.dataset.box; filter = 'open'; render(); return; }
     const f = e.target.closest('[data-f]'); if (f) { filter = f.dataset.f; render(); return; }
     const st = e.target.closest('[data-st]');
     if (st) { st.disabled = true; try { await call('POST', '/api/admin', { action: 'site', code: st.dataset.code, op: 'feedback-status', id: st.dataset.id, status: st.dataset.st }); await load(); } catch (x) { alert(x.message); st.disabled = false; } return; }
