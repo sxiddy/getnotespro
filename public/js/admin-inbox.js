@@ -26,9 +26,12 @@
     const stale = !h || Date.now() - Date.parse(h.at) > 36 * 3600e3;
     if (stale) probs.push('The daily check has not run in the last 36 hours' + (h ? ' (last: ' + day(h.at) + ')' : '') + '.');
     const open = openCount();
-    box.innerHTML = (probs.length ? `<div class="alert alert-danger mb-3"><div class="d-flex align-items-start gap-2 flex-wrap"><div class="flex-fill"><b>Needs attention</b><ul class="mb-0 mt-1">${probs.map((p) => '<li>' + p + '</li>').join('')}</ul></div><button class="btn btn-sm" type="button" id="hc-run">Run check now</button></div></div>`
-      : `<div class="alert alert-success mb-3 d-flex align-items-center gap-2 flex-wrap"><span class="flex-fill">All 5 subject sites are up and linked to the store${h ? ' · checked ' + day(h.at) : ''}.</span><button class="btn btn-sm" type="button" id="hc-run">Run check now</button></div>`)
-      + (open ? `<div class="alert alert-warning mb-3"><a href="#inbox" data-goto="inbox"><b>${open}</b> open ${open === 1 ? 'message' : 'messages'} from students on the subject sites</a></div>` : '');
+    // one slim line; the details open on click
+    const run = '<button class="btn btn-sm" type="button" id="hc-run">Run check now</button>';
+    const msgs = open ? ` · <a href="#inbox" data-goto="inbox">${open} open student ${open === 1 ? 'message' : 'messages'}</a>` : '';
+    box.innerHTML = probs.length
+      ? `<details class="alert alert-danger mb-3 py-2"><summary class="p-0 d-flex align-items-center gap-2 flex-wrap"><b class="flex-fill">⚠ ${probs.length} ${probs.length === 1 ? 'thing needs' : 'things need'} attention <span class="fw-normal small">(click to see)</span>${msgs}</b>${run}</summary><ul class="mb-0 mt-2">${probs.map((p) => '<li>' + p + '</li>').join('')}</ul></details>`
+      : `<div class="alert alert-success mb-3 py-2 d-flex align-items-center gap-2 flex-wrap"><span class="flex-fill">✓ All subject sites OK${h ? ' · checked ' + day(h.at) : ''}${msgs}</span>${run}</div>`;
     document.dispatchEvent(new CustomEvent('notix-badges', { detail: { inbox: open, alerts: probs.length } }));
   }
   const all = () => DATA.sites.flatMap((s) => s.feedback.map((f) => Object.assign({ code: s.code }, f)));
