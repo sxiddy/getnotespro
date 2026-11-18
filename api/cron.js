@@ -25,6 +25,15 @@ async function check() {
   await Promise.all(codes.map(async (c) => {
     try { const r = await fetch(PRODUCTS[c].site + '/', { signal: AbortSignal.timeout(9000) }); if (!r.ok) bad.push(c + ' site answered ' + r.status); }
     catch (e) { bad.push(c + ' site did not answer'); }
+    // Can the site ask this store who bought it? A wrong STORE_SECRET/STORE_URL on the subject's Vercel project (EVS,
+    // Nov 2026) keeps every buyer locked out and its admin page empty, with no error anywhere else.
+    try {
+      const r = await fetch(PRODUCTS[c].site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY') }, signal: AbortSignal.timeout(15000) });
+      const p = r.ok ? ((await r.json()).payments || {}) : null;
+      if (!p) bad.push(c + ' admin stats answered ' + r.status + ' (is its ADMIN_KEY the same as the store\'s?)');
+      else if (p.source !== 'notix') bad.push(c + ' is not linked to the store (set STORE_URL and STORE_SECRET on its Vercel project): buyers will not get Pro');
+      else if (p.notixError) bad.push(c + ' cannot read its store sales (' + p.notixError + '): check STORE_SECRET on its Vercel project. Buyers will not get Pro');
+    } catch (e) { bad.push(c + ' admin stats did not answer'); }
   }));
   if (bad.length) await telegram('🚨 <b>Notix check failed</b>\n\n' + bad.map((b) => '• ' + esc(b)).join('\n'));
   return { ok: !bad.length, problems: bad };
