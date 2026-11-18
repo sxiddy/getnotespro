@@ -6,7 +6,12 @@
 //   { product, totals: { count, revenue, manual, refunds, refunded }, payments: [...], refunds: [...] }  (amounts in paise)
 //   Counted exactly like the Notix admin page (api/admin.js snapshot): a subject bought in a cart counts its own share,
 //   access given by hand is not revenue, and a fully refunded payment moves from "paid" to "refunded".
-const { send, env, safeEqual, normEmail, isProduct, isLive, handle } = require('./_lib');
+//
+// POST /api/notify (rewritten here) { code, kind, topic?, tab?, text, email?, contact? }  a subject site got a Help?/idea
+//   message: Telegram the owner. Same Bearer STORE_SECRET. At most 30 a subject per hour.
+const { send, body, env, safeEqual, normEmail, isProduct, isLive, handle } = require('./_lib');
+const { telegram, esc } = require('./_notify');
+const KINDS = { mistake: 'Mistake in the notes', suggestion: 'Suggestion', bug: "Something isn't working", other: 'Other', idea: 'Idea' };
 const store = require('./_store');
 
 const parse = (s) => { try { return JSON.parse(s) || {}; } catch (e) { return {}; } };
@@ -38,6 +43,19 @@ module.exports = handle(async (req, res) => {
   const secret = env('STORE_SECRET');
   const got = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!safeEqual(got, secret)) return send(res, 401, { error: 'Not allowed.' });
+  if (req.method === 'POST') {
+    const b = await body(req), code = String(b.code || '');
+    if (!isProduct(code)) return send(res, 400, { error: 'Unknown subject.' });
+    if (store.configured()) {
+      const k = 'rl:notify:' + code + ':' + new Date().toISOString().slice(0, 13);
+      const [n] = await store.pipeline([['INCR', k], ['EXPIRE', k, 3600]]);
+      if (n > 30) return send(res, 200, { ok: true, skipped: true });
+    }
+    const where = b.topic ? ' · ' + esc(String(b.topic).slice(0, 60)) + (b.tab ? ' › ' + esc(String(b.tab).slice(0, 120)) : '') : '';
+    const who = [b.email, b.contact].filter(Boolean).map((x) => esc(String(x).slice(0, 120))).join(' · ') || 'no email';
+    const sent = await telegram((b.kind === 'idea' ? '💡' : '📩') + ' <b>' + esc(code) + '</b> · ' + esc(KINDS[b.kind] || 'Message') + where + '\n' + who + '\n\n' + esc(String(b.text || '').slice(0, 1500)) + '\n\n<i>Answer it in Notix admin → Inbox</i>');
+    return send(res, 200, { ok: true, sent });
+  }
   const q = new URL(req.url, 'http://x').searchParams, code = q.get('product'), email = normEmail(q.get('email'));
   if (q.get('sales')) {
     if (!isProduct(code)) return send(res, 400, { error: 'Unknown subject code.' });

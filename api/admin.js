@@ -128,8 +128,16 @@ module.exports = handle(async (req, res) => {
   if (!store.configured()) return send(res, 500, { error: 'The database is not connected.' });
 
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'inbox') {
-    const [sites, [h]] = await Promise.all([Promise.all(codes.map(fetchSite)), store.pipeline([['GET', 'health']])]);
-    return send(res, 200, { sites: sites.map((s) => ({ code: s.code, name: s.name, ok: s.ok, error: s.error, feedback: s.json.feedback || [] })), health: h ? parse(h) : null });
+    const [sites, [h], snap] = await Promise.all([Promise.all(codes.map(fetchSite)), store.pipeline([['GET', 'health']]), snapshot()]);
+    // each site's own switches side by side, so one set differently stands out
+    const settings = sites.map((s) => { const j = s.json; return { code: s.code, ok: s.ok, price: j.price, sale: j.sale || null, paused: j.paused || null, signin: j.signin, free: !!(j.freeSite || j.freeAll || j.freeNow), banner: j.banner || null, reviewOn: !!j.reviewOn, maxDevices: j.maxDevices || null }; });
+    // what happened lately, everywhere: purchases, access given by hand, refunds, students' messages
+    const activity = [
+      ...snap.payments.map((x) => ({ at: x.at, code: x.product, type: x.manual ? 'manual' : x.offline ? 'offline' : 'paid', who: x.email, amount: x.manual ? 0 : x.amount, text: x.giftFrom ? 'gift from ' + x.giftFrom : (x.note || '') })),
+      ...snap.refunds.map((x) => ({ at: x.at, code: x.product, type: 'refund', who: x.email, amount: x.amount, text: x.reason || '' })),
+      ...sites.flatMap((s) => (s.json.feedback || []).map((f) => ({ at: f.at, code: s.code, type: f.kind === 'idea' ? 'idea' : 'message', who: f.email || f.contact || '', text: String(f.text || '').slice(0, 140), status: f.status }))),
+    ].filter((x) => x.at).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 80);
+    return send(res, 200, { sites: sites.map((s) => ({ code: s.code, name: s.name, ok: s.ok, error: s.error, feedback: s.json.feedback || [] })), health: h ? parse(h) : null, settings, activity });
   }
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'people') return send(res, 200, await people());
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'visits') {

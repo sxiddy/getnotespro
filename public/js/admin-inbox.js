@@ -51,8 +51,34 @@
       + (shown.length ? '<div class="list-group list-group-flush">' + shown.map(item).join('') + '</div>' : '<p class="text-secondary mb-0">Nothing here.' + (filter === 'open' ? ' All caught up.' : '') + '</p>');
   }
 
+  const rs = (paise) => paise == null ? '–' : '₹' + (paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  function glance() {
+    const rows = DATA.settings || [];
+    const cols = [
+      ['Price', (x) => (x.price == null ? '–' : '₹' + x.price)],
+      ['Sale', (x) => x.sale ? rs(x.sale.price) + (x.sale.until ? ' until ' + day(x.sale.until) : '') : 'none'],
+      ['Paused', (x) => x.paused && x.paused.on ? 'PAUSED' : 'no'],
+      ['Sign-in', (x) => x.signin === false ? 'off' : 'on'],
+      ['Whole site free', (x) => x.free ? 'yes' : 'no'],
+      ['Reviewer login', (x) => x.reviewOn ? 'on' : 'off'],
+      ['Banner', (x) => x.banner ? (x.banner.text || 'on') : 'none'],
+    ];
+    // the most common value in a column is "normal"; anything else is highlighted
+    const common = cols.map(([, f]) => { const c = {}; rows.forEach((r) => { const v = r.ok ? f(r) : ''; c[v] = (c[v] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0]; });
+    $('#glance-body').innerHTML = '<table class="table table-sm card-table mb-0"><thead><tr><th>Subject</th>' + cols.map((c) => '<th>' + c[0] + '</th>').join('') + '</tr></thead><tbody>'
+      + rows.map((r) => '<tr><td><b>' + esc(r.code) + '</b></td>' + (r.ok ? cols.map(([, f], i) => { const v = f(r); return '<td' + (v !== common[i] ? ' class="odd"' : '') + '>' + esc(v) + '</td>'; }).join('') : '<td colspan="' + cols.length + '" class="text-danger">site did not answer</td>') + '</tr>').join('') + '</tbody></table>';
+  }
+  const ACT = { paid: ['💰', 'bought Pro'], manual: ['🎁', 'given Pro by hand'], offline: ['💵', 'paid outside the website'], refund: ['↩️', 'refunded'], message: ['📩', 'sent a message'], idea: ['💡', 'sent an idea'] };
+  function activity() {
+    const list = DATA.activity || [];
+    $('#act-body').innerHTML = list.length ? '<div class="list-group list-group-flush">' + list.slice(0, 40).map((x) => {
+      const [ic, verb] = ACT[x.type] || ['•', x.type];
+      return `<div class="list-group-item px-0 py-2 d-flex gap-2"><span>${ic}</span><div class="flex-fill" style="min-width:0"><div class="small"><span class="chip">${esc(x.code)}</span><b>${esc(x.who || 'someone')}</b> ${verb}${x.amount ? ' · ' + rs(x.amount) : ''}${x.status && x.status !== 'open' ? ' · <span class="text-secondary">' + esc(x.status) + '</span>' : ''}</div>${x.text ? '<div class="text-secondary small" style="overflow-wrap:anywhere">' + esc(x.text) + '</div>' : ''}</div><span class="text-secondary small text-nowrap">${day(x.at)}</span></div>`;
+    }).join('') + '</div>' : '<p class="text-secondary mb-0">Nothing yet.</p>';
+  }
+
   async function load() {
-    try { DATA = await call('GET', '/api/admin?part=inbox'); alerts(); render(); }
+    try { DATA = await call('GET', '/api/admin?part=inbox'); alerts(); render(); glance(); activity(); }
     catch (e) { $('#ib-body').innerHTML = '<p class="text-danger mb-0">' + esc(e.message) + '</p>'; }
   }
 

@@ -69,6 +69,7 @@
   .alert-success { background: rgba(134,212,169,.08); border-color: rgba(134,212,169,.3); color: #a9dcbf; }
   .alert-warning { background: rgba(240,190,110,.09); border-color: rgba(240,190,110,.3); color: #ecc98f; }
   .alert-warning a { color: inherit; }
+  td.odd { color: #ecc98f; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -172,6 +173,16 @@
         <div class="mt-3 mono" id="r-out" role="status"></div>
       </div>
     </details></div>
+
+    <div class="card mb-3" id="glance-card">
+      <div class="card-header"><h2 class="card-title">Subject sites at a glance</h2><span class="text-secondary small ms-2">each site's own switches; a value that differs from the others is highlighted</span></div>
+      <div class="table-responsive" id="glance-body"><div class="card-body text-secondary">Loading…</div></div>
+    </div>
+
+    <div class="card mb-3" id="act-card">
+      <div class="card-header"><h2 class="card-title">Recent activity</h2><span class="text-secondary small ms-2">purchases, access given by hand, refunds and students' messages on every site</span></div>
+      <div class="card-body" id="act-body"><span class="text-secondary">Loading…</span></div>
+    </div>
 
     <div class="card mb-3" id="ib-card">
       <div class="card-header"><h2 class="card-title">Inbox</h2><span class="text-secondary small ms-2">Help? messages and ideas sent on every subject site; replies reach the student under Messages on that site</span></div>

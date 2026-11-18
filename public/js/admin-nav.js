@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   const GROUPS = [
-    ['overview', 'Overview', /^(Notes website visits)/],
+    ['overview', 'Overview', /^(Notes website visits|Subject sites at a glance|Recent activity)/],
     ['inbox', 'Inbox', /^Inbox/],
     ['payments', 'Payments', /^(Payments|Refund history|Give or remove access|Paid outside|Check Razorpay|.*Razorpay)/i],
     ['community', 'Community', /^Community/],

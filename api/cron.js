@@ -2,7 +2,7 @@
 //   /api/cron?job=check    every day: is the store, its database, Razorpay and each subject site answering? Messages you only if not.
 //   /api/cron?job=weekly   every Monday: a Telegram summary of the week, and an email with a full backup of the database.
 // To try one by hand, open it with the header x-admin-key: <ADMIN_KEY> (or add &key=<ADMIN_KEY>).
-const { send, safeEqual, env, PRODUCTS, razorpay, handle } = require('./_lib');
+const { send, safeEqual, env, PRODUCTS, razorpay, isLive, handle } = require('./_lib');
 const store = require('./_store');
 const { telegram, email, esc } = require('./_notify');
 
@@ -34,6 +34,18 @@ async function check() {
       else if (p.source !== 'notix') bad.push(c + ' is not linked to the store (set STORE_URL and STORE_SECRET on its Vercel project): buyers will not get Pro');
       else if (p.notixError) bad.push(c + ' cannot read its store sales (' + p.notixError + '): check STORE_SECRET on its Vercel project. Buyers will not get Pro');
     } catch (e) { bad.push(c + ' admin stats did not answer'); }
+    // Paid but locked? The 5 newest buyers of this subject on the store must show as paid on its site.
+    try {
+      const [raw] = await store.pipeline([['HGETALL', 'paid:' + c]]);
+      const buyers = Object.entries(flat(raw)).filter(([, v]) => isLive(v)).map(([e, v]) => [e, parse(v).at || '']).sort((a, b) => String(b[1]).localeCompare(String(a[1]))).slice(0, 5).map((x) => x[0]);
+      const locked = [];
+      await Promise.all(buyers.map(async (em) => {
+        const r = await fetch(PRODUCTS[c].site + '/api/stats', { method: 'POST', headers: { 'x-admin-key': env('ADMIN_KEY'), 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'lookup', email: em }), signal: AbortSignal.timeout(15000) });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && !j.paid && !j.free) locked.push(em);
+      }));
+      if (locked.length) bad.push(c + ': ' + locked.length + ' store ' + (locked.length === 1 ? 'buyer is' : 'buyers are') + ' still locked on the site (' + locked.join(', ') + ')');
+    } catch (e) { /* the link check above already reports a broken site */ }
   }));
   try { if (store.configured()) await store.pipeline([['SET', 'health', JSON.stringify({ at: new Date().toISOString(), problems: bad })]]); } catch (e) { /* the admin page just shows the older result */ }
   if (bad.length) await telegram('🚨 <b>Notix check failed</b>\n\n' + bad.map((b) => '• ' + esc(b)).join('\n'));
@@ -56,8 +68,8 @@ async function weekly() {
   const newPeople = Object.values(data.userFirst).filter((v) => Date.parse(v) >= since).length;
   const storeV = days.reduce((n, d) => n + (+data.storeVisits[d] || 0), 0);
   const sites = await Promise.all(codes.map(async (c) => {
-    try { const r = await fetch(PRODUCTS[c].site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY'), authorization: 'Bearer ' + env('STORE_SECRET') }, signal: AbortSignal.timeout(9000) }); const j = await r.json(); const v = j.visits || {}; return [c, days.reduce((n, d) => n + (+(v[d] && v[d].total != null ? v[d].total : v[d]) || 0), 0)]; }
-    catch (e) { return [c, null]; }
+    try { const r = await fetch(PRODUCTS[c].site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY'), authorization: 'Bearer ' + env('STORE_SECRET') }, signal: AbortSignal.timeout(9000) }); const j = await r.json(); const v = j.visits || {}; return [c, days.reduce((n, d) => n + (+(v[d] && v[d].total != null ? v[d].total : v[d]) || 0), 0), (j.feedback || []).filter((f) => f.status === 'open').length]; }
+    catch (e) { return [c, null, null]; }
   }));
   const subjects = Object.entries(per).sort((a, b) => b[1] - a[1]).map(([c, n]) => esc(PRODUCTS[c].name) + ' ' + n).join(' · ') || 'none yet';
   const lines = [
@@ -69,9 +81,10 @@ async function weekly() {
     '📚 ' + subjects,
     '🙋 ' + newPeople + ' new ' + (newPeople === 1 ? 'sign-in' : 'sign-ins'),
     '',
-    '👀 <b>Visits</b>',
-    'Store ' + storeV,
-    ...sites.map(([c, n]) => esc(c) + ' ' + (n == null ? '?' : n)),
+    '👀 Store visits ' + storeV,
+    '',
+    '<b>Each subject</b> (sales · visits · open messages)',
+    ...sites.map(([c, n, open]) => esc(c) + ': ' + (per[c] || 0) + ' · ' + (n == null ? '?' : n) + ' · ' + (open == null ? '?' : open) + (open ? ' ⚠️' : '')),
   ];
   const text = lines.join('\n');
   const sentWa = await telegram(text);

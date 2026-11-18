@@ -15,6 +15,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/notify",
+      "destination": "/api/entitlement"
+    },
+    {
       "source": "/api/verify-payment",
       "destination": "/api/verify"
     },
