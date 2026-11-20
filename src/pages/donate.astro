@@ -1,5 +1,5 @@
 ---
-// Donate page: any amount from ₹10 to ₹10,000, paid on Razorpay's hosted page (api/donate.js). Every notes site links here.
+// Donate page: any amount from ₹1 to ₹10,000, paid on Razorpay's hosted page (api/donate.js). Every notes site links here.
 import Base from '../layouts/Base.astro';
 ---
 <Base title="Support Notix" description="Liked the notes? Chip in any amount you want. It keeps the sites running.">
@@ -13,7 +13,7 @@ import Base from '../layouts/Base.astro';
         <button type="button" class="btn btn--ghost" data-amt="100">₹100</button>
         <button type="button" class="btn btn--ghost" data-amt="200">₹200</button>
       </div>
-      <label class="don__amt">₹ <input id="don-amt" type="number" inputmode="numeric" min="10" max="10000" step="1" value="50" aria-label="Amount in rupees"></label>
+      <label class="don__amt">₹ <input id="don-amt" type="number" inputmode="numeric" min="1" max="10000" step="1" value="50" aria-label="Amount in rupees"></label>
       <button class="btn btn--blue" type="submit" id="don-go">Donate</button>
       <p class="don__msg" id="don-msg" role="status"></p>
     </form>
@@ -37,7 +37,7 @@ import Base from '../layouts/Base.astro';
       f.onsubmit = function (e) {
         e.preventDefault();
         var a = Math.round(+amt.value);
-        if (!(a >= 10 && a <= 10000)) { msg.textContent = 'Pick an amount from ₹10 to ₹10,000.'; return; }
+        if (!(a >= 1 && a <= 10000)) { msg.textContent = 'Pick an amount from ₹1 to ₹10,000.'; return; }
         go.disabled = true; msg.textContent = 'Opening the payment page…';
         fetch('/api/donate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: a, from: q.get('from') || 'notix' }) })
           .then(function (r) { return r.json(); })
