@@ -4,3 +4,7 @@ node_modules
 tmp
 dist
 .astro
+
+.vercel
+.wrangler
+.dev.vars

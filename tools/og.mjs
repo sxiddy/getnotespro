@@ -71,11 +71,14 @@ function subjectCard(s) {
 <div class="mods">${mods}</div>`, fit);
 }
 
+// WhatsApp's small preview crops this to the centre square (x 285–915), so everything sits inside it.
+// No price on the card: prices change (sales) and the link text already carries them.
 function notixCard() {
-  const price = Math.min(...subjects.map((s) => s.price));
-  return page(`<div class="mark">Notix</div>
-<div class="h" style="font-size:100px;margin-top:120px;line-height:1.06;white-space:nowrap">VIT Notes.<br><span style="color:#7d9cff">Free</span> to read.</div>
-<div class="price sec" style="margin-top:auto;font-size:32px">₹${price} a subject for the Pro tools, paid once by UPI</div>`);
+  return page(`<div style="margin:auto;width:600px;text-align:center;display:flex;flex-direction:column;align-items:center">
+<div class="mark" style="font-size:40px">Notix</div>
+<div class="h" style="font-size:96px;margin-top:44px;line-height:1.04">VIT Notes.<br><span style="color:#7d9cff">Free</span> to<br>read.</div>
+<div class="mono sec" style="margin-top:40px;font-size:28px;letter-spacing:.04em">notix.in</div>
+</div>`);
 }
 
 const browser = findBrowser();

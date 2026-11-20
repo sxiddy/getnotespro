@@ -11,7 +11,7 @@ import { SITE, SITE_URL } from '../data/site.mjs';
 import { clientSubjects } from '../lib/subjects.mjs';
 
 interface Props { title?: string; description?: string; path?: string; image?: string }
-const { title = SITE.title, description = SITE.description, path = Astro.url.pathname, image = "/og/notix.png" } = Astro.props;
+const { title = SITE.title, description = SITE.description, path = Astro.url.pathname, image = "/og/notix.png?v=2" } = Astro.props;
 const canonical = SITE_URL + (path === '/' ? '/' : path.replace(/\/+$/, ''));
 const boot = JSON.stringify({ subjects: clientSubjects, request: SITE.request, support: SITE.support });
 ---

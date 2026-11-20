@@ -41,6 +41,14 @@ module.exports = handle(async (req, res) => {
     if (!safeEqual(expected, String(sig))) return send(res, 400, { error: 'Bad signature.' });
     let ev = {}; try { ev = JSON.parse(raw); } catch (e) { /* ignore */ }
     const p = ((ev.payload || {}).payment || {}).entity || {};
+    // a subject site's Payment Link was paid: grant Pro on that site (api/_sitepay.js re-checks everything with Razorpay)
+    if (ev.event === 'payment_link.paid') {
+      try {
+        const linkId = (((ev.payload || {}).payment_link || {}).entity || {}).id;
+        const r = await require('./_sitepay').grantFromLink(linkId);
+        return send(res, 200, { ok: true, granted: !!r.ok, why: r.why });
+      } catch (e) { return send(res, 500, { error: e.message }); } // Razorpay retries on errors
+    }
     // a refund made from the Razorpay dashboard (or by the admin page): a full one ends Pro for that subject
     if (/^(refund\.(processed|created)|payment\.refunded)$/.test(ev.event || '')) {
       try {

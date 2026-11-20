@@ -1,4 +1,4 @@
-# Notix (store), https://notix-notes.vercel.app
+# Notix (store), https://notix.in
 
 One website that sells Pro access for the subject note sites (BACHY105, BAEEE101, BAENG101). Only this site needs Razorpay website approval.
 Students sign in here with their VIT Google account, pay by UPI for one subject, and the subject site then asks this store whether they own it.

@@ -60,7 +60,7 @@
           "value": "getnotespro.vercel.app"
         }
       ],
-      "destination": "https://notix-notes.vercel.app/$1",
+      "destination": "https://notix.in/$1",
       "permanent": true
     }
   ]

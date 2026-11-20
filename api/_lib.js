@@ -12,11 +12,11 @@ const MAX_AGE = 400 * 24 * 3600; // browsers cap cookies at 400 days
 // One entry per subject site (add a line here, a blurb in app/js/store.js INFO, and the subject appears on the store;
 // 'tag' is an optional label that search also matches; the first three subjects show by default, the rest are found by searching. Price is in paise; set PRICE_<CODE> in Vercel to change it (minimum 100 = ₹1).
 const PRODUCTS = {
-  BACHY105: { name: 'Applied Chemistry', tag: 'Chemistry', site: 'https://bachy105.vercel.app', price: 3000 },
-  BAEEE101: { name: 'Basic Engineering', tag: 'Engineering', site: 'https://baeee101.vercel.app', price: 3000 },
-  BAENG101: { name: 'Technical English', tag: 'English', site: 'https://baeng101.vercel.app', price: 3000 },
-  BACHY101: { name: 'Environmental Sciences', tag: 'EVS', site: 'https://bachy101.vercel.app', price: 3000 },
-  BAPHY105: { name: 'Engineering Physics', tag: 'Physics', site: 'https://baphy105.vercel.app', price: 3000 },
+  BACHY105: { name: 'Applied Chemistry', tag: 'Chemistry', site: 'https://bachy105.notix.in', price: 3000 },
+  BAEEE101: { name: 'Basic Engineering', tag: 'Engineering', site: 'https://baeee101.notix.in', price: 3000 },
+  BAENG101: { name: 'Technical English', tag: 'English', site: 'https://baeng101.notix.in', price: 3000 },
+  BACHY101: { name: 'Environmental Sciences', tag: 'EVS', site: 'https://bachy101.notix.in', price: 3000 },
+  BAPHY105: { name: 'Engineering Physics', tag: 'Physics', site: 'https://baphy105.notix.in', price: 3000 },
 };
 // Launch sale (owner, 10-11-2026): 33% off every subject (MRP ₹30 → ₹20) until the end of November (IST); from 1 Dec it is the full
 // price again by itself, no redeploy needed. Whole rupees, rounded down, never below ₹1, like a discount code.
@@ -60,7 +60,7 @@ const itemsOf = (s) => { const l = String(s || '').split(',').map((x) => x.trim(
 
 function env(name) {
   const v = process.env[name];
-  if (!v) throw Object.assign(new Error(`Server is missing ${name}. Set it in Vercel → Settings → Environment Variables.`), { status: 500 });
+  if (!v) throw Object.assign(new Error(`Server is missing ${name}. Set it as a secret on the host (Cloudflare: npx wrangler secret put NAME).`), { status: 500 });
   return v;
 }
 function send(res, status, obj, headers) {
@@ -102,7 +102,7 @@ function readSigned(req, name) {
   try { return JSON.parse(unb64u(payload).toString('utf8')); } catch (e) { return null; }
 }
 function cookie(name, value, maxAge) {
-  const secure = process.env.VERCEL ? '; Secure' : '';
+  const secure = (process.env.VERCEL || process.env.PRODUCTION) ? '; Secure' : '';
   return `${name}=${value}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure}`;
 }
 const userCookie = (email) => cookie(USER_COOKIE, sign({ e: email }), MAX_AGE);

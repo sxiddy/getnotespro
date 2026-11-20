@@ -1,0 +1,33 @@
+// Cloudflare Workers config for the Notix store (https://notix.in). Deploy: npm run build && npx wrangler deploy
+// Secrets (RAZORPAY_KEY_SECRET, SESSION_SECRET, ...) are set with `npx wrangler secret put NAME`, never in this file.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "notix-store",
+  "main": "worker/index.js",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    // only API calls start the Worker; pages and files are served straight from the asset store (free, unlimited)
+    "run_worker_first": ["/api/*"]
+  },
+  "routes": [
+    { "pattern": "notix.in", "custom_domain": true }
+  ],
+  "triggers": {
+    // 03:30 UTC = 09:00 IST, same as the old Vercel Cron
+    // daily check, plus the weekly report on Mondays (worker/index.js scheduled); one schedule leaves room for the sites'
+    "crons": ["30 3 * * *"]
+  },
+  "vars": {
+    "PRODUCTION": "1",
+    // public values (the same ones the subject sites use); real secrets go in with `wrangler secret put`
+    "GOOGLE_CLIENT_ID": "1031135588562-kg77aahgjjbccieu0kahgkcpl3nnlj0i.apps.googleusercontent.com",
+    "RAZORPAY_KEY_ID": "rzp_live_U22jVeWOAsknIG",
+    "TURSO_DATABASE_URL": "libsql://notes-sxiddy.aws-us-east-1.turso.io"
+  },
+  "observability": { "enabled": true }
+}

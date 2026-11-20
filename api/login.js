@@ -9,7 +9,7 @@ const cookies = (req) => Object.fromEntries((req.headers.cookie || '').split(/;\
 
 async function signIn(b) {
   let email;
-  if (process.env.DEV_LOGIN === '1' && !process.env.VERCEL && b.devEmail) email = normEmail(b.devEmail);
+  if (process.env.DEV_LOGIN === '1' && !process.env.VERCEL && !process.env.PRODUCTION && b.devEmail) email = normEmail(b.devEmail);
   else {
     const g = await verifyGoogle(b.credential);
     if (g.hd && g.hd !== DOMAIN) throw Object.assign(new Error(`Please use your VIT student account (…@${DOMAIN}).`), { status: 403 });

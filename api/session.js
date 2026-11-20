@@ -14,6 +14,6 @@ module.exports = handle(async (req, res) => {
     gifts,
     googleClientId: process.env.GOOGLE_CLIENT_ID || null,
     domain: DOMAIN,
-    devLogin: process.env.DEV_LOGIN === '1' && !process.env.VERCEL,
+    devLogin: process.env.DEV_LOGIN === '1' && !process.env.VERCEL && !process.env.PRODUCTION,
   });
 });
