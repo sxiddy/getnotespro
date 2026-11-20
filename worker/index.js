@@ -4,6 +4,7 @@
 import admin from '../api/admin.js';
 import community from '../api/community.js';
 import createOrder from '../api/create-order.js';
+import donate from '../api/donate.js';
 import cron from '../api/cron.js';
 import entitlement from '../api/entitlement.js';
 import login from '../api/login.js';
@@ -13,7 +14,7 @@ import track from '../api/track.js';
 import verify from '../api/verify.js';
 
 const API = {
-  admin, community, 'create-order': createOrder, cron, entitlement, login, offers, session, track, verify,
+  admin, community, 'create-order': createOrder, cron, donate, entitlement, login, offers, session, track, verify,
 };
 // the rewrites vercel.json used to do
 const REWRITES = { '/api/notify': '/api/entitlement', '/api/verify-payment': '/api/verify', '/api/logout': '/api/login?out=1' };

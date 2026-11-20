@@ -1,0 +1,49 @@
+---
+// Donate page: any amount from ₹10 to ₹10,000, paid on Razorpay's hosted page (api/donate.js). Every notes site links here.
+import Base from '../layouts/Base.astro';
+---
+<Base title="Support Notix" description="Liked the notes? Chip in any amount you want. It keeps the sites running.">
+  <section class="lost frame" aria-labelledby="don-h">
+    <h1 class="display display--sm" id="don-h">Did the notes help?</h1>
+    <p class="lost__lede" id="don-lede">If these notes helped you and you would like us to keep making them, donate any amount to help us pay for hosting. Totally optional.</p>
+    <form id="don" class="don">
+      <div class="don__chips">
+        <button type="button" class="btn btn--ghost" data-amt="20">₹20</button>
+        <button type="button" class="btn btn--ghost" data-amt="50">₹50</button>
+        <button type="button" class="btn btn--ghost" data-amt="100">₹100</button>
+        <button type="button" class="btn btn--ghost" data-amt="200">₹200</button>
+      </div>
+      <label class="don__amt">₹ <input id="don-amt" type="number" inputmode="numeric" min="10" max="10000" step="1" value="50" aria-label="Amount in rupees"></label>
+      <button class="btn btn--blue" type="submit" id="don-go">Donate</button>
+      <p class="don__msg" id="don-msg" role="status"></p>
+    </form>
+  </section>
+  <style>
+    .don { display: grid; gap: 14px; justify-items: start; margin-top: 24px; }
+    .don__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .don__amt { font-size: 1.4rem; display: flex; align-items: center; gap: 6px; }
+    .don__amt input { width: 9ch; font: inherit; padding: 6px 10px; border-radius: 10px; border: 1px solid currentColor; background: transparent; color: inherit; }
+    .don__msg { min-height: 1.2em; opacity: .8; }
+  </style>
+  <script is:inline>
+    (function () {
+      var q = new URLSearchParams(location.search), f = document.getElementById('don'), amt = document.getElementById('don-amt'), msg = document.getElementById('don-msg'), go = document.getElementById('don-go');
+      if (q.get('thanks') || q.get('razorpay_payment_link_status') === 'paid') {
+        document.getElementById('don-h').textContent = 'Thank you!';
+        document.getElementById('don-lede').textContent = 'Your donation went through. It genuinely helps.';
+        f.hidden = true; return;
+      }
+      f.querySelectorAll('[data-amt]').forEach(function (b) { b.onclick = function () { amt.value = b.dataset.amt; }; });
+      f.onsubmit = function (e) {
+        e.preventDefault();
+        var a = Math.round(+amt.value);
+        if (!(a >= 10 && a <= 10000)) { msg.textContent = 'Pick an amount from ₹10 to ₹10,000.'; return; }
+        go.disabled = true; msg.textContent = 'Opening the payment page…';
+        fetch('/api/donate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: a, from: q.get('from') || 'notix' }) })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { if (d.url) location.href = d.url; else throw new Error(d.error || 'Something went wrong'); })
+          .catch(function (err) { msg.textContent = err.message; go.disabled = false; });
+      };
+    })();
+  </script>
+</Base>
