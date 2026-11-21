@@ -13,3 +13,6 @@ dist
 .env*
 !.env.example
 .dev.vars*
+
+# loose notes PDFs (paid content) stay out of the repo
+/*.pdf
