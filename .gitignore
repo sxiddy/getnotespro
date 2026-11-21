@@ -8,3 +8,8 @@ dist
 .vercel
 .wrangler
 .dev.vars
+
+# local secrets
+.env*
+!.env.example
+.dev.vars*
