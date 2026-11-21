@@ -168,9 +168,6 @@ main, .bar, .foot { position: relative; z-index: 1; }
 
 .signin { flex: none; height: 40px; padding: 0 14px; background: none; border: 1px solid transparent; border-radius: var(--r); color: var(--ink-2); cursor: pointer; font-weight: 500; transition: color .2s, border-color .2s; }
 .signin:hover { color: var(--ink); border-color: var(--line-2); }
-.invite { flex: none; height: 40px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--blue) 16%, transparent); border: 1px solid color-mix(in srgb, var(--blue) 55%, transparent); border-radius: var(--r); color: var(--ink); cursor: pointer; font-weight: 500; transition: background .2s, border-color .2s; }
-.invite:hover { background: color-mix(in srgb, var(--blue) 26%, transparent); border-color: var(--blue); }
-.invite svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
 .cart { flex: none; position: relative; width: 44px; height: 44px; display: grid; place-items: center; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r); cursor: pointer; transition: border-color .2s; }
 .cart:hover { border-color: rgba(255,255,255,.28); }
 .cart__n { position: absolute; top: -6px; right: -6px; min-width: 19px; height: 19px; padding: 0 5px; display: grid; place-items: center; background: var(--blue); color: #fff; border-radius: 10px; font: 500 11px/1 var(--mono); }
@@ -471,8 +468,6 @@ main, .bar, .foot { position: relative; z-index: 1; }
   .bar.is-stuck .bar__inner { padding-left: 10px; }
 }
 @media (max-width: 520px) {
-  .invite { width: 40px; padding: 0; justify-content: center; }
-  .invite span { display: none; }
   .bar { padding-inline: 12px; }
   .bar.is-stuck { padding-inline: 8px; }
   .bar__inner { gap: 8px; }

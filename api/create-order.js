@@ -2,8 +2,7 @@
 // for the signed-in student. The student's email and the subject codes go into the order's notes (server-side), which is
 // how the payment is tied to them. With a discount code (F10, api/_offers.js) the amount is the discounted one, and the
 // notes also carry the code and each subject's share, so verify records the right amounts and spends the use.
-// Referrals (G8, api/_referrals.js): { ref } is the friend's link token from the page; it goes into the notes only if
-// this buyer can still credit it. { reward: true } prices the whole cart with the student's own 50% reward (notes:
+// Referrals were removed (owner, 21-11-2026): a { ref } from an old page is ignored. { reward: true } prices the whole cart with the student's own 50% reward (notes:
 // reward 'REF50' + shares). One discount per order: a reward and a code together are refused.
 // Gift Pro (G2): { gift: email } buys the cart for a friend. Rules:
 //   - only a signed-in VIT student can send one (not the review account); the friend's email is trimmed and lower-cased
@@ -62,8 +61,6 @@ module.exports = handle(async (req, res) => {
       Object.assign(notes, { offer, shares: r.priced.lines.map((l) => l.pay).join(',') });
     }
   }
-  const ref = b.ref && !gift ? await refs.eligible(b.ref, u.e) : '';
-  if (ref) notes.ref = ref;
   const order = await razorpay('POST', '/orders', { amount, currency: 'INR', receipt: 'st_' + Date.now().toString(36), notes });
   send(res, 200, { orderId: order.id, amount: order.amount, currency: order.currency, keyId: env('RAZORPAY_KEY_ID'), email: u.e, product: items[0], products: items, offer, reward, gift: gift || null });
 });

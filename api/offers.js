@@ -57,23 +57,8 @@ module.exports = handle(async (req, res) => {
     return send(res, 200, Object.assign({ offer: { code, pct, codes } }, r.priced));
   }
 
-  if (b.action === 'ref-me') {
-    const u = getUser(req);
-    if (!u) return send(res, 401, { error: 'Please sign in with your VIT student account first.' });
-    if (!isStudentEmail(u.e)) return send(res, 403, { error: 'Invite links are for VIT student accounts.' });
-    if (!store.configured()) return send(res, 503, { error: "Invite links aren't available right now. Try again later." });
-    return send(res, 200, Object.assign({ token: await refs.tokenFor(u.e) }, await refs.rewardsOf(u.e)));
-  }
-
-  if (b.action === 'ref-withdraw') {
-    const u = getUser(req);
-    if (!u) return send(res, 401, { error: 'Please sign in with your VIT student account first.' });
-    if (!isStudentEmail(u.e)) return send(res, 403, { error: 'Referral cash is for VIT student accounts.' });
-    if (!store.configured()) return send(res, 503, { error: "Withdrawals aren't available right now. Try again later." });
-    const r = await refs.withdraw(u.e, b.upi);
-    if (r.error) return send(res, r.status || 400, { error: r.error });
-    return send(res, 200, Object.assign(await refs.rewardsOf(u.e), r));
-  }
+  // referrals were removed (owner, 21-11-2026); the admin list and 'ref-paid' stay so pending withdrawals can be settled
+  if (b.action === 'ref-me' || b.action === 'ref-withdraw') return send(res, 410, { error: 'Invite links have been discontinued.' });
 
   if (!isAdmin(req)) return send(res, 401, { error: 'Wrong admin key.' });
   if (!store.configured()) return send(res, 500, { error: 'The database is not connected.' });

@@ -18,12 +18,6 @@ import Logo from './Logo.astro';
       </div>
     </div>
 
-    <!-- Invite friends, always on the bar so nobody has to dig through the account menu to find it -->
-    <button class="invite" id="invite-top" type="button" aria-controls="invbox" aria-label="Invite friends">
-      <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="8" width="14" height="9" rx="1.5"/><path d="M2.5 8h15M10 8v9M10 8c-1.6-3.4-5.4-3.4-5.4-1.2C4.6 8 10 8 10 8zm0 0c1.6-3.4 5.4-3.4 5.4-1.2C15.4 8 10 8 10 8z"/></svg>
-      <span>Invite &amp; earn ₹3</span>
-    </button>
-
     <!-- account: a shimmer until /api/session answers, then "Sign in" or the student's initial -->
     <div class="acct" id="acct" aria-busy="true">
       <span class="acct__skel" aria-hidden="true"></span>
@@ -33,7 +27,6 @@ import Logo from './Logo.astro';
         <div class="acct__menu" id="acct-menu" role="menu" hidden>
           <p class="acct__who mono" id="acct-who"></p>
           <p class="acct__gift" id="acct-gift" hidden></p>
-          <button type="button" role="menuitem" id="invite-btn" aria-controls="invbox">Invite friends</button>
           <button type="button" role="menuitem" id="check-btn">Check my payment</button>
           <button type="button" role="menuitem" id="signout-btn">Sign out</button>
         </div>
@@ -49,7 +42,7 @@ import Logo from './Logo.astro';
     <ul class="cartbox__list" id="cartbox-list"></ul>
     <p class="cartbox__empty" id="cartbox-empty">Your cart is empty. Add Pro on any subject to buy it.</p>
     <div class="cartbox__foot" id="cartbox-foot">
-      <!-- Gift Pro (G2): the whole cart goes to a friend's VIT email. Codes still work; the 50% reward is for your own purchase -->
+      <!-- Gift Pro (G2): the whole cart goes to a friend's VIT email. Codes still work -->
       <label class="cartbox__rw" id="gift-row">
         <input type="checkbox" id="gift-on" aria-controls="gift-box" />
         <span class="cartbox__rwt"><span>This is a gift</span><span class="cartbox__rwl mono">Pro goes to a friend</span></span>
@@ -60,13 +53,6 @@ import Logo from './Logo.astro';
         <p class="cartbox__msg" id="gift-note">Everything in this cart goes to your friend. They sign in with that email to use it.</p>
       </div>
       <p class="cartbox__msg" id="gift-msg" role="status" hidden></p>
-      <!-- referral reward (G8): 50% off one purchase, whole cart. One discount per order, so the code field hides while it is on -->
-      <label class="cartbox__rw" id="rw-row" hidden>
-        <input type="checkbox" id="rw-on" />
-        <span class="cartbox__rwt"><span>Use your 50% reward</span><span class="cartbox__rwl mono" id="rw-left"></span></span>
-        <b class="mono" id="rw-amt"></b>
-      </label>
-      <p class="cartbox__msg" id="rw-note" hidden>One discount per order, so codes are off while your reward is on.</p>
       <form class="cartbox__code" id="code-form" novalidate>
         <label class="sr" for="code-in">Discount code</label>
         <input class="cartbox__in mono" id="code-in" name="code" placeholder="Discount code" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" />
@@ -81,30 +67,6 @@ import Logo from './Logo.astro';
       <button class="btn btn--blue cartbox__pay" type="button" id="cartbox-pay">Pay by UPI</button>
       <p class="cartbox__note mono">Paid once · no subscription</p>
     </div>
-  </div>
-  <!-- Invite friends (G8): the student's own link, opened from the account menu -->
-  <div class="cartbox invbox" id="invbox" role="dialog" aria-labelledby="inv-h" hidden>
-    <div class="invbox__top"><p class="cartbox__h mono" id="inv-h">Invite friends</p><button class="cartbox__rm" type="button" id="inv-x" aria-label="Close">×</button></div>
-    <p class="invbox__lede">Earn <b>₹3</b> for every friend who buys Pro through your link. Withdraw to UPI once you reach <b>₹15</b> (5 friends). Your friend pays the normal price.</p>
-    <div class="cartbox__code">
-      <label class="sr" for="inv-url">Your invite link</label>
-      <input class="cartbox__in invbox__url mono" id="inv-url" readonly value="Loading your link…" />
-      <button class="btn btn--ghost cartbox__apply" type="button" id="inv-copy" disabled>Copy</button>
-    </div>
-    <a class="btn btn--blue cartbox__pay invbox__wa" id="inv-wa" href="https://wa.me/" target="_blank" rel="noopener">Share on WhatsApp</a>
-    <dl class="invbox__stats">
-      <div><dt>Friends who bought</dt><dd class="mono" id="inv-friends">–</dd></div>
-      <div><dt>Your cash</dt><dd class="mono" id="inv-cash">–</dd></div>
-    </dl>
-    <div class="invbox__bar" aria-hidden="true"><span id="inv-bar"></span></div>
-    <p class="invbox__lede mono" id="inv-next"></p>
-    <form class="cartbox__code" id="inv-wd" hidden novalidate>
-      <label class="sr" for="inv-upi">Your UPI ID</label>
-      <input class="cartbox__in invbox__url mono" id="inv-upi" placeholder="yourname@okbank" maxlength="130" autocomplete="off" autocapitalize="off" spellcheck="false" />
-      <button class="btn btn--blue cartbox__apply" type="submit">Withdraw</button>
-    </form>
-    <p class="invbox__lede" id="inv-hist" hidden></p>
-    <p class="cartbox__msg" id="inv-msg" role="status" hidden></p>
   </div>
 </header>
 <noscript><p class="nojs">Search, sign-in and the cart need JavaScript. Every subject is still listed on this page, and the notes open free.</p></noscript>

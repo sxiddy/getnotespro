@@ -203,46 +203,6 @@ test('a discount code works on a gift and spends the BUYER\'s one use, not the f
   assert.equal((await order(L, ['BACHY105'], { code: 'GIFT20' })).status, 200, 'the friend can still use it for themselves');
 });
 
-test('an old 50% reward flag on a gift is refused and spends no referral cash', async () => {
-  const M = st('mo'), N = st('ned'), P = st('pia');
-  const { token } = await me(M);
-  const o = await order(N, ['BAEEE101'], { ref: token });
-  assert.equal((await verify(N, o.orderId)).status, 200);
-  assert.equal((await me(M)).balance, 300);
-  const r = await order(M, ['BACHY105'], { gift: P, reward: true });
-  assert.equal(r.status, 400); assert.match(r.error, /reward/); assert.notEqual(r.badReward, true, 'the page must not think the reward is gone');
-  assert.equal((await me(M)).balance, 300, 'still there for their own purchase');
-  // even an order that somehow carried both is recorded at its paid price without spending a reward
-  const g = await order(M, ['BACHY105'], { gift: P });
-  rz.orders[g.orderId].notes.reward = 'REF50';
-  assert.equal((await verify(M, g.orderId)).status, 200);
-  assert.equal((await me(M)).balance, 300);
-  assert.equal((await paidRec('BACHY105', P)).offer, undefined);
-});
-
-// ------------------------------------------------------------------ referrals
-test('a gift never credits a referrer and is not the buyer\'s first purchase', async () => {
-  const R1 = st('ray'), Q = st('qin'), S = st('sol');
-  const { token } = await me(R1);
-  const g = await order(Q, ['BAEEE101'], { gift: S, ref: token });
-  assert.equal(g.status, 200);
-  assert.equal(rz.orders[g.orderId].notes.ref, undefined, 'the link is not written into a gift order');
-  rz.orders[g.orderId].notes.ref = token; // and even if it were
-  assert.equal((await verify(Q, g.orderId)).status, 200);
-  assert.equal((await me(R1)).friends, 0, 'no credit for a gift');
-  const [by] = await store.pipeline([['HEXISTS', 'ref:by', Q]]);
-  assert.equal(+by, 0, 'the buyer has not used up their one referrer');
-  // the buyer's own first purchase through the link still counts
-  const own = await order(Q, ['BAEEE101'], { ref: token });
-  assert.equal(rz.orders[own.orderId].notes.ref, token, 'a gift is not the buyer\'s first purchase');
-  assert.equal((await verify(Q, own.orderId)).status, 200);
-  assert.equal((await me(R1)).friends, 1);
-  // the recipient was "given" a subject, which the referral rules (api/_referrals.js) treat like buying one
-  const later = await order(S, ['BACHY105'], { ref: token });
-  assert.equal(rz.orders[later.orderId].notes.ref, undefined);
-});
-
-// ------------------------------------------------------------------ admin
 test('admin reconcile records a missed gift to the recipient, once', async () => {
   const T = st('tia'), U = st('uma');
   const o = await order(T, ['BAEEE101'], { gift: U });

@@ -60,23 +60,10 @@ export const cart = new Set((() => { try { return (JSON.parse(localStorage.getIt
 // the applied discount code (F10), kept with the cart: { code, pct, codes }
 const OFFER_KEY = 'notix-code';
 let offer = (() => { try { const o = JSON.parse(localStorage.getItem(OFFER_KEY)); return o && o.code && o.pct ? o : null; } catch { return null; } })();
-// referrals (G8): the friend's link (?ref=) is kept until a purchase and sent with the order (the server decides if it
-// counts). rewardOn = the student chose to spend one 50% reward on this cart (one discount per order: no code with it).
-const REF_KEY = 'notix-ref', REF_RE = /^[A-Za-z0-9_-]{8,16}$/;
-const REWARD = { pct: 50, codes: [] };
-let rewardOn = false;
-{
-  const qs = new URLSearchParams(location.search), ref = (qs.get('ref') || '').trim();
-  if (qs.has('ref')) {
-    if (REF_RE.test(ref)) { try { localStorage.setItem(REF_KEY, ref); } catch { /* storage blocked: the link just won't count */ } }
-    qs.delete('ref'); history.replaceState(null, '', location.pathname + (qs.size ? '?' + qs : '') + location.hash);
-  }
-}
-const refToken = () => { try { const t = localStorage.getItem(REF_KEY); return t && REF_RE.test(t) ? t : ''; } catch { return ''; } };
+try { localStorage.removeItem('notix-ref'); } catch { /* ignore */ } // the old referral link (feature removed 21-11-2026)
 // Gift Pro (G2): the whole cart can be bought for a friend's VIT email (api/create-order { gift }). Kept with the cart,
-// so it survives the sign-in step. In gift mode your own Pro doesn't matter (you can gift a subject you have), the 50%
-// reward is off (it is for your own purchase; the server refuses it too), codes still work (your one use), and the
-// friend's link (ref) is not sent (a gift credits nobody and is not your first purchase).
+// so it survives the sign-in step. In gift mode your own Pro doesn't matter (you can gift a subject you have), and codes
+// still work (your one use).
 const GIFT_KEY = 'notix-gift';
 const gift = (() => { try { const g = JSON.parse(localStorage.getItem(GIFT_KEY)); if (g && g.on) return { on: true, email: String(g.email || '').slice(0, 120) }; } catch { /* ignore */ } return { on: false, email: '' }; })();
 const saveGift = () => { try { gift.on ? localStorage.setItem(GIFT_KEY, JSON.stringify(gift)) : localStorage.removeItem(GIFT_KEY); } catch { /* storage blocked: it just won't persist */ } };
@@ -96,7 +83,7 @@ function giftMsg(text, warn) {
 // subjects you own leave the cart, except in gift mode
 function dropOwned() { if (S && !gift.on) for (const p of S.products) if (p.owned && cart.has(p.code)) setInCart(p.code, false); }
 function setGift(on) {
-  gift.on = on; if (on) rewardOn = false;
+  gift.on = on;
   saveGift(); giftMsg(''); dropOwned(); renderCart();
 }
 const saveCart = () => { try { localStorage.setItem(CART_KEY, JSON.stringify([...cart])); } catch { /* storage blocked: the cart just won't persist */ } };
@@ -166,14 +153,6 @@ function renderBox() {
   const gin = $('#gift-in'); if (document.activeElement !== gin && gin.value !== gift.email) gin.value = gift.email;
   if (S && S.domain) gin.placeholder = 'friend@' + S.domain;
   $('#cartbox-pay').textContent = gift.on ? 'Pay for the gift by UPI' : 'Pay by UPI';
-  const rewards = (S && S.user && S.rewards) || 0;
-  if (!rewards || gift.on) rewardOn = false;
-  $('#rw-row').hidden = !rewards || gift.on;
-  $('#rw-on').checked = rewardOn;
-  $('#rw-left').textContent = `${rewards} ready · whole cart`;
-  $('#rw-amt').textContent = rewardOn && q.discount ? '−₹' + q.discount : '';
-  $('#rw-note').hidden = !rewardOn;
-  if (rewardOn) { $('#code-line').hidden = true; $('#code-form').hidden = true; return; }
   $('#code-line').hidden = !offer;
   if (offer) {
     $('#code-name').textContent = offer.code;
@@ -188,7 +167,7 @@ function codeMsg(text, warn) {
   const m = $('#code-msg'); m.textContent = text || ''; m.hidden = !text; m.classList.toggle('is-warn', !!warn);
 }
 function setBox(open) {
-  if (open) { renderBox(); if (!inv.hidden) setInv(false); }
+  if (open) renderBox();
   box.hidden = !open; cartBtn.setAttribute('aria-expanded', String(open));
   if (open) ($('.cartbox__rm', box) || $('#cartbox-pay')).focus?.();
 }
@@ -227,61 +206,10 @@ $('#code-form').addEventListener('submit', async (e) => {
 });
 $('#code-rm').addEventListener('click', () => { setOffer(null); codeMsg(''); $('#code-in').focus(); });
 // one discount per order: turning the reward on takes off any code
-$('#rw-on').addEventListener('change', (e) => {
-  rewardOn = e.target.checked;
-  if (rewardOn && offer) { setOffer(null); }
-  codeMsg(''); renderCart(); renderBox();
-});
-document.addEventListener('click', () => { if (!box.hidden) setBox(false); if (!inv.hidden) setInv(false); });
+document.addEventListener('click', () => { if (!box.hidden) setBox(false); });
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (!box.hidden) { setBox(false); cartBtn.focus(); }
-  if (!inv.hidden) { setInv(false); menuBtn.focus(); }
-});
-
-// Invite friends (G8): the student's own link (api/offers ref-me), with Copy and WhatsApp share
-const inv = $('#invbox');
-let invLink = '';
-function invMsg(text, warn) { const m = $('#inv-msg'); m.textContent = text || ''; m.hidden = !text; m.classList.toggle('is-warn', !!warn); }
-async function setInv(open) {
-  inv.hidden = !open;
-  if (!open) return;
-  setBox(false); invMsg('');
-  $('#inv-x').focus();
-  try {
-    const r = await api('/api/offers', { action: 'ref-me' });
-    invLink = location.origin + '/?ref=' + encodeURIComponent(r.token);
-    $('#inv-url').value = invLink; $('#inv-copy').disabled = false;
-    $('#inv-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`Notix has notes and Pro study tools for VIT first-year subjects. Get them here: ${invLink}`);
-    paintCash(r);
-    if (S && S.rewards !== r.rewards) { S.rewards = r.rewards; renderCart(); }
-    if (refToken() === r.token) { try { localStorage.removeItem(REF_KEY); } catch { /* ignore */ } } // your own link never counts
-  } catch (err) { $('#inv-url').value = ''; invMsg(err.message, true); }
-}
-// Rs 3 a friend who buys, withdrawn to UPI from Rs 15 (api/_referrals.js); money comes in paise
-const rupees = (p) => '₹' + (p / 100);
-function paintCash(r) {
-  $('#inv-friends').textContent = r.friends; $('#inv-cash').textContent = rupees(r.balance);
-  $('#inv-bar').style.width = Math.min(100, (r.balance / r.min) * 100) + '%';
-  const can = r.balance >= r.min;
-  $('#inv-next').textContent = can ? 'You can withdraw now.' : `${Math.ceil((r.min - r.balance) / r.per)} more friend${r.min - r.balance > r.per ? 's' : ''} to withdraw ${rupees(r.min)}.`;
-  $('#inv-wd').hidden = !can;
-  const last = (r.withdrawals || [])[0];
-  $('#inv-hist').hidden = !last;
-  if (last) $('#inv-hist').textContent = `Last withdrawal: ${rupees(last.amount)} to ${last.upi}, ${last.status === 'paid' ? 'paid' : 'on its way (usually within 2 days)'}.`;
-}
-$('#inv-wd').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = $('button', e.currentTarget); btn.disabled = true; invMsg('');
-  try { const r = await api('/api/offers', { action: 'ref-withdraw', upi: $('#inv-upi').value }); paintCash(r); invMsg(`${rupees(r.amount)} is on its way to your UPI ID.`); }
-  catch (err) { invMsg(err.message, true); }
-  finally { btn.disabled = false; }
-});
-inv.addEventListener('click', (e) => e.stopPropagation());
-$('#inv-x').addEventListener('click', () => { setInv(false); menuBtn.focus(); });
-$('#inv-copy').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText(invLink); invMsg('Link copied. Send it to a friend.'); }
-  catch { $('#inv-url').select(); invMsg('Copy the selected link.'); }
 });
 
 // links to things that aren't built yet, or that depend on the visitor's own email app, always say what happens,
@@ -329,8 +257,6 @@ function paintPrices() {
 }
 function renderAccount() {
   const u = S && S.user;
-  if (!u || !S.rewards) rewardOn = false;
-  if (!u && !inv.hidden) setInv(false);
   acct.removeAttribute('aria-busy');
   $('.acct__skel', acct).hidden = true;
   $('#signin-btn').hidden = !!u;
@@ -404,9 +330,6 @@ const setMenu = (open) => { menu.hidden = !open; menuBtn.setAttribute('aria-expa
 menuBtn.addEventListener('click', () => setMenu(menu.hidden));
 document.addEventListener('click', (e) => { if (!menu.hidden && !e.target.closest('.acct__me')) setMenu(false); });
 menu.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setMenu(false); menuBtn.focus(); } });
-$('#invite-btn').addEventListener('click', (e) => { e.stopPropagation(); setMenu(false); setInv(true); });
-// the bar's own Invite button: signed in opens the invite box; signed out asks them to sign in first
-$('#invite-top').addEventListener('click', (e) => { e.stopPropagation(); setMenu(false); if (S && S.user) setInv(inv.hidden); else openSignIn(null); });
 $('#signout-btn').addEventListener('click', async () => { setMenu(false); await api('/api/login', { logout: true }).catch(() => {}); await boot(); say('Signed out.'); });
 
 // ---------------------------------------------------------------- checkout: one UPI payment for the whole cart
@@ -417,9 +340,8 @@ function setOffer(o) {
   try { offer ? localStorage.setItem(OFFER_KEY, JSON.stringify(offer)) : localStorage.removeItem(OFFER_KEY); } catch { /* storage blocked: it just won't persist */ }
   renderCart();
 }
-// The 50% referral reward (G8) is the same rule over every subject in the cart (api/_referrals.js priceReward).
 export function quote(codes) {
-  const o = rewardOn ? REWARD : offer;
+  const o = offer;
   const lines = codes.map((c) => {
     const price = byCode(c).price, on = o && (!o.codes.length || o.codes.includes(c));
     return { code: c, label: byCode(c).name, price, amount: on ? Math.min(price, Math.max(1, Math.floor((price * (100 - o.pct)) / 100))) : price };
@@ -442,8 +364,7 @@ export async function startBuy(codes) {
     if (!window.Razorpay) await loadScript('https://checkout.razorpay.com/v1/checkout.js');
     const req = { products: codes };
     if (gift.on) req.gift = giftEmail();
-    if (rewardOn && !gift.on) req.reward = true; else if (offer) req.code = offer.code;
-    if (refToken() && !gift.on) req.ref = refToken();
+    if (offer) req.code = offer.code;
     const o = await api('/api/create-order', req);
     try { localStorage.setItem('st_order', o.orderId); } catch { /* ignore */ }
     const names = codes.map((c) => byCode(c).name).join(', ');
@@ -468,11 +389,6 @@ export async function startBuy(codes) {
       say(`${e.message} Your total is now ₹${cartTotal()}. Tap Pay again to buy at that price.`, { warn: true, hold: true });
       return;
     }
-    if (e.data && e.data.badReward) { // no reward left (spent on another device): back to the full price
-      rewardOn = false; if (S) S.rewards = 0; renderCart();
-      say(`${e.message} Your total is now ₹${cartTotal()}. Tap Pay again to buy at that price.`, { warn: true, hold: true });
-      return;
-    }
     if (gift.on && e.data && (e.data.badGift || e.status === 409)) { // the friend's email, or what they already own: say it by the field
       setBox(true); giftMsg(e.message, true); $('#gift-in').focus();
       return;
@@ -486,9 +402,7 @@ export async function startBuy(codes) {
 async function unlocked(codes, to) {
   codes.forEach((c) => setInCart(c, false));
   if (offer) setOffer(null); // each student can use a code once (a gift used the buyer's)
-  rewardOn = false; // a reward is one purchase (boot() below brings the new count)
-  if (to) { gift.on = false; gift.email = ''; saveGift(); } // a gift is not your first purchase, so a friend's link still counts later
-  else { try { localStorage.removeItem(REF_KEY); } catch { /* ignore */ } } // only a first purchase can credit a friend
+  if (to) { gift.on = false; gift.email = ''; saveGift(); }
   await boot();
   const names = codes.map((c) => byCode(c)?.name).filter(Boolean).join(', ');
   if (to) {
