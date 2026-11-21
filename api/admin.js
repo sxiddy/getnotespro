@@ -16,16 +16,27 @@ const { loadPricing, listPriceOf, SALE, saleOn, isLive, send, body, env, safeEqu
 const store = require('./_store');
 
 const codes = Object.keys(PRODUCTS);
+// backup copies of a notes site on other hosts (same code, same database)
+const MIRRORS = { BACHY101: ['https://bachy101.onrender.com'] };
 
 // each notes website counts its own visitors and knows who signed in; ask each one with the shared admin key
 async function fetchSite(code) {
   const p = PRODUCTS[code], out = { code, name: p.name, ok: false, json: {} };
-  try {
-    const r = await fetch(p.site + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY'), authorization: 'Bearer ' + env('STORE_SECRET') }, signal: AbortSignal.timeout(8000) });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) { out.error = r.status === 401 ? 'That site has a different ADMIN_KEY.' : (j.error || 'HTTP ' + r.status); return out; }
-    out.ok = true; out.json = j;
-  } catch (e) { out.error = 'Could not reach the site.'; }
+  // a site's /api/stats takes 3-6 s on Cloudflare + Turso; a short timeout made whole sites drop out (their numbers
+  // showed as missing or 0, so totals jumped between refreshes). Wait longer, and try once more if it fails.
+  // every copy of the site, main first: if one host is down (Cloudflare, Render, …) the next copy answers. Both
+  // copies share one database, so the numbers are the same. More copies: SITE_MIRRORS = {"BACHY101":["https://…"]}.
+  let extra = {}; try { extra = JSON.parse(process.env.SITE_MIRRORS || '{}'); } catch (e) { /* ignore */ }
+  const hosts = [p.site, ...(MIRRORS[code] || []), ...(extra[code] || [])].filter((h, i, a) => a.indexOf(h) === i);
+  for (let tryNo = 0; tryNo < hosts.length + 1; tryNo++) {
+    const host = hosts[tryNo % hosts.length];
+    try {
+      const r = await fetch(host + '/api/stats', { headers: { 'x-admin-key': env('ADMIN_KEY'), authorization: 'Bearer ' + env('STORE_SECRET') }, signal: AbortSignal.timeout(20000) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { out.error = r.status === 401 ? 'That site has a different ADMIN_KEY.' : (j.error || 'HTTP ' + r.status); if (r.status < 500) return out; continue; }
+      out.ok = true; out.json = j; out.host = host; delete out.error; return out;
+    } catch (e) { out.error = 'Could not reach the site.'; }
+  }
   return out;
 }
 async function siteVisits() {
@@ -74,6 +85,56 @@ async function snapshot() {
   })).sort((a, b) => String(b.last || b.first || '').localeCompare(String(a.last || a.first || ''))).slice(0, 3000);
   const real = per.reduce((n, p) => n + p.revenue, 0);
   return { products: per, totals: { revenue: real, payments: per.reduce((n, p) => n + p.count, 0), manual: per.reduce((n, p) => n + p.manual, 0), offline: per.reduce((n, p) => n + p.offline, 0), offlineRevenue: per.reduce((n, p) => n + p.offlineRevenue, 0), students: emails.size, refunded: refunds.reduce((n, r) => n + (r.amount || 0), 0), refunds: refunds.length }, payments: payments.slice(0, 1500), refunds: refunds.slice(0, 500), students };
+}
+
+// Payments made on a notes site itself (its own Razorpay Payment Link, e.g. EVS on Render/Cloudflare), not through
+// this store. Same Razorpay account, told apart by notes.product ("bachy101-notes"); older untagged ones by price
+// (₹50 = BACHY105, ₹20 = BACHY101, the only sites that sold before tags). Cached for 5 minutes.
+let directCache = null;
+async function directSales() {
+  if (directCache && Date.now() - directCache.t < 300e3) return directCache.v;
+  const from = Math.floor(Date.now() / 1000) - 400 * 86400, out = [];
+  let error = null;
+  try {
+    for (let skip = 0; skip < 2000; skip += 100) {
+      const r = await razorpay('GET', `/payments?count=100&skip=${skip}&from=${from}`);
+      const items = r.items || [];
+      for (const p of items) {
+        const n = p.notes || {};
+        if (n.product === 'pro-store' || p.currency !== 'INR') continue;
+        if (!(p.status === 'captured' || p.status === 'refunded' || (p.amount_refunded || 0) > 0)) continue;
+        let code = /^([a-z]{4,5}\d{3})-notes$/.test(n.product || '') ? n.product.slice(0, -6).toUpperCase() : null;
+        if (!code && !n.product && p.method === 'upi' && p.status === 'captured') code = p.amount === 5000 ? 'BACHY105' : p.amount === 2000 ? 'BACHY101' : null;
+        if (!code || !PRODUCTS[code]) continue;
+        const refunded = p.amount_refunded || 0;
+        out.push({ email: normEmail(n.email) || '(before sign-in)', product: code, id: p.id, at: new Date(p.created_at * 1000).toISOString(), amount: p.amount, refunded, method: p.method || '', contact: p.contact || '', status: refunded >= p.amount ? 'refunded' : 'paid', site: true });
+      }
+      if (items.length < 100) break;
+    }
+  } catch (e) { error = 'Could not read the notes sites’ own payments from Razorpay: ' + e.message; }
+  const v = { payments: out, error };
+  if (!error) directCache = { t: Date.now(), v };
+  return v;
+}
+// add the sites' own payments to the store's numbers, so the overview counts every website
+async function withDirect(snap) {
+  const d = await directSales();
+  snap.payments = [...snap.payments, ...d.payments].sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  d.payments.forEach((p) => {
+    const per = snap.products.find((x) => x.code === p.product);
+    const net = p.amount - p.refunded;
+    if (p.status === 'paid') { per.count++; per.site = (per.site || 0) + 1; }
+    per.revenue += net; per.siteRevenue = (per.siteRevenue || 0) + net;
+    if (p.refunded) { snap.totals.refunded += p.refunded; snap.totals.refunds++; }
+  });
+  snap.totals.revenue = snap.products.reduce((n, p) => n + p.revenue, 0);
+  snap.totals.payments = snap.products.reduce((n, p) => n + p.count, 0);
+  snap.totals.site = d.payments.filter((p) => p.status === 'paid').length;
+  snap.totals.siteRevenue = d.payments.reduce((n, p) => n + p.amount - p.refunded, 0);
+  snap.totals.students = new Set([...snap.students.map((x) => x.email), ...d.payments.map((p) => p.email)]).size;
+  snap.totals.buyers = new Set(snap.payments.filter((p) => p.status === 'paid').map((p) => p.email)).size;
+  snap.directError = d.error;
+  return snap;
 }
 
 async function reconcile(days) {
@@ -128,12 +189,12 @@ module.exports = handle(async (req, res) => {
   if (!store.configured()) return send(res, 500, { error: 'The database is not connected.' });
 
   if (req.method === 'GET' && new URL(req.url, 'http://x').searchParams.get('part') === 'inbox') {
-    const [sites, [h], snap] = await Promise.all([Promise.all(codes.map(fetchSite)), store.pipeline([['GET', 'health']]), snapshot()]);
+    const [sites, [h], snap] = await Promise.all([Promise.all(codes.map(fetchSite)), store.pipeline([['GET', 'health']]), snapshot().then(withDirect)]);
     // each site's own switches side by side, so one set differently stands out
     const settings = sites.map((s) => { const j = s.json; return { code: s.code, ok: s.ok, price: j.price, sale: j.sale || null, paused: j.paused || null, signin: j.signin, free: !!(j.freeSite || j.freeAll || j.freeNow), banner: j.banner || null, reviewOn: !!j.reviewOn, maxDevices: j.maxDevices || null }; });
     // what happened lately, everywhere: purchases, access given by hand, refunds, students' messages
     const activity = [
-      ...snap.payments.map((x) => ({ at: x.at, code: x.product, type: x.manual ? 'manual' : x.offline ? 'offline' : 'paid', who: x.email, amount: x.manual ? 0 : x.amount, text: x.giftFrom ? 'gift from ' + x.giftFrom : (x.note || '') })),
+      ...snap.payments.map((x) => ({ at: x.at, code: x.product, type: x.manual ? 'manual' : x.offline ? 'offline' : x.status === 'refunded' ? 'refund' : 'paid', who: x.email, amount: x.manual ? 0 : x.amount, text: x.giftFrom ? 'gift from ' + x.giftFrom : (x.note || '') })),
       ...snap.refunds.map((x) => ({ at: x.at, code: x.product, type: 'refund', who: x.email, amount: x.amount, text: x.reason || '' })),
       ...sites.flatMap((s) => (s.json.feedback || []).map((f) => ({ at: f.at, code: s.code, type: f.kind === 'idea' ? 'idea' : 'message', who: f.email || f.contact || '', text: String(f.text || '').slice(0, 140), status: f.status }))),
     ].filter((x) => x.at).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 80);
@@ -147,7 +208,7 @@ module.exports = handle(async (req, res) => {
     const soon = UP.map((u, i) => ({ code: u.code, name: u.name, status: u.status, site: u.site, visits: store.pairs(sv[i]) }));
     return send(res, 200, { sites: await siteVisits(), store: { visits: store.pairs(vs), loads: store.pairs(ls) }, soon, now: new Date().toISOString() });
   }
-  if (req.method === 'GET') return send(res, 200, Object.assign(await snapshot(), { now: new Date().toISOString(), domain: DOMAIN }));
+  if (req.method === 'GET') return send(res, 200, Object.assign(await withDirect(await snapshot()), { now: new Date().toISOString(), domain: DOMAIN }));
   if (req.method !== 'POST') return send(res, 405, { error: 'GET or POST only' });
 
   const b = await body(req), a = b.action;
